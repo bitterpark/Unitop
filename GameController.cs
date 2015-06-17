@@ -19,6 +19,7 @@
  */
 
 using UnityEngine;
+//using UnityEditor;
 using System.Collections;
 using System.Xml;
 using System.IO;
@@ -37,11 +38,21 @@ namespace Topology {
 		private int linkCount = 0;
 		private GUIText nodeCountText;
 		private GUIText linkCountText;
+		
+		private Hashtable createdLinks;
+		string sourceFile;
+		bool awaitingPath=true;
+		
+		FileBrowser fb;
+		public GUISkin fbSkin;
+		public Texture2D file,folder,back,drive;
 
 		//Method for loading the GraphML layout file
 		private IEnumerator LoadLayout(){
 
-			string sourceFile = Application.dataPath + "/Data/layout.xml";
+			//while (awaitingPath) {yield return WaitForFixedUpdate();}
+			//sourceFile = EditorUtility.OpenFilePanel("Select source file","","xml");
+			//string sourceFile = Application.dataPath + "/Data/layout.xml";
 			statusText.text = "Loading file: " + sourceFile;
 
 			//determine which platform to load for
@@ -70,7 +81,6 @@ namespace Topology {
 
 				for(int j=0; j<xmlGraph.ChildNodes.Count; j++){
 					XmlElement xmlNode = xmlGraph.ChildNodes[j] as XmlElement;
-
 					//create nodes
 					if(xmlNode.Name == "node"){
 						float x = float.Parse(xmlNode.Attributes["x"].Value)/scale;
@@ -122,11 +132,82 @@ namespace Topology {
 				link.target = nodes[link.targetId] as Node;
 			}
 		}
-
+		
+		//Method for adding new links
+		public void CreateNewLink(string newLinkSourceId, string newLinkTargetId)
+		{
+			//Check if link already exists
+			bool exists=false;
+			foreach (Link link in links.Values)
+			{
+				if (link.sourceId==newLinkSourceId && link.targetId==newLinkTargetId)
+				{
+					exists=true;
+					//print ("Error: Link already Exists!");
+					break;
+				}
+			}
+			if (!exists)
+			//Create link
+			{
+				Link linkObject = Instantiate(linkPrefab, new Vector3(0,0,0), Quaternion.identity) as Link;
+				linkObject.id = ("link_"+(linkCount).ToString());//+strNum);//xmlNode.Attributes["id"].Value;
+				
+				linkObject.sourceId = newLinkSourceId; //xmlNode.Attributes["source"].Value;
+				linkObject.targetId = newLinkTargetId;//xmlNode.Attributes["target"].Value;
+				linkObject.status = "Up";//xmlNode.Attributes["status"].Value;
+				createdLinks.Add (linkObject.id, linkObject);
+				links.Add(linkObject.id, linkObject);
+				//Map links
+				linkObject.source = nodes[newLinkSourceId] as Node;
+				linkObject.target = nodes[newLinkTargetId] as Node;
+				//Raise count
+				linkCount++;
+				linkCountText.text = "Edges: " + linkCount;
+				//print ("Link created!");
+			}
+		
+		}
+		
+		public void WriteCreatedLinks()
+		{
+			
+			string filepath = sourceFile;
+			XmlDocument xmlDoc = new XmlDocument();
+			
+			if(File.Exists (filepath))
+			{
+				xmlDoc.Load(filepath);
+				
+				XmlNode elmRoot = xmlDoc.DocumentElement.FirstChild;
+				
+				if (createdLinks.Count>0)
+				{
+					foreach (Link link in createdLinks.Values)
+					{
+						XmlElement savedLink= xmlDoc.CreateElement("edge");
+						savedLink.SetAttribute("id",link.id);
+						savedLink.SetAttribute("source",link.sourceId);
+						savedLink.SetAttribute("target",link.targetId);	
+						savedLink.SetAttribute("color","");
+						savedLink.SetAttribute("label","1000");
+						savedLink.SetAttribute("status",link.status);
+						savedLink.SetAttribute("type","Half");
+						//savedLink.SetAttribute("xmlns",elmRoot.GetPrefixOfNamespace(elmRoot.NamespaceURI));
+						elmRoot.AppendChild(savedLink);
+					}
+				}
+				createdLinks.Clear();
+				
+				xmlDoc.Save(filepath); // save file.
+				print ("saved!");
+			}
+		}
+		
 		void Start () {
 			nodes = new Hashtable();
 			links = new Hashtable();
-
+			createdLinks=new Hashtable();
 			//initial stats
 			nodeCountText = GameObject.Find("NodeCount").guiText;
 			nodeCountText.text = "Nodes: 0";
@@ -134,8 +215,56 @@ namespace Topology {
 			linkCountText.text = "Edges: 0";
 			statusText = GameObject.Find("StatusText").guiText;
 			statusText.text = "";
+		}
 
-			StartCoroutine( LoadLayout() );
+		protected void OnGUI () 
+		{
+			GUI.skin=fbSkin;
+			if (awaitingPath)
+			{
+				if (fb != null) 
+				{
+					fb.OnGUI();
+				} 
+				else 
+				{
+					OnGUIMain();
+				}
+			}
+			else {if (GUI.Button(new Rect(5,60,80,20),"Save")) {WriteCreatedLinks();}}
+		}
+		
+		protected void OnGUIMain() {
+			
+			GUILayout.BeginHorizontal();
+			//GUILayout.Label("Xml File", GUILayout.Width(100));
+			GUILayout.FlexibleSpace();
+			//GUILayout.Label(sourceFile ?? "none selected");
+			if (GUI.Button(new Rect(5,60,80,20),"Open..."))
+			{//GUILayout.ExpandWidth(false))) {
+				fb = new FileBrowser(
+					new Rect(100, 100, 600, 500),
+					"Choose Xml File",
+					FileSelectedCallback
+					);
+				
+				fb.SelectionPattern = "*.xml";
+				fb.DirectoryImage=folder;
+				fb.FileImage=file;
+				
+			}
+			GUILayout.EndHorizontal();
+		}
+		
+		protected void FileSelectedCallback(string path) {
+			
+			sourceFile = path;
+			if (sourceFile!=null)
+			{
+				awaitingPath=false;
+				StartCoroutine( LoadLayout() );
+			}
+			else {fb = null;}
 		}
 
 	}

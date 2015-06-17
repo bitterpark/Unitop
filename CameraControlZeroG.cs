@@ -20,6 +20,8 @@
 
 using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
+using Topology;
 
 [AddComponentMenu("Camera-Control/Move ZeroG")]
 public class CameraControlZeroG : MonoBehaviour {
@@ -33,6 +35,10 @@ public class CameraControlZeroG : MonoBehaviour {
 	private Vector3 cluster3 = new Vector3(2692, 81, 2526);
 	private Vector3 cluster4 = new Vector3(531, 2317, 3776);
 	private Vector3 cluster5 = new Vector3(-587, 2043, 2194);
+	
+	public GameObject controller;
+	private List <Node> selection=new List<Node>();
+	private int selectMode=0;
 
 	void Start(){
 		//set to first cluster position
@@ -48,7 +54,7 @@ public class CameraControlZeroG : MonoBehaviour {
 			move.y = speed * Time.deltaTime;
 		}
 
-		if (Input.GetKey ("left ctrl")) {
+		if (Input.GetKey ("z")) {
 			move.y = -speed * Time.deltaTime;
 		}
 
@@ -82,5 +88,65 @@ public class CameraControlZeroG : MonoBehaviour {
 		if(Input.GetKey("5")){
 			transform.position = cluster5;
 		}
+		//set select mode controls
+		selectMode=0;
+		if (Input.GetKey("left shift")) {selectMode=1;}
+		if (Input.GetKey("left ctrl")) {selectMode=2;}
+		if (Input.GetKey("left alt"))  {selectMode=3;}
+		
+	}
+
+	public void NodeReturn(Node clickedNode)
+	{
+		// single select mode
+		if (selectMode==0)
+		{
+			if (selection.Count>0) 
+			{
+				foreach (Node selectedNode in selection)
+				{
+					selectedNode.selected=false;
+				}
+				selection.Clear();
+			}
+		}
+		
+		//shift select mode and single select mode
+		if (selectMode==0 | selectMode==1)
+		{ 
+			selection.Add(clickedNode);
+			clickedNode.selected=true;
+		}
+		
+		// ctrl(alt) select mode
+		if (selectMode==2) 
+		{
+			if (selection.Contains(clickedNode)) 
+			{
+				selection.Remove(clickedNode);
+				clickedNode.selected=false;
+			}
+			else
+			{
+				selection.Add(clickedNode);
+				clickedNode.selected=true;
+			}
+		}
+		if (selectMode==3)
+		{
+			if (selection.Count>0) 
+			{
+				foreach (Node selectedNode in selection)
+				{
+					if (selectedNode.id!=clickedNode.id)
+					{
+						
+						controller.GetComponent<GameController>().CreateNewLink(selectedNode.id,clickedNode.id);
+						controller.GetComponent<GameController>().CreateNewLink(clickedNode.id,selectedNode.id);
+					}
+				}
+			}
+		}
+	
 	}
 }

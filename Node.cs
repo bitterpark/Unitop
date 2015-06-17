@@ -27,10 +27,32 @@ namespace Topology {
 
 		public string id;
 		public TextMesh nodeText;
-
+		//public CameraControlZeroG selectionController;
+		public bool selected
+		{
+			get{return _selected;}
+			set
+			{
+				if (value) renderer.material.color=Color.green; 
+				else renderer.material.color=Color.blue;//new Color(22,70,109,255);//Color.blue;
+				_selected=value; 
+			}
+		
+		}
+		bool _selected;
+		
 		void Update () {
 			//node text always facing camera
 			nodeText.transform.LookAt (Camera.main.transform);
+		}
+		
+		void OnMouseDown()
+		{
+			//print ("Node"+nodeText.text+" clickd!");
+			//nodeText.text+=" clickd!";
+			//this.gameObject.renderer.material.color=Color.green;
+			Camera.main.gameObject.GetComponent<CameraControlZeroG>().NodeReturn(this);
+			//selectionController.NodeReturn(this);
 		}
 	}
 
