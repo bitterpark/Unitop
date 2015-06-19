@@ -1,4 +1,4 @@
-/*
+﻿/*
  * Copyright 2014 Jason Graves (GodLikeMouse/Collaboradev)
  * http://www.collaboradev.com
  *
@@ -21,6 +21,7 @@
 using UnityEngine;
 //using UnityEditor;
 using System.Collections;
+using System.Collections.Generic;
 using System.Xml;
 using System.IO;
 
@@ -31,15 +32,17 @@ namespace Topology {
 		public Node nodePrefab;
 		public Link linkPrefab;
 
-		private Hashtable nodes;
-		private Hashtable links;
-		private GUIText statusText;
-		private int nodeCount = 0;
-		private int linkCount = 0;
-		private GUIText nodeCountText;
-		private GUIText linkCountText;
+		Hashtable nodes;
+		Hashtable links;
+		GUIText statusText;
+		int nodeCount = 0;
+		int linkCount = 0;
+		GUIText nodeCountText;
+		GUIText linkCountText;
 		
-		private Hashtable createdLinks;
+		//Hashtable createdLinks;
+		List<Link> selectedLinks;
+		
 		string sourceFile;
 		bool awaitingPath=true;
 		
@@ -48,12 +51,10 @@ namespace Topology {
 		public Texture2D file,folder,back,drive;
 
 		//Method for loading the GraphML layout file
-		private IEnumerator LoadLayout(){
+		private IEnumerator LoadLayout()
+		{
 
-			//while (awaitingPath) {yield return WaitForFixedUpdate();}
-			//sourceFile = EditorUtility.OpenFilePanel("Select source file","","xml");
-			//string sourceFile = Application.dataPath + "/Data/layout.xml";
-			statusText.text = "Loading file: " + sourceFile;
+			statusText.text = "Загрузка файла: " + sourceFile;
 
 			//determine which platform to load for
 			string xml = null;
@@ -71,7 +72,7 @@ namespace Topology {
 			XmlDocument xmlDoc = new XmlDocument();
 			xmlDoc.LoadXml(xml);
 
-			statusText.text = "Loading Topology";
+			statusText.text = "Загрузка топологии";
 
 			int scale = 2;
 
@@ -93,9 +94,9 @@ namespace Topology {
 						nodeObject.id = xmlNode.Attributes["id"].Value;
 						nodes.Add(nodeObject.id, nodeObject);
 
-						statusText.text = "Loading Topology: Node " + nodeObject.id;
+						statusText.text = "Загрузка топологии: Вершина " + nodeObject.id;
 						nodeCount++;
-						nodeCountText.text = "Nodes: " + nodeCount;
+						nodeCountText.text = "Вершин: " + nodeCount;
 					}
 
 					//create links
@@ -107,9 +108,9 @@ namespace Topology {
 						linkObject.status = xmlNode.Attributes["status"].Value;
 						links.Add(linkObject.id, linkObject);
 
-						statusText.text = "Loading Topology: Edge " + linkObject.id;
+						statusText.text = "Загрузка топологии: Ребро " + linkObject.id;
 						linkCount++;
-						linkCountText.text = "Edges: " + linkCount;
+						linkCountText.text = "Ребер: " + linkCount;
 					}
 
 					//every 100 cycles return control to unity
@@ -151,25 +152,193 @@ namespace Topology {
 			//Create link
 			{
 				Link linkObject = Instantiate(linkPrefab, new Vector3(0,0,0), Quaternion.identity) as Link;
-				linkObject.id = ("link_"+(linkCount).ToString());//+strNum);//xmlNode.Attributes["id"].Value;
+				//find free link id
+				int i=0;
+				while (links.ContainsKey("link_"+i.ToString()))
+				{
+					i++;
+				}
 				
-				linkObject.sourceId = newLinkSourceId; //xmlNode.Attributes["source"].Value;
-				linkObject.targetId = newLinkTargetId;//xmlNode.Attributes["target"].Value;
-				linkObject.status = "Up";//xmlNode.Attributes["status"].Value;
-				createdLinks.Add (linkObject.id, linkObject);
+				linkObject.id = "link_"+i.ToString();
+				
+				linkObject.sourceId = newLinkSourceId;
+				linkObject.targetId = newLinkTargetId;
+				linkObject.status = "Up";
 				links.Add(linkObject.id, linkObject);
 				//Map links
 				linkObject.source = nodes[newLinkSourceId] as Node;
 				linkObject.target = nodes[newLinkTargetId] as Node;
 				//Raise count
 				linkCount++;
-				linkCountText.text = "Edges: " + linkCount;
+				linkCountText.text = "Ребер: " + linkCount;
 				//print ("Link created!");
+			}
+		}
+		
+		//Remove one link duplex
+		void DeleteLink(Link deletedLink, Link sibling)
+		{
+			links.Remove(deletedLink.id);
+			GameObject.Destroy(deletedLink.gameObject);
+			linkCount--;
+			if (sibling!=null) 
+			{
+				links.Remove(sibling.id);
+				GameObject.Destroy(sibling.gameObject);
+				linkCount--;
+			}
+		}
+		
+		//Remove selected links
+		void DeleteSelectedLinks()
+		{
+			if (selectedLinks.Count>0)
+			{
+				foreach(Link selectedLink in selectedLinks)
+				{
+					Link sibling=GetLinkSibling(selectedLink);
+					if (sibling!=null) 
+					{
+						DeleteLink(selectedLink,sibling);
+					}
+				}
+				selectedLinks.Clear();
+			}
+		}
+		
+		Link GetLinkSibling(Link checkedLink)
+		{
+			Link sibling=null;
+			string startId=checkedLink.sourceId;
+			string endId=checkedLink.targetId;
+			if (links.Values.Count>0)
+			{
+				foreach (Link link in links.Values)
+				{
+					if (link.targetId==startId && link.sourceId==endId) 
+					{
+						sibling=link;
+						break;
+					}
+				}
+			}
+			return sibling; 
+		}
+		
+		//Link click action
+		public void ClickLink(Link clickedLink)
+		{
+			//Determine select mode
+			int mode=0;
+			if (Input.GetKey("left shift")) {mode=1;}
+			if (Input.GetKey("left ctrl")) {mode=2;}
+			
+			string startId=clickedLink.sourceId;
+			string endId=clickedLink.targetId;
+			//get sibling (if one exists)
+			Link sibling=GetLinkSibling(clickedLink);
+			//If sibling doesn't exist, pass null
+			ClickedLinkAction(clickedLink,sibling,mode);
+		}
+		
+		//Do action based on select mode
+		void ClickedLinkAction(Link actionLink, Link sibling,int selectMode)
+		{
+			
+			switch (selectMode)
+			{
+				case 0:
+				{
+					if (selectedLinks.Count>0) 
+					{
+						foreach (Link selectedLink in selectedLinks) {selectedLink.selected=false;}
+					}
+					selectedLinks.Clear();
+					selectedLinks.Add (actionLink);
+					actionLink.selected=true;
+					//Make sure sibling is kept selected
+					if (sibling!=null)
+					{
+						selectedLinks.Add (sibling);
+						sibling.selected=true;
+					}
+					break;
+				}
+				case 1:
+				{
+					selectedLinks.Add (actionLink);
+					actionLink.selected=true;
+					if (sibling!=null)
+					{
+						selectedLinks.Add (sibling);
+						sibling.selected=true;
+					}
+					break;
+				}
+				case 2:
+				{
+					if (actionLink.selected)
+					{
+						selectedLinks.Remove(actionLink);
+						actionLink.selected=false;
+						//assume sibling has the same status as main
+						if (sibling!=null)
+						{
+							selectedLinks.Remove(sibling);
+							sibling.selected=false;
+						}
+					}
+					else
+					{
+						selectedLinks.Add(actionLink);
+						actionLink.selected=true;
+						//assume sibling has the same status as main
+						if (sibling!=null)
+						{
+							selectedLinks.Add(sibling);
+							sibling.selected=true;
+						}
+					
+					}
+					break;
+				}
+			}
+		}
+
+		//Method for saving new links
+		void SaveLinks()
+		{
+			ClearXmlLinks();
+			WriteLinksToXml();
+		}
+		
+		void ClearXmlLinks()
+		{
+			string filepath = sourceFile;
+			XmlDocument xmlDoc = new XmlDocument();
+			
+			if(File.Exists (filepath))
+			{
+				xmlDoc.Load(filepath);
+				
+				XmlNode elmRoot = xmlDoc.DocumentElement.FirstChild;
+				List<XmlNode> linkList=new List<XmlNode>();
+				//Find link nodes in children of main node
+				foreach (XmlNode childLink in elmRoot.ChildNodes) 
+				{
+					if (childLink.Name=="edge") {linkList.Add(childLink);}
+				}
+				//Remove all link nodes from xml file
+				foreach (XmlNode link in linkList)
+				{
+					elmRoot.RemoveChild(link);
+				}
+				xmlDoc.Save(filepath);
 			}
 		
 		}
 		
-		public void WriteCreatedLinks()
+		void WriteLinksToXml()
 		{
 			
 			string filepath = sourceFile;
@@ -181,9 +350,9 @@ namespace Topology {
 				
 				XmlNode elmRoot = xmlDoc.DocumentElement.FirstChild;
 				
-				if (createdLinks.Count>0)
+				if (links.Count>0)
 				{
-					foreach (Link link in createdLinks.Values)
+					foreach (Link link in links.Values)
 					{
 						XmlElement savedLink= xmlDoc.CreateElement("edge");
 						savedLink.SetAttribute("id",link.id);
@@ -194,29 +363,34 @@ namespace Topology {
 						savedLink.SetAttribute("status",link.status);
 						savedLink.SetAttribute("type","Half");
 						//savedLink.SetAttribute("xmlns",elmRoot.GetPrefixOfNamespace(elmRoot.NamespaceURI));
+						savedLink.SetAttribute("xmlns","http://graphml.graphdrawing.org/xmlns");
 						elmRoot.AppendChild(savedLink);
 					}
 				}
-				createdLinks.Clear();
-				
 				xmlDoc.Save(filepath); // save file.
-				print ("saved!");
 			}
+			
 		}
 		
 		void Start () {
 			nodes = new Hashtable();
 			links = new Hashtable();
-			createdLinks=new Hashtable();
+			selectedLinks=new List<Link>();
 			//initial stats
 			nodeCountText = GameObject.Find("NodeCount").guiText;
-			nodeCountText.text = "Nodes: 0";
+			nodeCountText.text = "Вершин: 0";
 			linkCountText = GameObject.Find("LinkCount").guiText;
-			linkCountText.text = "Edges: 0";
+			linkCountText.text = "Ребер: 0";
 			statusText = GameObject.Find("StatusText").guiText;
 			statusText.text = "";
 		}
-
+		
+		void Update()
+		{
+			//manage keys
+			if (Input.GetKeyDown (KeyCode.Delete)){DeleteSelectedLinks();}
+		}
+		
 		protected void OnGUI () 
 		{
 			GUI.skin=fbSkin;
@@ -231,7 +405,7 @@ namespace Topology {
 					OnGUIMain();
 				}
 			}
-			else {if (GUI.Button(new Rect(5,60,80,20),"Save")) {WriteCreatedLinks();}}
+			else {if (GUI.Button(new Rect(5,60,80,20),"Сохранить")) {SaveLinks();}}//WriteCreatedLinks();}}
 		}
 		
 		protected void OnGUIMain() {
@@ -240,11 +414,11 @@ namespace Topology {
 			//GUILayout.Label("Xml File", GUILayout.Width(100));
 			GUILayout.FlexibleSpace();
 			//GUILayout.Label(sourceFile ?? "none selected");
-			if (GUI.Button(new Rect(5,60,80,20),"Open..."))
+			if (GUI.Button(new Rect(5,60,80,20),"Открыть..."))
 			{//GUILayout.ExpandWidth(false))) {
 				fb = new FileBrowser(
 					new Rect(100, 100, 600, 500),
-					"Choose Xml File",
+					"Выберите xml файл",
 					FileSelectedCallback
 					);
 				
