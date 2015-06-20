@@ -27,6 +27,7 @@ namespace Topology {
 
 		public string id;
 		public TextMesh nodeText;
+		public GameController controller;
 		public bool selected
 		{
 			get{return _selected;}
@@ -48,7 +49,8 @@ namespace Topology {
 		
 		void OnMouseDown()
 		{
-			Camera.main.gameObject.GetComponent<CameraControlZeroG>().NodeReturn(this);
+			//Camera.main.gameObject.GetComponent<CameraControlZeroG>().controller
+			controller.ClickNode(this);
 		}
 	}
 

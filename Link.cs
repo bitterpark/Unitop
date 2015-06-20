@@ -35,7 +35,8 @@ namespace Topology {
 
 		LineRenderer lineRenderer;
 		CapsuleCollider capsule;
-		public GameObject controller;
+		//public GameObject controller;
+		public GameController controller;
 		
 		public bool selected
 		{
@@ -53,7 +54,7 @@ namespace Topology {
 		void Start () 
 		{
 			//get controller for prefab
-			controller=Camera.main.gameObject.GetComponent<CameraControlZeroG>().controller;
+			//controller=Camera.main.gameObject.GetComponent<CameraControlZeroG>().controller;
 			
 			lineRenderer = gameObject.AddComponent<LineRenderer>();
 			//add collider
@@ -86,7 +87,9 @@ namespace Topology {
 		}
 
 		void Update () {
-			if(source && target && !loaded){
+			//First frame object setup
+			if(source && target && !loaded)
+			{
 				//draw links as full duplex, half in each direction
 				Vector3 m = (target.transform.position - source.transform.position)/2 + source.transform.position;
 				lineRenderer.SetPosition(0, source.transform.position);
@@ -105,7 +108,8 @@ namespace Topology {
 		void OnMouseDown()
 		{
 			//Camera.main.gameObject.GetComponent<CameraControlZeroG>().LinkReturn(this);
-			controller.GetComponent<GameController>().ClickLink(this);
+			//controller.GetComponent<GameController>().ClickLink(this);
+            controller.ClickLink(this);
 		}
 	}
 

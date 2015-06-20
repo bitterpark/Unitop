@@ -30,26 +30,30 @@ public class CameraControlZeroG : MonoBehaviour {
 	public GUIText movementSpeed;
 
 	private Vector3 move = new Vector3();
+	//cluster 1 is also startpoint
 	private Vector3 cluster1 = new Vector3(1960, 1791, 2726);
+	/*
 	private Vector3 cluster2 = new Vector3(2042, 1579, 4254);
 	private Vector3 cluster3 = new Vector3(2692, 81, 2526);
 	private Vector3 cluster4 = new Vector3(531, 2317, 3776);
 	private Vector3 cluster5 = new Vector3(-587, 2043, 2194);
-	
+	*/
 	public GameObject controller;
-	private List <Node> selection=new List<Node>();
+	//private List <Node> selection=new List<Node>();
 	private int selectMode=0;
-
+	
 	void Start(){
 		//set to first cluster position
 		transform.position = cluster1;
 	}
 	
 	void Update () {
+		if (Input.GetKeyDown ("f")) {GetComponent<MouseLook>().enabled=!GetComponent<MouseLook>().enabled;}
+		
 		move.x = Input.GetAxis("Horizontal") * speed * Time.deltaTime;
 		move.z = Input.GetAxis("Vertical") * speed * Time.deltaTime;
-
 		move.y = 0;
+		
 		if (Input.GetKey ("space")) {
 			move.y = speed * Time.deltaTime;
 		}
@@ -67,7 +71,8 @@ public class CameraControlZeroG : MonoBehaviour {
 
 		move = transform.TransformDirection(move);
 		transform.position += move;
-
+		
+		/*
 		//set warp to cluster controls
 		if(Input.GetKey("1")){
 			transform.position = cluster1;
@@ -87,15 +92,12 @@ public class CameraControlZeroG : MonoBehaviour {
 
 		if(Input.GetKey("5")){
 			transform.position = cluster5;
-		}
-		//set select mode controls
-		selectMode=0;
-		if (Input.GetKey("left shift")) {selectMode=1;}
-		if (Input.GetKey("left ctrl")) {selectMode=2;}
-		if (Input.GetKey("left alt"))  {selectMode=3;}
+		}*/
+		
 		
 	}
-
+	
+	/*
 	public void NodeReturn(Node clickedNode)
 	{
 		// single select mode
@@ -148,6 +150,6 @@ public class CameraControlZeroG : MonoBehaviour {
 			}
 		}
 	
-	}
+	}*/
 
 }
