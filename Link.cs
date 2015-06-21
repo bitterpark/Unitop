@@ -31,6 +31,7 @@ namespace Topology {
 		public string sourceId;
 		public string targetId;
 		public string status;
+		public string color;
 		public bool loaded = false;
 
 		LineRenderer lineRenderer;
@@ -44,7 +45,7 @@ namespace Topology {
 			set
 			{
 				if (value) renderer.material.color=Color.blue; 
-				else renderer.material.color=Color.black;//new Color(22,70,109,255);//Color.blue;
+				else renderer.material.color=GetColorFromString(color);//new Color(22,70,109,255);//Color.blue;
 				_selected=value; 
 			}
 			
@@ -61,19 +62,21 @@ namespace Topology {
 			capsule = gameObject.AddComponent<CapsuleCollider>();
 			
 			//color link according to status
-			Color c;
+			
+			
+			/*
 			if (status == "Up")
 				c = Color.black;
 			else
 				c = Color.red;
 			c.a = 0.5f;
-
+			*/
 			//draw line
 			//lineRenderer.sortingOrder=-2;
 			float lineWidth=0.3f;
 			lineRenderer.sortingOrder=-2;
 			lineRenderer.material = new Material (Shader.Find("Self-Illumin/Diffuse"));
-			lineRenderer.material.SetColor ("_Color", c);
+			lineRenderer.material.SetColor ("_Color",GetColorFromString(color));
 			lineRenderer.SetWidth(lineWidth,lineWidth);
 			lineRenderer.SetVertexCount(2);
 			lineRenderer.SetPosition(0, new Vector3(0,0,0));
@@ -85,7 +88,19 @@ namespace Topology {
 			capsule.direction = 2; // Z-axis for easier "LookAt" orientation
 			capsule.isTrigger=true;
 		}
-
+		
+		Color GetColorFromString(string color)
+		{
+			Color c=Color.cyan;
+			switch (color)
+			{
+				case "black": {c=Color.black; break;}
+				case "red": {c=Color.red; break;}
+				case "green": {c=Color.green; break;}
+			}
+			return c;
+		}
+		
 		void Update () {
 			//First frame object setup
 			if(source && target && !loaded)

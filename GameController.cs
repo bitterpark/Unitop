@@ -45,15 +45,26 @@ namespace Topology {
 		
 		string sourceFile;
 		bool awaitingPath=true;
-		//bool drawTooltip=false;
-		int tooltipMode;
+		//0 - node mode. 1 - link mode
+		int tooltipMode
+		{
+			get {return _tooltipMode;}
+			set 
+			{
+				if (value!=_tooltipMode) {listSelectIndex=0;}
+				_tooltipMode=value;
+			}
+		
+		}
+		int _tooltipMode=0;
 		//ctrl, shift or alt select
 		int selectMode;
 		//something was selected this frame, so no deselect
 		bool selectionMade=false;
 		
+		//Starting file browser object
 		FileBrowser fb;
-		//ComboBox comboBoxControl=new ComboBox();
+		//dropselect selection index
 		int listSelectIndex=0;
 		bool renderList=false;
 		public GUISkin fbSkin;
@@ -84,7 +95,7 @@ namespace Topology {
 
 			statusText.text = "Загрузка топологии";
 
-			int scale = 2;
+			int scale = 1;//2;
 
 			XmlElement root = xmlDoc.FirstChild as XmlElement;
 			for(int i=0; i<root.ChildNodes.Count; i++){
@@ -117,6 +128,9 @@ namespace Topology {
 						linkObject.sourceId = xmlNode.Attributes["source"].Value;
 						linkObject.targetId = xmlNode.Attributes["target"].Value;
 						linkObject.status = xmlNode.Attributes["status"].Value;
+						string newLinkColor=xmlNode.Attributes["color"].Value;
+						if (newLinkColor=="") {newLinkColor="black";}
+						linkObject.color=newLinkColor;
 						linkObject.controller=this;
 						links.Add(linkObject.id, linkObject);
 						
@@ -146,8 +160,43 @@ namespace Topology {
 			}
 		}
 		
+		void CreateNewNode()
+		{
+
+			Vector3 newNodePos=Camera.main.transform.position+Camera.main.transform.forward*40;
+			Node nodeObject = Instantiate(nodePrefab, newNodePos, Quaternion.identity) as Node;
+			//nodeObject.nodeText.text = xmlNode.Attributes["name"].Value;
+			
+			int i=0;
+			while (nodes.ContainsKey("node_"+i.ToString()))
+			{
+				i++;
+			}
+			nodeObject.id = "node_"+i.ToString();
+			nodeObject.controller=this;
+			nodes.Add(nodeObject.id, nodeObject);
+			nodeCount++;
+		}
+		
+		void DeleteNode(Node deletedNode)
+		{
+			nodes.Remove(deletedNode.id);
+			nodeCount--;
+			//Remove all connecting links
+			Link[] iterAr=new Link[links.Count];
+			links.Values.CopyTo(iterAr,0);
+			foreach(Link link in iterAr)
+			{
+				if (link.source==deletedNode | link.target==deletedNode)
+				{
+					DeleteLink(link,null);
+				}
+			}
+			GameObject.Destroy(deletedNode.gameObject);
+		}
+		
 		//Method for adding new links
-		public void CreateNewLink(string newLinkSourceId, string newLinkTargetId)
+		void CreateNewLink(string newLinkSourceId, string newLinkTargetId)
 		{
 			//Check if link already exists
 			bool exists=false;
@@ -172,7 +221,8 @@ namespace Topology {
 				}
 				
 				linkObject.id = "link_"+i.ToString();
-				
+				linkObject.color="black";
+				linkObject.controller=this;
 				linkObject.sourceId = newLinkSourceId;
 				linkObject.targetId = newLinkTargetId;
 				linkObject.status = "Up";
@@ -208,13 +258,23 @@ namespace Topology {
 			{
 				foreach(Link selectedLink in selectedLinks)
 				{
-					Link sibling=GetLinkSibling(selectedLink);
-					if (sibling!=null) 
-					{
-						DeleteLink(selectedLink,sibling);
-					}
+					//Link sibling=GetLinkSibling(selectedLink);
+					Link sibling=null;
+					DeleteLink(selectedLink,sibling);
 				}
 				selectedLinks.Clear();
+			}
+		}
+		
+		void DeleteSelectedNodes()
+		{
+			if (selectedNodes.Count>0)
+			{
+				foreach(Node selectedNode in selectedNodes)
+				{
+					DeleteNode(selectedNode);
+				}
+				selectedNodes.Clear();
 			}
 		}
 		
@@ -248,7 +308,8 @@ namespace Topology {
 			string startId=clickedLink.sourceId;
 			string endId=clickedLink.targetId;
 			//get sibling (if one exists)
-			Link sibling=GetLinkSibling(clickedLink);
+			Link sibling=null;
+			//Link sibling=GetLinkSibling(clickedLink);
 			//If sibling doesn't exist, pass null
 			ClickedLinkAction(clickedLink,sibling);
 		}
@@ -278,7 +339,7 @@ namespace Topology {
 			selectionMade=true;
 			DeselectAllNodes();
 			//drawTooltip=true;
-			tooltipMode=0;
+			tooltipMode=1;
 			switch (selectMode)
 			{
 				case 0:
@@ -338,12 +399,69 @@ namespace Topology {
 				}
 			}
 		}
-
+	
+		void ClearXmlNodes()
+		{
+			string filepath = sourceFile;
+			XmlDocument xmlDoc = new XmlDocument();
+			
+			if(File.Exists (filepath))
+			{
+				xmlDoc.Load(filepath);
+				
+				XmlNode elmRoot = xmlDoc.DocumentElement.FirstChild;
+				List<XmlNode> linkList=new List<XmlNode>();
+				//Find link nodes in children of main node
+				foreach (XmlNode childLink in elmRoot.ChildNodes) 
+				{
+					if (childLink.Name=="node") {linkList.Add(childLink);}
+				}
+				//Remove all link nodes from xml file
+				foreach (XmlNode link in linkList)
+				{
+					elmRoot.RemoveChild(link);
+				}
+				xmlDoc.Save(filepath);
+			}
+		}
+		
+		void WriteNodesToXml()
+		{
+			string filepath = sourceFile;
+			XmlDocument xmlDoc = new XmlDocument();
+			
+			if(File.Exists (filepath))
+			{
+				xmlDoc.Load(filepath);
+				
+				XmlNode elmRoot = xmlDoc.DocumentElement.FirstChild;
+				
+				if (nodes.Count>0)
+				{
+					foreach (Node node in nodes.Values)
+					{
+						XmlElement savedNode=xmlDoc.CreateElement("node");
+						savedNode.SetAttribute("id",node.id);
+						savedNode.SetAttribute("name",node.nodeText.text);
+						Vector3 savedNodePos=node.gameObject.transform.position;
+						savedNode.SetAttribute("x",savedNodePos.x.ToString());
+						savedNode.SetAttribute("y",savedNodePos.y.ToString());
+						savedNode.SetAttribute("z",savedNodePos.z.ToString());
+						savedNode.SetAttribute("xmlns","http://graphml.graphdrawing.org/xmlns");
+						elmRoot.AppendChild(savedNode);
+					}
+				}
+				xmlDoc.Save(filepath); // save file.
+			}
+		}
+		
 		//Method for saving new links
-		void SaveLinks()
+		void SaveAll()
 		{
 			ClearXmlLinks();
 			WriteLinksToXml();
+			ClearXmlNodes();
+			WriteNodesToXml();
 		}
 		
 		void ClearXmlLinks()
@@ -392,7 +510,7 @@ namespace Topology {
 						savedLink.SetAttribute("id",link.id);
 						savedLink.SetAttribute("source",link.sourceId);
 						savedLink.SetAttribute("target",link.targetId);	
-						savedLink.SetAttribute("color","");
+						savedLink.SetAttribute("color",link.color);
 						savedLink.SetAttribute("label","1000");
 						savedLink.SetAttribute("status",link.status);
 						savedLink.SetAttribute("type","Half");
@@ -410,6 +528,7 @@ namespace Topology {
 		{
 			selectionMade=true;
 			DeselectAllLinks();
+			tooltipMode=0;
 			// single select mode
 			if (selectMode==0)
 			{
@@ -473,16 +592,6 @@ namespace Topology {
 		void DrawTooltip(int mode)
 		{
 			//nodes tooltip
-			//bool renderList=false;
-			//int listSelectIndex=0;
-			
-			/*
-			float ttDroplistStartx=400;
-			float ttDroplistStarty=100;
-			float ttDroplistSizex=100;
-			float ttDroplistSizey=60;
-			*/
-			//nodes tooltip
 			if (mode==1)
 			{
 				//Generate droplist content
@@ -491,36 +600,32 @@ namespace Topology {
 				{
 					droplistContent[i]=new GUIContent(selectedNodes[i].id);
 				}
+				float ttAreaSizex=300;
+				float ttAreaSizey=100;
 				float ttStartx=0;
 				float ttStarty=100;
 				float ttSizex=100;
-				float ttSizey=60;
+				float ttSizey=20;
 				float ttPad=20;
-				string ttText="Выбраны ноды";
-				GUI.BeginGroup(new Rect(ttStartx,ttStarty,ttSizex,ttSizey));
-				GUI.Box(new Rect(0,0,ttSizex,ttSizey),ttText);
+				string ttText="";
+				GUI.BeginGroup(new Rect(ttStartx,ttStarty,ttAreaSizex,ttAreaSizey));
+				GUI.Box(new Rect(0,0,ttAreaSizex,ttAreaSizey),ttText);
+				GUI.Label (new Rect(ttPad,ttPad,ttSizex,ttSizey),"Выбор элемента:");
+				GUI.Label (new Rect(ttPad,ttPad*2+ttSizey,ttSizex*2,ttSizey),"Имя элемента:");
+				//name edit field
+				string nodeName=selectedNodes[listSelectIndex].nodeText.text;
+				nodeName=GUI.TextField(new Rect(ttPad*2+ttSizex,ttPad*2+ttSizey,ttSizex*1.5f,ttSizey),nodeName);
+				selectedNodes[listSelectIndex].nodeText.text=nodeName;
 				GUI.EndGroup();
-				
-				/*
-				ComboBox fuckballs=new ComboBox(new Rect(ttStartx,ttStarty+ttSizey+ttPad,ttSizex,ttSizey*2)
-				                                ,new GUIContent("list"),droplistContent,fbSkin.customStyles[0]);
-				fuckballs.Show();*/
-				
-				//ComboBox shitfuck=new ComboBox
-				/*
-				listSelectIndex=comboBoxControl.GetSelectedItemIndex();
-				listSelectIndex=comboBoxControl.List (new Rect(ttStartx,ttStarty+ttSizey+ttPad,ttSizex,ttSizey*2)
-				                      ,new GUIContent(droplistContent[listSelectIndex]),droplistContent
-				                      ,fbSkin.customStyles[0]);*/
-				if(Popup.List(new Rect(ttStartx,ttStarty+ttSizey+ttPad,ttSizex,ttSizey*2)
+				//select obj menu
+				if(Popup.List(new Rect(ttStartx+ttPad*2+ttSizex,ttStarty+ttPad,ttSizex,ttSizey)
 				 ,ref renderList,ref listSelectIndex,new GUIContent(droplistContent[listSelectIndex]),droplistContent
 				  ,fbSkin.customStyles[0])) 
 				  {
-				  	print ("Selected!");
+				  	//print ("Selected!");
 				  }
 				  if (renderList) {selectionMade=true;}
 				  else{selectionMade=false;}
-				//print ("First is:"+droplistContent[0].text);
 			}
 			if (mode==2) //links tooltip
 			{
@@ -530,26 +635,38 @@ namespace Topology {
 				{
 					droplistContent[i]=new GUIContent(selectedLinks[i].id);
 				}
+				float ttAreaSizex=300;
+				float ttAreaSizey=100;
 				float ttStartx=0;
 				float ttStarty=100;
 				float ttSizex=100;
-				float ttSizey=60;
+				float ttSizey=20;
 				float ttPad=20;
-				string ttText="Выбраны линки";
-				GUI.BeginGroup(new Rect(ttStartx,ttStarty,ttSizex,ttSizey));
-				GUI.Box(new Rect(0,0,ttSizex,ttSizey),ttText);
-				/*
-				Popup.List(new Rect(ttSizex*2+ttPad,ttSizey*2+ttPad,ttSizex,ttSizey)
-				           ,ref renderList,ref listSelectIndex,new GUIContent("list"),droplistContent
-				           ,fbSkin.customStyles[0],fbSkin.customStyles[0],fbSkin.customStyles[0]);
-				*/
+				string ttText="";
+				GUI.BeginGroup(new Rect(ttStartx,ttStarty,ttAreaSizex,ttAreaSizey));
+				GUI.Box(new Rect(0,0,ttAreaSizex,ttAreaSizey),ttText);
+				GUI.Label (new Rect(ttPad,ttPad,ttSizex,ttSizey),"Выбор элемента:");
+				
+				//Color select button
+				string pickColor=selectedLinks[listSelectIndex].color;
+				if (GUI.Button (new Rect(ttPad,ttPad*2+ttSizey,ttSizex*2,ttSizey),"Цвет элемента:"+pickColor))
+				{
+					switch (pickColor)
+					{
+						case "black": {pickColor="red"; break;}
+						case "red": {pickColor="green"; break;}
+						case "green":{pickColor="black"; break;}
+					}
+					selectedLinks[listSelectIndex].color=pickColor;
+				}
 				GUI.EndGroup();
-				GUI.Box (new Rect(ttStartx,ttStarty+ttSizey+ttPad,ttSizex*2,ttSizey*3),"");
-				if(Popup.List(new Rect(ttStartx,ttStarty+ttSizey+ttPad,ttSizex,ttSizey*2)
+				
+				//element select button
+				if(Popup.List(new Rect(ttStartx+ttPad*2+ttSizex,ttStarty+ttPad,ttSizex,ttSizey)
 				              ,ref renderList,ref listSelectIndex,new GUIContent(droplistContent[listSelectIndex]),droplistContent
 				              ,fbSkin.customStyles[0])) 
 				{
-					print ("Selected!");
+					//print ("Selected!");
 				}
 				if (renderList) {selectionMade=true;}
 				else{selectionMade=false;}
@@ -574,7 +691,7 @@ namespace Topology {
 		//Deselect current selection on clicking empty space
 		void ManageClickDeselect()
 		{
-			if (Input.GetMouseButtonDown(0)) 
+			if (Input.GetMouseButtonDown(1)) 
 			{
 				if (selectMode==0 && !selectionMade)
 				{	
@@ -620,7 +737,15 @@ namespace Topology {
 		{
 			//manage input
 			ManageClickDeselect();
-			if (Input.GetKeyDown (KeyCode.Delete)){DeleteSelectedLinks();}
+			if (Input.GetKeyDown (KeyCode.Delete))
+			{
+				if (selectedNodes.Count>0){DeleteSelectedNodes();}
+				if (selectedLinks.Count>0){DeleteSelectedLinks();}
+			}
+			Vector3 newObjPos=Vector3.zero;
+			
+			if (Input.GetKeyDown("n")) {CreateNewNode();}
+			//print(Input.mousePosition);
 		}
 		
 		protected void OnGUI () 
@@ -637,7 +762,7 @@ namespace Topology {
 					OnGUIMain();
 				}
 			}
-			else {if (GUI.Button(new Rect(5,60,80,20),"Сохранить")) {SaveLinks();}}//WriteCreatedLinks();}}
+			else {if (GUI.Button(new Rect(5,60,80,20),"Сохранить")) {SaveAll();}}//WriteCreatedLinks();}}
 			ManageTooltip();
 		}
 		
@@ -649,11 +774,7 @@ namespace Topology {
 			//GUILayout.Label(sourceFile ?? "none selected");
 			if (GUI.Button(new Rect(5,60,80,20),"Открыть..."))
 			{//GUILayout.ExpandWidth(false))) {
-				fb = new FileBrowser(
-					new Rect(100, 100, 600, 500),
-					"Выберите xml файл",
-					FileSelectedCallback
-					);
+				fb = new FileBrowser(new Rect(100, 100, 600, 500),"Выберите xml файл",FileSelectedCallback);
 				
 				fb.SelectionPattern = "*.xml";
 				fb.DirectoryImage=folder;
