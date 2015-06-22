@@ -48,7 +48,12 @@ public class CameraControlZeroG : MonoBehaviour {
 	}
 	
 	void Update () {
-		if (Input.GetKeyDown ("f")) {GetComponent<MouseLook>().enabled=!GetComponent<MouseLook>().enabled;}
+		if (Input.GetKeyDown ("f")) 
+		{
+			bool mouseLookOn=!GetComponent<MouseLook>().enabled;
+			GetComponent<MouseLook>().enabled=mouseLookOn;
+			if (mouseLookOn){Screen.lockCursor=true;} else {Screen.lockCursor=false;}
+		}
 		
 		move.x = Input.GetAxis("Horizontal") * speed * Time.deltaTime;
 		move.z = Input.GetAxis("Vertical") * speed * Time.deltaTime;
@@ -72,84 +77,6 @@ public class CameraControlZeroG : MonoBehaviour {
 		move = transform.TransformDirection(move);
 		transform.position += move;
 		
-		/*
-		//set warp to cluster controls
-		if(Input.GetKey("1")){
-			transform.position = cluster1;
-		}
-
-		if(Input.GetKey("2")){
-			transform.position = cluster2;
-		}
-
-		if(Input.GetKey("3")){
-			transform.position = cluster3;
-		}
-
-		if(Input.GetKey("4")){
-			transform.position = cluster4;
-		}
-
-		if(Input.GetKey("5")){
-			transform.position = cluster5;
-		}*/
-		
-		
 	}
-	
-	/*
-	public void NodeReturn(Node clickedNode)
-	{
-		// single select mode
-		if (selectMode==0)
-		{
-			if (selection.Count>0) 
-			{
-				foreach (Node selectedNode in selection)
-				{
-					selectedNode.selected=false;
-				}
-				selection.Clear();
-			}
-		}
-		
-		//shift select mode and single select mode
-		if (selectMode==0 | selectMode==1)
-		{ 
-			selection.Add(clickedNode);
-			clickedNode.selected=true;
-		}
-		
-		// ctrl(alt) select mode
-		if (selectMode==2) 
-		{
-			if (selection.Contains(clickedNode)) 
-			{
-				selection.Remove(clickedNode);
-				clickedNode.selected=false;
-			}
-			else
-			{
-				selection.Add(clickedNode);
-				clickedNode.selected=true;
-			}
-		}
-		if (selectMode==3)
-		{
-			if (selection.Count>0) 
-			{
-				foreach (Node selectedNode in selection)
-				{
-					if (selectedNode.id!=clickedNode.id)
-					{
-						
-						controller.GetComponent<GameController>().CreateNewLink(selectedNode.id,clickedNode.id);
-						controller.GetComponent<GameController>().CreateNewLink(clickedNode.id,selectedNode.id);
-					}
-				}
-			}
-		}
-	
-	}*/
 
 }

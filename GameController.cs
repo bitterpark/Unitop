@@ -38,6 +38,8 @@ namespace Topology {
 		int linkCount = 0;
 		GUIText nodeCountText;
 		GUIText linkCountText;
+		//GUIContainer contextMenu;
+		public Rect contextMenuPos;
 		
 		//Hashtable createdLinks;
 		List<Link> selectedLinks;
@@ -123,6 +125,7 @@ namespace Topology {
 
 					//create links
 					if(xmlNode.Name == "edge"){
+					/*
 						Link linkObject = Instantiate(linkPrefab, new Vector3(0,0,0), Quaternion.identity) as Link;
 						linkObject.id = xmlNode.Attributes["id"].Value;
 						linkObject.sourceId = xmlNode.Attributes["source"].Value;
@@ -137,6 +140,11 @@ namespace Topology {
 						statusText.text = "Загрузка топологии: Ребро " + linkObject.id;
 						linkCount++;
 						linkCountText.text = "Ребер: " + linkCount;
+						*/
+						CreateNewLink(xmlNode.Attributes["source"].Value,xmlNode.Attributes["target"].Value
+						 ,xmlNode.Attributes["id"].Value,xmlNode.Attributes["color"].Value);
+						statusText.text = "Загрузка топологии: Ребро " + xmlNode.Attributes["id"].Value;
+						//linkCountText.text = "Ребер: " + linkCount;
 					}
 
 					//every 100 cycles return control to unity
@@ -202,7 +210,8 @@ namespace Topology {
 			bool exists=false;
 			foreach (Link link in links.Values)
 			{
-				if (link.sourceId==newLinkSourceId && link.targetId==newLinkTargetId)
+				if ((link.sourceId==newLinkSourceId && link.targetId==newLinkTargetId) 
+				 | (link.sourceId==newLinkTargetId && link.targetId==newLinkSourceId))
 				{
 					exists=true;
 					//print ("Error: Link already Exists!");
@@ -223,18 +232,57 @@ namespace Topology {
 				linkObject.id = "link_"+i.ToString();
 				linkObject.color="black";
 				linkObject.controller=this;
-				linkObject.sourceId = newLinkSourceId;
-				linkObject.targetId = newLinkTargetId;
-				linkObject.status = "Up";
-				links.Add(linkObject.id, linkObject);
 				//Map links
 				linkObject.source = nodes[newLinkSourceId] as Node;
 				linkObject.target = nodes[newLinkTargetId] as Node;
+				linkObject.sourceId = newLinkSourceId;
+				linkObject.targetId = newLinkTargetId;
+				//linkObject.status = "Up";
+				links.Add(linkObject.id, linkObject);
+
 				//Raise count
 				linkCount++;
 				linkCountText.text = "Ребер: " + linkCount;
 				//print ("Link created!");
 			}
+		}
+		
+		void CreateNewLink(string newLinkSourceId, string newLinkTargetId, string newLinkId, string newLinkColor)
+		{
+			//Check if link already exists
+			bool exists=false;
+			foreach (Link link in links.Values)
+			{
+				if ((link.sourceId==newLinkSourceId && link.targetId==newLinkTargetId) 
+				    | (link.sourceId==newLinkTargetId && link.targetId==newLinkSourceId))
+				{
+					exists=true;
+					//print ("Error: Link already Exists!");
+					break;
+				}
+			}
+			if (!exists)
+				//Create link
+			{
+				Link linkObject = Instantiate(linkPrefab, new Vector3(0,0,0), Quaternion.identity) as Link;
+				
+				linkObject.id = newLinkId;
+				if (newLinkColor!="") {linkObject.color=newLinkColor;}
+				else {linkObject.color="black";}
+				linkObject.controller=this;
+				//Map links
+				linkObject.source = nodes[newLinkSourceId] as Node;
+				linkObject.target = nodes[newLinkTargetId] as Node;
+				linkObject.sourceId = newLinkSourceId;
+				linkObject.targetId = newLinkTargetId;
+				//linkObject.status = "Up";
+				links.Add(linkObject.id, linkObject);
+				
+				//Raise count
+				linkCount++;
+				linkCountText.text = "Ребер: " + linkCount;
+			}
+		
 		}
 		
 		//Remove one link duplex
@@ -573,7 +621,7 @@ namespace Topology {
 						{
 							
 							CreateNewLink(selectedNode.id,clickedNode.id);
-							CreateNewLink(clickedNode.id,selectedNode.id);
+							//CreateNewLink(clickedNode.id,selectedNode.id);
 						}
 					}
 				}
@@ -591,6 +639,9 @@ namespace Topology {
 		
 		void DrawTooltip(int mode)
 		{
+			//contextMenu.Display();
+			//print ("display request fired");
+			
 			//nodes tooltip
 			if (mode==1)
 			{
@@ -600,18 +651,23 @@ namespace Topology {
 				{
 					droplistContent[i]=new GUIContent(selectedNodes[i].id);
 				}
-				float ttAreaSizex=300;
-				float ttAreaSizey=100;
+				//float ttAreaSizex=300;
+				//float ttAreaSizey=100;
 				float ttStartx=0;
 				float ttStarty=100;
 				float ttSizex=100;
 				float ttSizey=20;
 				float ttPad=20;
 				string ttText="";
-				GUI.BeginGroup(new Rect(ttStartx,ttStarty,ttAreaSizex,ttAreaSizey));
-				GUI.Box(new Rect(0,0,ttAreaSizex,ttAreaSizey),ttText);
+				
+				//Main box and left hand labels
+				GUI.Box(contextMenuPos,"");
+				GUI.BeginGroup(contextMenuPos);
+				//GUI.BeginGroup(new Rect(ttStartx,ttStarty,ttAreaSizex,ttAreaSizey));
+				//GUI.Box(new Rect(0,0,ttAreaSizex,ttAreaSizey),ttText);
 				GUI.Label (new Rect(ttPad,ttPad,ttSizex,ttSizey),"Выбор элемента:");
 				GUI.Label (new Rect(ttPad,ttPad*2+ttSizey,ttSizex*2,ttSizey),"Имя элемента:");
+				
 				//name edit field
 				string nodeName=selectedNodes[listSelectIndex].nodeText.text;
 				nodeName=GUI.TextField(new Rect(ttPad*2+ttSizex,ttPad*2+ttSizey,ttSizex*1.5f,ttSizey),nodeName);
@@ -624,8 +680,7 @@ namespace Topology {
 				  {
 				  	//print ("Selected!");
 				  }
-				  if (renderList) {selectionMade=true;}
-				  else{selectionMade=false;}
+				 // if (renderList) {selectionMade=true;}
 			}
 			if (mode==2) //links tooltip
 			{
@@ -635,16 +690,20 @@ namespace Topology {
 				{
 					droplistContent[i]=new GUIContent(selectedLinks[i].id);
 				}
-				float ttAreaSizex=300;
-				float ttAreaSizey=100;
+				//float ttAreaSizex=300;
+				//float ttAreaSizey=100;
 				float ttStartx=0;
 				float ttStarty=100;
 				float ttSizex=100;
 				float ttSizey=20;
 				float ttPad=20;
 				string ttText="";
-				GUI.BeginGroup(new Rect(ttStartx,ttStarty,ttAreaSizex,ttAreaSizey));
-				GUI.Box(new Rect(0,0,ttAreaSizex,ttAreaSizey),ttText);
+				
+				//main box and left hand labels
+				GUI.Box(contextMenuPos,"");
+				GUI.BeginGroup(contextMenuPos);
+				//GUI.BeginGroup(new Rect(ttStartx,ttStarty,ttAreaSizex,ttAreaSizey));
+				//GUI.Box(new Rect(0,0,ttAreaSizex,ttAreaSizey),ttText);
 				GUI.Label (new Rect(ttPad,ttPad,ttSizex,ttSizey),"Выбор элемента:");
 				
 				//Color select button
@@ -658,6 +717,7 @@ namespace Topology {
 						case "green":{pickColor="black"; break;}
 					}
 					selectedLinks[listSelectIndex].color=pickColor;
+					//selectionMade=true;
 				}
 				GUI.EndGroup();
 				
@@ -668,8 +728,7 @@ namespace Topology {
 				{
 					//print ("Selected!");
 				}
-				if (renderList) {selectionMade=true;}
-				else{selectionMade=false;}
+				//if (renderList) {selectionMade=true;}
 			}
 		}
 		
@@ -685,20 +744,20 @@ namespace Topology {
 			linkCountText.text = "Ребер: 0";
 			statusText = GameObject.Find("StatusText").guiText;
 			statusText.text = "";
-
+			//contextMenu=GameObject.Find("ContextMenu").GetComponent<GUIContainer>();//gameObject.GetComponentInChildren<GUIContainer>();
 		}
 		
 		//Deselect current selection on clicking empty space
 		void ManageClickDeselect()
 		{
-			if (Input.GetMouseButtonDown(1)) 
+			if (Input.GetMouseButtonDown(0)) 
 			{
-				if (selectMode==0 && !selectionMade)
+				Vector2 mousePosInGUICoords = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
+				if (selectMode==0 && !selectionMade && !contextMenuPos.Contains(mousePosInGUICoords))
 				{	
 					DeselectAllNodes();
 					DeselectAllLinks();
 				}
-				selectionMade=false;
 			}
 		}
 		
@@ -745,6 +804,7 @@ namespace Topology {
 			Vector3 newObjPos=Vector3.zero;
 			
 			if (Input.GetKeyDown("n")) {CreateNewNode();}
+			selectionMade=false;
 			//print(Input.mousePosition);
 		}
 		

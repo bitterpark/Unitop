@@ -106,14 +106,14 @@ namespace Topology {
 			if(source && target && !loaded)
 			{
 				//draw links as full duplex, half in each direction
-				Vector3 m = (target.transform.position - source.transform.position)/2 + source.transform.position;
+				//Vector3 m = (target.transform.position - source.transform.position)/2 + source.transform.position;
 				lineRenderer.SetPosition(0, source.transform.position);
-				lineRenderer.SetPosition(1, m);
+				lineRenderer.SetPosition(1, target.transform.position);
 				//configure collider
 				
-				capsule.transform.position = source.transform.position + (m - source.transform.position) / 2;
+				capsule.transform.position = source.transform.position + (target.transform.position - source.transform.position)*0.5f;
 				capsule.transform.LookAt(source.transform.position);
-				capsule.height = (m-source.transform.position).magnitude;//(m - source.transform.position).magnitude*8.5;
+				capsule.height = (target.transform.position-source.transform.position).magnitude;//(m - source.transform.position).magnitude*8.5;
 				loaded = true;
 			}
 			
