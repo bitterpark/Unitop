@@ -1,40 +1,106 @@
-﻿using UnityEngine;
+﻿// Popup list with multi-instance support created by Xiaohang Miao. (xmiao2@ncsu.edu)
 
-public class Popup {
-	static int popupListHash = "PopupList".GetHashCode();
+using UnityEngine;
+public class Popup{
 	
-	public static bool List (Rect position, ref bool showList, ref int listEntry, GUIContent buttonContent, GUIContent[] listContent,
-	                         GUIStyle listStyle) {
-		return List(position, ref showList, ref listEntry, buttonContent, listContent, "button", "box", listStyle);
-	}
+	// Represents the selected index of the popup list, the default selected index is 0, or the first item
+	private int selectedItemIndex = 0;
 	
-	public static bool List (Rect position, ref bool showList, ref int listEntry, GUIContent buttonContent, GUIContent[] listContent,
-	                         GUIStyle buttonStyle, GUIStyle boxStyle, GUIStyle listStyle) {
-		int controlID = GUIUtility.GetControlID(popupListHash, FocusType.Passive);
-		bool done = false;
-		switch (Event.current.GetTypeForControl(controlID)) {
-		case EventType.mouseDown:
-			if (position.Contains(Event.current.mousePosition)) {
-				GUIUtility.hotControl = controlID;
-				showList = true;
+	// Represents whether the popup selections are visible (active)
+	private bool isVisible = false;
+	
+	// Represents whether the popup button is clicked once to expand the popup selections
+	private bool isClicked = false;
+	
+	//To make sure deselect doesn't occur when list is selected
+	private Rect currentDimensions;
+	
+	// If multiple Popup objects exist, this static variable represents the active instance, or a Popup object whose selection is currently expanded
+	private static Popup current;
+	
+	// This function is ran inside of OnGUI()
+	// For usage, see http://wiki.unity3d.com/index.php/PopupList#Javascript_-_PopupListUsageExample.js
+	public int List(Rect box, GUIContent[] items, GUIStyle boxStyle, GUIStyle listStyle) {
+		
+		// If the instance's popup selection is visible
+		if(isVisible) 
+		{
+			// Draw a Box
+			Rect listRect = new Rect( box.x, box.y, box.width, box.height * items.Length);
+			//Set dimensions to fit the selectbox
+			currentDimensions=listRect;
+			GUI.Box( listRect, "", boxStyle );
+			
+			// Draw a SelectionGrid and listen for user selection
+			selectedItemIndex = GUI.SelectionGrid( listRect, selectedItemIndex, items, 1, listStyle );
+			
+			// If the user makes a selection, make the popup list disappear and the button reappear
+			if(GUI.changed) {
+				current = null;
+				isClicked=false;
+				currentDimensions=box;
 			}
-			break;
-		case EventType.mouseUp:
-			if (showList) {
-				done = true;
-			}
-			break;
 		}
 		
-		GUI.Label(position, buttonContent, buttonStyle);
-		if (showList) {
-			Rect listRect = new Rect(position.x, position.y, position.width, listStyle.CalcHeight(listContent[0], 1.0f)*listContent.Length);
-			GUI.Box(listRect, "", boxStyle);
-			listEntry = GUI.SelectionGrid(listRect, listEntry, listContent, 1, listStyle);
+		// Get the control ID
+		int controlID = GUIUtility.GetControlID( FocusType.Passive );
+		
+		// Listen for controls
+		switch( Event.current.GetTypeForControl(controlID) )
+		{
+			// If mouse button is clicked, set all Popup selections to be retracted
+		case EventType.mouseUp:
+		{
+			current = null;
+			break;
+		}	
+		}	
+		
+		// Draw a button. If the button is clicked
+		if (!isClicked)
+		{
+			if(GUI.Button(new Rect(box.x,box.y,box.width,box.height),items[selectedItemIndex])) {
+				
+				// If the button was not clicked before, set the current instance to be the active instance
+				if(!isClicked) {
+					current = this;
+					isClicked = true;
+				}
+				// If the button was clicked before (it was the active instance), reset the isClicked boolean
+				else {
+					isClicked = false;
+				}
+			}
 		}
-		if (done) {
-			showList = false;
+		
+		// If the instance is the active instance, set its popup selections to be visible
+		if(current == this) {
+			isVisible = true;
 		}
-		return done;
+		
+		// These resets are here to do some cleanup work for OnGUI() updates
+		else {
+			isVisible = false;
+			isClicked = false;
+		}
+		
+		// Return the selected item's index
+		return selectedItemIndex;
+	}
+	
+	// Get the instance variable outside of OnGUI()
+	public int GetSelectedItemIndex()
+	{
+		return selectedItemIndex;
+	}
+	
+	public Rect GetCurrentDimensions()
+	{
+		return currentDimensions;
+	}
+	
+	public void SetSelectedItemIndex(int newIndex)
+	{
+		selectedItemIndex=newIndex;
 	}
 }

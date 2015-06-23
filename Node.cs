@@ -40,6 +40,7 @@ namespace Topology {
 		
 		}
 		bool _selected;
+		bool dragged=false;
 		
 		void Update () {
 			//node text always facing camera
@@ -51,6 +52,35 @@ namespace Topology {
 		{
 			//Camera.main.gameObject.GetComponent<CameraControlZeroG>().controller
 			controller.ClickNode(this);
+			dragged=true;
+			StartCoroutine(DragRoutine());
+		}
+		
+		IEnumerator DragRoutine()
+		{
+			float i=0;
+			//Wait for an 0.2 of a second mouse button hold 
+			while (i<0.2 && dragged) 
+			{
+				i+=Time.deltaTime;
+				yield return new WaitForFixedUpdate();
+			}
+			//do drag until mouse is let go
+			while (dragged) 
+			{
+				float z=0;
+				z=Camera.main.WorldToScreenPoint(transform.position).z;
+				transform.position=Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x,Input.mousePosition.y,z));
+				//call controller to align links
+				controller.DragNode(this);
+				yield return new WaitForFixedUpdate();
+			}
+			yield break;
+		}
+		
+		void OnMouseUp()
+		{
+			dragged=false;
 		}
 	}
 

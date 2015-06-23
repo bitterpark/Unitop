@@ -41,9 +41,13 @@ namespace Topology {
 		//GUIContainer contextMenu;
 		public Rect contextMenuPos;
 		
-		//Hashtable createdLinks;
+		
 		List<Link> selectedLinks;
 		List <Node> selectedNodes;
+		Object lastSelectedLinkNode=null;
+		//Hashtable selectedNodes;
+		//Hashtable selectedLinks;
+		
 		
 		string sourceFile;
 		bool awaitingPath=true;
@@ -53,7 +57,7 @@ namespace Topology {
 			get {return _tooltipMode;}
 			set 
 			{
-				if (value!=_tooltipMode) {listSelectIndex=0;}
+				if (value!=_tooltipMode) {lastSelectedLinkNode=null;}
 				_tooltipMode=value;
 			}
 		
@@ -67,7 +71,9 @@ namespace Topology {
 		//Starting file browser object
 		FileBrowser fb;
 		//dropselect selection index
-		int listSelectIndex=0;
+		//int listSelectIndex=0;
+		Popup selectItemDroplist=new Popup();
+		Popup selectColorDroplist=new Popup();
 		bool renderList=false;
 		public GUISkin fbSkin;
 		public Texture2D file,folder,back,drive;
@@ -364,12 +370,18 @@ namespace Topology {
 		
 		public void ClickNode(Node clickedNode)
 		{
-			//Determine select mode
-			//int mode=0;
-			//if (Input.GetKey("left shift")) {mode=1;}
-			//if (Input.GetKey("left ctrl")) {mode=2;}
-			//if (Input.GetKey("left alt"))  {mode=3;}
 			ClickedNodeAction(clickedNode);
+		}
+		
+		//Called by node when its dragged
+		public void DragNode(Node draggedNode)
+		{
+			//call all connected links to realign
+			foreach (Link link in links.Values)
+			{
+				if (link.target==draggedNode | link.source==draggedNode) {link.loaded=false;}
+			}
+		
 		}
 		
 		void HandleSelectMode()
@@ -381,6 +393,60 @@ namespace Topology {
 		
 		}
 		
+		/*
+		void HashtableAppendNum( Hashtable apTable, Object apObj)
+		{
+			int i=0;
+			while(apTable.ContainsKey(i))
+			{
+				i++;
+			}
+			apTable.Add(i,apObj);
+		}
+		
+		int HashtableFindKeyOfValue(Hashtable searchedTable, Object value)
+		{
+			int ret=0;
+			foreach (int key in searchedTable.Keys)
+			{
+				if(searchedTable[key]==value) {ret=key; break;}
+			}
+			return ret;
+		}
+		
+		//N starts at 1
+		Object HashtableGetNthElement(Hashtable iterTable, int n)
+		{
+			if (iterTable.Count<n) return -1;
+			int i=-1;
+			int j=0;
+			while(j<n)
+			{
+				i++;
+				if (iterTable.ContainsKey(i)) {j++;}
+			}
+			return iterTable[i];
+		}
+		
+		//Orders hasthbale values numerically
+		Object[] HashtableToArrayInOrder(Hashtable hashToAr)
+		{
+			Object[] returnAr=new Object[hashToAr.Count];
+			int i=0;
+			int j=0;
+			while(j<hashToAr.Count)
+			{
+				if (iterTable.ContainsKey(i)) 
+				{
+					returnAr[j]=hashToAr[i];
+					j++;
+				}
+				i++;
+			}
+			
+			return iterTable[j];
+		}
+		*/
 		//Do action based on select mode
 		void ClickedLinkAction(Link actionLink, Link sibling)
 		{
@@ -390,55 +456,54 @@ namespace Topology {
 			tooltipMode=1;
 			switch (selectMode)
 			{
+				//Single select
 				case 0:
 				{
-					if (selectedLinks.Count>0) 
-					{
-						foreach (Link selectedLink in selectedLinks) {selectedLink.selected=false;}
-					}
-					selectedLinks.Clear();
-					selectedLinks.Add (actionLink);
+					DeselectAllLinks();
+					selectedLinks.Add (actionLink);//HashtableAppendNum(selectedLinks,actionLink);//selectedLinks.Add (actionLink);
 					actionLink.selected=true;
 					//Make sure sibling is kept selected
 					if (sibling!=null)
-					{
-						selectedLinks.Add (sibling);
+					{	
+						selectedLinks.Add (sibling);//HashtableAppendNum(selectedLinks,actionLink);//selectedLinks.Add (sibling);
 						sibling.selected=true;
 					}
 					break;
 				}
+				//multiselect
 				case 1:
 				{
-					selectedLinks.Add (actionLink);
+					selectedLinks.Add (actionLink);//HashtableAppendNum(selectedLinks,actionLink);//selectedLinks.Add (actionLink);
 					actionLink.selected=true;
 					if (sibling!=null)
 					{
-						selectedLinks.Add (sibling);
+						selectedLinks.Add (sibling);//HashtableAppendNum(selectedLinks,sibling);//selectedLinks.Add (sibling);
 						sibling.selected=true;
 					}
 					break;
 				}
+				//ctrl select
 				case 2:
 				{
 					if (actionLink.selected)
 					{
-						selectedLinks.Remove(actionLink);
+						selectedLinks.Remove (actionLink);//selectedLinks.Remove(HashtableFindKeyOfValue(actionLink));//selectedLinks.Remove(actionLink);
 						actionLink.selected=false;
 						//assume sibling has the same status as main
 						if (sibling!=null)
 						{
-							selectedLinks.Remove(sibling);
+							selectedLinks.Remove(sibling);//selectedLinks.Remove(HashtableFindKeyOfValue(sibling));//selectedLinks.Remove(sibling);
 							sibling.selected=false;
 						}
 					}
 					else
 					{
-						selectedLinks.Add(actionLink);
+						selectedLinks.Add (actionLink);//HashtableAppendNum(actionLink);//selectedLinks.Add(actionLink);
 						actionLink.selected=true;
 						//assume sibling has the same status as main
 						if (sibling!=null)
 						{
-							selectedLinks.Add(sibling);
+							selectedLinks.Add (sibling);//HashtableAppendNum(sibling);//selectedLinks.Add(sibling);
 							sibling.selected=true;
 						}
 					
@@ -580,34 +645,30 @@ namespace Topology {
 			// single select mode
 			if (selectMode==0)
 			{
-				if (selectedNodes.Count>0) 
-				{
-					foreach (Node selectedNode in selectedNodes)
-					{
-						selectedNode.selected=false;
-					}
-					selectedNodes.Clear();
-				}
+				DeselectAllNodes();
+				selectedNodes.Add(clickedNode);//HashtableAppendNum(selectedNodes,clickedNode);//selectedNodes.Add(clickedNode);
+				clickedNode.selected=true;
 			}
 			
-			//shift select mode and single select mode
-			if (selectMode==0 | selectMode==1)
+			//shift select mode
+			if (selectMode==1)
 			{ 
-				selectedNodes.Add(clickedNode);
+				//selectedNodes.Add(clickedNode);
+				selectedNodes.Add(clickedNode);//HashtableAppendNum(selectedNodes,clickedNode);
 				clickedNode.selected=true;
 			}
 			
 			// ctrl(alt) select mode
 			if (selectMode==2) 
 			{
-				if (selectedNodes.Contains(clickedNode)) 
+				if (selectedNodes.Contains(clickedNode))//selectedNodes.Contains(clickedNode)) 
 				{
-					selectedNodes.Remove(clickedNode);
+					selectedNodes.Remove(clickedNode);//selectedNodes.Remove(HashtableFindKeyOfValue(clickedNode));
 					clickedNode.selected=false;
 				}
 				else
 				{
-					selectedNodes.Add(clickedNode);
+					selectedNodes.Add(clickedNode);//HashtableAppendNum(selectedNodes,clickedNode);//selectedNodes.Add(clickedNode);
 					clickedNode.selected=true;
 				}
 			}
@@ -634,7 +695,6 @@ namespace Topology {
 			if (selectedNodes.Count>0) {ttMode=1;}
 			if (selectedLinks.Count>0) {ttMode=2;}
 			if (ttMode!=0) {DrawTooltip(ttMode);}
-		
 		}
 		
 		void DrawTooltip(int mode)
@@ -645,6 +705,12 @@ namespace Topology {
 			//nodes tooltip
 			if (mode==1)
 			{
+				//check if last select is still in the list
+				if (selectedNodes.Contains((Node)lastSelectedLinkNode))
+				{
+					selectItemDroplist.SetSelectedItemIndex(selectedNodes.IndexOf((Node)lastSelectedLinkNode));
+				} else {selectItemDroplist.SetSelectedItemIndex(0);}
+				
 				//Generate droplist content
 				GUIContent[] droplistContent=new GUIContent[selectedNodes.Count];
 				for (int i=0; i<selectedNodes.Count; i++)
@@ -669,21 +735,30 @@ namespace Topology {
 				GUI.Label (new Rect(ttPad,ttPad*2+ttSizey,ttSizex*2,ttSizey),"Имя элемента:");
 				
 				//name edit field
-				string nodeName=selectedNodes[listSelectIndex].nodeText.text;
+				string nodeName=selectedNodes[selectItemDroplist.GetSelectedItemIndex()].nodeText.text;//string nodeName=selectedNodes[listSelectIndex].nodeText.text;
 				nodeName=GUI.TextField(new Rect(ttPad*2+ttSizex,ttPad*2+ttSizey,ttSizex*1.5f,ttSizey),nodeName);
-				selectedNodes[listSelectIndex].nodeText.text=nodeName;
+				selectedNodes[selectItemDroplist.GetSelectedItemIndex()].nodeText.text=nodeName;//selectedNodes[listSelectIndex].nodeText.text=nodeName;
 				GUI.EndGroup();
-				//select obj menu
+				//select obj menu (must be last item rendered)
+				selectItemDroplist.List(new Rect(ttStartx+ttPad*2+ttSizex,ttStarty+ttPad,ttSizex,ttSizey),droplistContent
+				,"box",fbSkin.customStyles[0]);
+				lastSelectedLinkNode=selectedNodes[selectItemDroplist.GetSelectedItemIndex()];
+				/*
 				if(Popup.List(new Rect(ttStartx+ttPad*2+ttSizex,ttStarty+ttPad,ttSizex,ttSizey)
 				 ,ref renderList,ref listSelectIndex,new GUIContent(droplistContent[listSelectIndex]),droplistContent
 				  ,fbSkin.customStyles[0])) 
 				  {
 				  	//print ("Selected!");
-				  }
+				  }*/
 				 // if (renderList) {selectionMade=true;}
 			}
 			if (mode==2) //links tooltip
 			{
+				//check if last select is still in the list
+				if (selectedLinks.Contains((Link)lastSelectedLinkNode))
+				{
+					selectItemDroplist.SetSelectedItemIndex(selectedLinks.IndexOf((Link)lastSelectedLinkNode));
+				} else {selectItemDroplist.SetSelectedItemIndex(0);}
 				//Generate droplist content
 				GUIContent[] droplistContent=new GUIContent[selectedLinks.Count];
 				for (int i=0; i<selectedLinks.Count; i++)
@@ -707,7 +782,7 @@ namespace Topology {
 				GUI.Label (new Rect(ttPad,ttPad,ttSizex,ttSizey),"Выбор элемента:");
 				
 				//Color select button
-				string pickColor=selectedLinks[listSelectIndex].color;
+				string pickColor=selectedLinks[selectItemDroplist.GetSelectedItemIndex()].color;
 				if (GUI.Button (new Rect(ttPad,ttPad*2+ttSizey,ttSizex*2,ttSizey),"Цвет элемента:"+pickColor))
 				{
 					switch (pickColor)
@@ -716,18 +791,24 @@ namespace Topology {
 						case "red": {pickColor="green"; break;}
 						case "green":{pickColor="black"; break;}
 					}
-					selectedLinks[listSelectIndex].color=pickColor;
+					//selectedLinks[selectItemDroplist.GetSelectedItemIndex()].color=pickColor;
+					Link coloredLink=selectedLinks[selectItemDroplist.GetSelectedItemIndex()];
+					coloredLink.color=pickColor;
 					//selectionMade=true;
 				}
 				GUI.EndGroup();
-				
+				//select obj menu (must be last item rendered)
+				selectItemDroplist.List(new Rect(ttStartx+ttPad*2+ttSizex,ttStarty+ttPad,ttSizex,ttSizey),droplistContent
+				 ,"box",fbSkin.customStyles[0]);
+				lastSelectedLinkNode=selectedLinks[selectItemDroplist.GetSelectedItemIndex()];
 				//element select button
+				/*
 				if(Popup.List(new Rect(ttStartx+ttPad*2+ttSizex,ttStarty+ttPad,ttSizex,ttSizey)
 				              ,ref renderList,ref listSelectIndex,new GUIContent(droplistContent[listSelectIndex]),droplistContent
 				              ,fbSkin.customStyles[0])) 
 				{
 					//print ("Selected!");
-				}
+				}*/
 				//if (renderList) {selectionMade=true;}
 			}
 		}
@@ -735,8 +816,12 @@ namespace Topology {
 		void Start () {
 			nodes = new Hashtable();
 			links = new Hashtable();
+			
 			selectedLinks=new List<Link>();
 			selectedNodes=new List<Node>();
+			
+			//selectedLinks=new Hashtable();
+			//selectedNodes=new Hashtable();
 			//initial stats
 			nodeCountText = GameObject.Find("NodeCount").guiText;
 			nodeCountText.text = "Вершин: 0";
@@ -744,7 +829,6 @@ namespace Topology {
 			linkCountText.text = "Ребер: 0";
 			statusText = GameObject.Find("StatusText").guiText;
 			statusText.text = "";
-			//contextMenu=GameObject.Find("ContextMenu").GetComponent<GUIContainer>();//gameObject.GetComponentInChildren<GUIContainer>();
 		}
 		
 		//Deselect current selection on clicking empty space
@@ -753,7 +837,8 @@ namespace Topology {
 			if (Input.GetMouseButtonDown(0)) 
 			{
 				Vector2 mousePosInGUICoords = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
-				if (selectMode==0 && !selectionMade && !contextMenuPos.Contains(mousePosInGUICoords))
+				if (selectMode==0 && !selectionMade && !contextMenuPos.Contains(mousePosInGUICoords) 
+				 && !selectItemDroplist.GetCurrentDimensions().Contains(mousePosInGUICoords))
 				{	
 					DeselectAllNodes();
 					DeselectAllLinks();
