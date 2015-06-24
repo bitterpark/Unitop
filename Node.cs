@@ -40,13 +40,22 @@ namespace Topology {
 		
 		}
 		bool _selected;
+		public Sprite[] sprites;
+		int currentSprite=0;
+		
 		bool dragged=false;
+		
+		void Start()
+		{
+			SetSprite(currentSprite);
+		}
 		
 		void Update () {
 			//node text always facing camera
 			transform.LookAt (Camera.main.transform);
 			nodeText.transform.LookAt (Camera.main.transform);
 		}
+		
 		
 		void OnMouseDown()
 		{
@@ -82,6 +91,15 @@ namespace Topology {
 		{
 			dragged=false;
 		}
+		
+		public void SetSprite(int spriteNum)
+		{
+			gameObject.GetComponent<SpriteRenderer>().sprite=sprites[spriteNum];
+			currentSprite=spriteNum;
+		}
+		
+		public int GetSpriteIndex()
+		{return currentSprite;}
 	}
 
 }

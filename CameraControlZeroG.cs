@@ -48,12 +48,18 @@ public class CameraControlZeroG : MonoBehaviour {
 	}
 	
 	void Update () {
-		if (Input.GetKeyDown ("f")) 
+		if (Input.GetMouseButton(2)) 
 		{
-			bool mouseLookOn=!GetComponent<MouseLook>().enabled;
-			GetComponent<MouseLook>().enabled=mouseLookOn;
-			if (mouseLookOn){Screen.lockCursor=true;} else {Screen.lockCursor=false;}
+			GetComponent<MouseLook>().enabled=true;
+			Screen.lockCursor=true;
 		}
+		else 
+		{
+			GetComponent<MouseLook>().enabled=false;
+			Screen.lockCursor=false;
+		}
+		
+		//if (Input.GetMouseButtonUp
 		
 		move.x = Input.GetAxis("Horizontal") * speed * Time.deltaTime;
 		move.z = Input.GetAxis("Vertical") * speed * Time.deltaTime;

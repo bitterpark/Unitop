@@ -39,15 +39,12 @@ namespace Topology {
 		GUIText nodeCountText;
 		GUIText linkCountText;
 		//GUIContainer contextMenu;
-		public Rect contextMenuPos;
-		
+		public Rect contextMenuPosNodes;
+		public Rect contextMenuPosLinks;
 		
 		List<Link> selectedLinks;
-		List <Node> selectedNodes;
-		Object lastSelectedLinkNode=null;
-		//Hashtable selectedNodes;
-		//Hashtable selectedLinks;
-		
+		List<Node> selectedNodes;
+		Object lastSelectedLinkNode=null;	
 		
 		string sourceFile;
 		bool awaitingPath=true;
@@ -74,9 +71,10 @@ namespace Topology {
 		//int listSelectIndex=0;
 		Popup selectItemDroplist=new Popup();
 		Popup selectColorDroplist=new Popup();
+		Popup selectIconDroplist=new Popup();
 		bool renderList=false;
 		public GUISkin fbSkin;
-		public Texture2D file,folder,back,drive;
+		public Texture2D file,folder;
 		
 
 		//Method for loading the GraphML layout file
@@ -699,8 +697,24 @@ namespace Topology {
 		
 		void DrawTooltip(int mode)
 		{
-			//contextMenu.Display();
-			//print ("display request fired");
+			/*
+			float ttStartx=10;
+			float ttStarty=100;
+			float ttSizex=100;
+			float ttSizey=30;
+			float ttStartHPad=10;
+			float ttStartVPad=10;
+			float ttHPad=20;
+			float ttVPad=5;
+			string ttText="";
+			*/
+			float elementSizeX=110;
+			float elementSizeY=40;
+			float leftColumnStartX=30;
+			float leftColumnStartY=115;
+			float rightColumnStartX=170;
+			float rightColumnStartY=115;
+			float vPad=5;
 			
 			//nodes tooltip
 			if (mode==1)
@@ -717,42 +731,42 @@ namespace Topology {
 				{
 					droplistContent[i]=new GUIContent(selectedNodes[i].id);
 				}
-				//float ttAreaSizex=300;
-				//float ttAreaSizey=100;
-				float ttStartx=0;
-				float ttStarty=100;
-				float ttSizex=100;
-				float ttSizey=20;
-				float ttPad=20;
-				string ttText="";
 				
-				//Main box and left hand labels
-				GUI.Box(contextMenuPos,"");
-				GUI.BeginGroup(contextMenuPos);
-				//GUI.BeginGroup(new Rect(ttStartx,ttStarty,ttAreaSizex,ttAreaSizey));
-				//GUI.Box(new Rect(0,0,ttAreaSizex,ttAreaSizey),ttText);
-				GUI.Label (new Rect(ttPad,ttPad,ttSizex,ttSizey),"Выбор элемента:");
-				GUI.Label (new Rect(ttPad,ttPad*2+ttSizey,ttSizex*2,ttSizey),"Имя элемента:");
+				//Main box and labels
+				GUI.Box(contextMenuPosNodes,"");
+				//GUI.BeginGroup(contextMenuPosNodes);
+				GUI.Label (new Rect(leftColumnStartX,leftColumnStartY,elementSizeX,elementSizeY),"Выбор элемента:");
+				GUI.Label (new Rect(rightColumnStartX,rightColumnStartY,elementSizeX,elementSizeY),"Имя элемента:");
+				GUI.Label (new Rect(leftColumnStartX,leftColumnStartY+elementSizeY*2+vPad*2,elementSizeX,elementSizeY),"Иконка:");
 				
 				//name edit field
-				string nodeName=selectedNodes[selectItemDroplist.GetSelectedItemIndex()].nodeText.text;//string nodeName=selectedNodes[listSelectIndex].nodeText.text;
-				nodeName=GUI.TextField(new Rect(ttPad*2+ttSizex,ttPad*2+ttSizey,ttSizex*1.5f,ttSizey),nodeName);
-				selectedNodes[selectItemDroplist.GetSelectedItemIndex()].nodeText.text=nodeName;//selectedNodes[listSelectIndex].nodeText.text=nodeName;
-				GUI.EndGroup();
+				string nodeName=selectedNodes[selectItemDroplist.GetSelectedItemIndex()].nodeText.text;
+				nodeName=GUI.TextField(new Rect(rightColumnStartX,rightColumnStartY+elementSizeY+3,elementSizeX,elementSizeY),nodeName);
+				selectedNodes[selectItemDroplist.GetSelectedItemIndex()].nodeText.text=nodeName;
+				//GUI.EndGroup();
+				
+				//set current icon selection
+				Node currentNode=selectedNodes[selectItemDroplist.GetSelectedItemIndex()];
+				selectIconDroplist.SetSelectedItemIndex(currentNode.GetSpriteIndex());
+				//generate icon droplist content
+				GUIContent[] iconDroplistContent=new GUIContent[4];
+				iconDroplistContent[0]=new GUIContent("icon1");
+				iconDroplistContent[1]=new GUIContent("icon2");
+				iconDroplistContent[2]=new GUIContent("icon3");
+				iconDroplistContent[3]=new GUIContent("icon4");
+				//select icon droplist
+				selectIconDroplist.List(new Rect(leftColumnStartX+elementSizeX*0.5f,leftColumnStartY+elementSizeY*2+vPad*2,elementSizeX,elementSizeY)
+				 ,iconDroplistContent,"box",fbSkin.customStyles[0]);
+				currentNode.SetSprite(selectIconDroplist.GetSelectedItemIndex());
+				
 				//select obj menu (must be last item rendered)
-				selectItemDroplist.List(new Rect(ttStartx+ttPad*2+ttSizex,ttStarty+ttPad,ttSizex,ttSizey),droplistContent
-				,"box",fbSkin.customStyles[0]);
+				selectItemDroplist.List(new Rect(leftColumnStartX,leftColumnStartY+elementSizeY,elementSizeX,elementSizeY)
+				 ,droplistContent,"box",fbSkin.customStyles[0]);
 				lastSelectedLinkNode=selectedNodes[selectItemDroplist.GetSelectedItemIndex()];
-				/*
-				if(Popup.List(new Rect(ttStartx+ttPad*2+ttSizex,ttStarty+ttPad,ttSizex,ttSizey)
-				 ,ref renderList,ref listSelectIndex,new GUIContent(droplistContent[listSelectIndex]),droplistContent
-				  ,fbSkin.customStyles[0])) 
-				  {
-				  	//print ("Selected!");
-				  }*/
-				 // if (renderList) {selectionMade=true;}
 			}
-			if (mode==2) //links tooltip
+			
+			//links tooltip
+			if (mode==2) 
 			{
 				//check if last select is still in the list
 				if (selectedLinks.Contains((Link)lastSelectedLinkNode))
@@ -765,51 +779,41 @@ namespace Topology {
 				{
 					droplistContent[i]=new GUIContent(selectedLinks[i].id);
 				}
-				//float ttAreaSizex=300;
-				//float ttAreaSizey=100;
-				float ttStartx=0;
-				float ttStarty=100;
-				float ttSizex=100;
-				float ttSizey=20;
-				float ttPad=20;
-				string ttText="";
+				
 				
 				//main box and left hand labels
-				GUI.Box(contextMenuPos,"");
-				GUI.BeginGroup(contextMenuPos);
-				//GUI.BeginGroup(new Rect(ttStartx,ttStarty,ttAreaSizex,ttAreaSizey));
-				//GUI.Box(new Rect(0,0,ttAreaSizex,ttAreaSizey),ttText);
-				GUI.Label (new Rect(ttPad,ttPad,ttSizex,ttSizey),"Выбор элемента:");
-				
-				//Color select button
-				string pickColor=selectedLinks[selectItemDroplist.GetSelectedItemIndex()].color;
-				if (GUI.Button (new Rect(ttPad,ttPad*2+ttSizey,ttSizex*2,ttSizey),"Цвет элемента:"+pickColor))
+				GUI.Box(contextMenuPosLinks,"");
+				//GUI.BeginGroup(contextMenuPosLinks);
+				GUI.Label (new Rect(leftColumnStartX,leftColumnStartY,elementSizeX,elementSizeY),"Выбор элемента:");
+				GUI.Label (new Rect(rightColumnStartX,rightColumnStartY,elementSizeX,elementSizeY),"Цвет элемента:");
+				//GUI.EndGroup();
+
+				//Set current color select
+				Link coloredLink=selectedLinks[selectItemDroplist.GetSelectedItemIndex()];
+				selectColorDroplist.SetSelectedItemIndex(coloredLink.GetColorIndex());
+				//Generate droplist content
+				GUIContent[] droplistColorContent=new GUIContent[5];
+				droplistColorContent[0]=new GUIContent("black");
+				droplistColorContent[1]=new GUIContent("red");
+				droplistColorContent[2]=new GUIContent("green");
+				droplistColorContent[3]=new GUIContent("yellow");
+				droplistColorContent[4]=new GUIContent("cyan");
+				//Draw color droplist
+				int droplistPick=selectColorDroplist.List(new Rect(rightColumnStartX,rightColumnStartY+elementSizeY,elementSizeX,elementSizeY)
+				 ,droplistColorContent,"box",fbSkin.customStyles[0]); 
+				switch (droplistPick)
 				{
-					switch (pickColor)
-					{
-						case "black": {pickColor="red"; break;}
-						case "red": {pickColor="green"; break;}
-						case "green":{pickColor="black"; break;}
-					}
-					//selectedLinks[selectItemDroplist.GetSelectedItemIndex()].color=pickColor;
-					Link coloredLink=selectedLinks[selectItemDroplist.GetSelectedItemIndex()];
-					coloredLink.color=pickColor;
-					//selectionMade=true;
+					case 0:{coloredLink.color="black"; break;}
+					case 1:{coloredLink.color="red"; break;}
+					case 2:{coloredLink.color="green"; break;}
+					case 3:{coloredLink.color="yellow"; break;}
+					case 4:{coloredLink.color="cyan"; break;}
 				}
-				GUI.EndGroup();
-				//select obj menu (must be last item rendered)
-				selectItemDroplist.List(new Rect(ttStartx+ttPad*2+ttSizex,ttStarty+ttPad,ttSizex,ttSizey),droplistContent
-				 ,"box",fbSkin.customStyles[0]);
+				
+				//select obj menu (must be after endgroup rendered)
+				selectItemDroplist.List(new Rect(leftColumnStartX,leftColumnStartY+elementSizeY,elementSizeX,elementSizeY)
+				 ,droplistContent,"box",fbSkin.customStyles[0]);
 				lastSelectedLinkNode=selectedLinks[selectItemDroplist.GetSelectedItemIndex()];
-				//element select button
-				/*
-				if(Popup.List(new Rect(ttStartx+ttPad*2+ttSizex,ttStarty+ttPad,ttSizex,ttSizey)
-				              ,ref renderList,ref listSelectIndex,new GUIContent(droplistContent[listSelectIndex]),droplistContent
-				              ,fbSkin.customStyles[0])) 
-				{
-					//print ("Selected!");
-				}*/
-				//if (renderList) {selectionMade=true;}
 			}
 		}
 		
@@ -837,8 +841,11 @@ namespace Topology {
 			if (Input.GetMouseButtonDown(0)) 
 			{
 				Vector2 mousePosInGUICoords = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
-				if (selectMode==0 && !selectionMade && !contextMenuPos.Contains(mousePosInGUICoords) 
-				 && !selectItemDroplist.GetCurrentDimensions().Contains(mousePosInGUICoords))
+				if (selectMode==0 && !selectionMade && !contextMenuPosNodes.Contains(mousePosInGUICoords) 
+				 && !contextMenuPosLinks.Contains(mousePosInGUICoords)
+				  && !selectItemDroplist.GetCurrentDimensions().Contains(mousePosInGUICoords) 
+				   && !selectColorDroplist.GetCurrentDimensions().Contains(mousePosInGUICoords)
+				   	&& !selectIconDroplist.GetCurrentDimensions().Contains(mousePosInGUICoords))
 				{	
 					DeselectAllNodes();
 					DeselectAllLinks();

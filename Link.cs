@@ -50,7 +50,7 @@ namespace Topology {
 			}
 			
 		}
-		public bool _selected;
+		bool _selected;
 		
 		void Start () 
 		{
@@ -89,6 +89,20 @@ namespace Topology {
 			capsule.isTrigger=true;
 		}
 		
+		public int GetColorIndex()
+		{
+			int retInt=0;
+			switch (color)
+			{
+				case "black": {retInt=0; break;}
+				case "red": {retInt=1; break;}
+				case "green": {retInt=2; break;}
+				case "yellow": {retInt=3; break;}
+				case "cyan": {retInt=4; break;}
+			}
+			return retInt;
+		}
+		
 		Color GetColorFromString(string color)
 		{
 			Color c=Color.cyan;
@@ -97,6 +111,8 @@ namespace Topology {
 				case "black": {c=Color.black; break;}
 				case "red": {c=Color.red; break;}
 				case "green": {c=Color.green; break;}
+				case "yellow": {c=Color.yellow; break;}
+				case "cyan": {c=Color.cyan; break;}
 			}
 			return c;
 		}
