@@ -72,8 +72,11 @@ namespace Topology {
 		Popup selectItemDroplist=new Popup();
 		Popup selectColorDroplist=new Popup();
 		Popup selectIconDroplist=new Popup();
+		public Texture[] nodeTextures;
+		public Texture[] colorTextures;
 		bool renderList=false;
 		public GUISkin fbSkin;
+		public GUISkin droplistSkin;
 		public Texture2D file,folder;
 		
 
@@ -145,9 +148,11 @@ namespace Topology {
 						linkCount++;
 						linkCountText.text = "Ребер: " + linkCount;
 						*/
+						
 						CreateNewLink(xmlNode.Attributes["source"].Value,xmlNode.Attributes["target"].Value
 						 ,xmlNode.Attributes["id"].Value,xmlNode.Attributes["color"].Value);
 						statusText.text = "Загрузка топологии: Ребро " + xmlNode.Attributes["id"].Value;
+						
 						//linkCountText.text = "Ребер: " + linkCount;
 					}
 
@@ -225,6 +230,7 @@ namespace Topology {
 			if (!exists)
 			//Create link
 			{
+				
 				Link linkObject = Instantiate(linkPrefab, new Vector3(0,0,0), Quaternion.identity) as Link;
 				//find free link id
 				int i=0;
@@ -243,7 +249,7 @@ namespace Topology {
 				linkObject.targetId = newLinkTargetId;
 				//linkObject.status = "Up";
 				links.Add(linkObject.id, linkObject);
-
+				
 				//Raise count
 				linkCount++;
 				linkCountText.text = "Ребер: " + linkCount;
@@ -268,6 +274,7 @@ namespace Topology {
 			if (!exists)
 				//Create link
 			{
+				
 				Link linkObject = Instantiate(linkPrefab, new Vector3(0,0,0), Quaternion.identity) as Link;
 				
 				linkObject.id = newLinkId;
@@ -283,6 +290,7 @@ namespace Topology {
 				links.Add(linkObject.id, linkObject);
 				
 				//Raise count
+				
 				linkCount++;
 				linkCountText.text = "Ребер: " + linkCount;
 			}
@@ -750,18 +758,18 @@ namespace Topology {
 				selectIconDroplist.SetSelectedItemIndex(currentNode.GetSpriteIndex());
 				//generate icon droplist content
 				GUIContent[] iconDroplistContent=new GUIContent[4];
-				iconDroplistContent[0]=new GUIContent("icon1");
-				iconDroplistContent[1]=new GUIContent("icon2");
-				iconDroplistContent[2]=new GUIContent("icon3");
-				iconDroplistContent[3]=new GUIContent("icon4");
+				iconDroplistContent[0]=new GUIContent("WinXP",nodeTextures[0]);
+				iconDroplistContent[1]=new GUIContent("Win07",nodeTextures[1]);
+				iconDroplistContent[2]=new GUIContent("2008",nodeTextures[2]);
+				iconDroplistContent[3]=new GUIContent("2003",nodeTextures[3]);
 				//select icon droplist
 				selectIconDroplist.List(new Rect(leftColumnStartX+elementSizeX*0.5f,leftColumnStartY+elementSizeY*2+vPad*2,elementSizeX,elementSizeY)
-				 ,iconDroplistContent,"box",fbSkin.customStyles[0]);
+				 ,iconDroplistContent,"box",droplistSkin.customStyles[0]);
 				currentNode.SetSprite(selectIconDroplist.GetSelectedItemIndex());
 				
 				//select obj menu (must be last item rendered)
 				selectItemDroplist.List(new Rect(leftColumnStartX,leftColumnStartY+elementSizeY,elementSizeX,elementSizeY)
-				 ,droplistContent,"box",fbSkin.customStyles[0]);
+				 ,droplistContent,"box",droplistSkin.customStyles[0]);
 				lastSelectedLinkNode=selectedNodes[selectItemDroplist.GetSelectedItemIndex()];
 			}
 			
@@ -793,14 +801,14 @@ namespace Topology {
 				selectColorDroplist.SetSelectedItemIndex(coloredLink.GetColorIndex());
 				//Generate droplist content
 				GUIContent[] droplistColorContent=new GUIContent[5];
-				droplistColorContent[0]=new GUIContent("black");
-				droplistColorContent[1]=new GUIContent("red");
-				droplistColorContent[2]=new GUIContent("green");
-				droplistColorContent[3]=new GUIContent("yellow");
-				droplistColorContent[4]=new GUIContent("cyan");
+				droplistColorContent[0]=new GUIContent(colorTextures[0]);//"black");
+				droplistColorContent[1]=new GUIContent(colorTextures[1]);//"red");
+				droplistColorContent[2]=new GUIContent(colorTextures[2]);//"green");
+				droplistColorContent[3]=new GUIContent(colorTextures[3]);//"yellow");
+				droplistColorContent[4]=new GUIContent(colorTextures[4]);//"cyan");
 				//Draw color droplist
 				int droplistPick=selectColorDroplist.List(new Rect(rightColumnStartX,rightColumnStartY+elementSizeY,elementSizeX,elementSizeY)
-				 ,droplistColorContent,"box",fbSkin.customStyles[0]); 
+				 ,droplistColorContent,"box",droplistSkin.customStyles[0]); 
 				switch (droplistPick)
 				{
 					case 0:{coloredLink.color="black"; break;}
@@ -812,7 +820,7 @@ namespace Topology {
 				
 				//select obj menu (must be after endgroup rendered)
 				selectItemDroplist.List(new Rect(leftColumnStartX,leftColumnStartY+elementSizeY,elementSizeX,elementSizeY)
-				 ,droplistContent,"box",fbSkin.customStyles[0]);
+				 ,droplistContent,"box",droplistSkin.customStyles[0]);
 				lastSelectedLinkNode=selectedLinks[selectItemDroplist.GetSelectedItemIndex()];
 			}
 		}

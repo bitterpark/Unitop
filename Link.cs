@@ -20,6 +20,7 @@
 
 using UnityEngine;
 using System.Collections;
+using Vectrosity;
 
 namespace Topology {
 
@@ -33,8 +34,10 @@ namespace Topology {
 		public string status;
 		public string color;
 		public bool loaded = false;
+		VectorLine myLine;
+		//public Material lineMaterial;
 
-		LineRenderer lineRenderer;
+		//LineRenderer lineRenderer;
 		CapsuleCollider capsule;
 		//public GameObject controller;
 		public GameController controller;
@@ -44,8 +47,8 @@ namespace Topology {
 			get{return _selected;}
 			set
 			{
-				if (value) renderer.material.color=Color.blue; 
-				else renderer.material.color=GetColorFromString(color);//new Color(22,70,109,255);//Color.blue;
+				if (value) myLine.SetColor(Color.blue);//renderer.material.color=Color.blue; 
+				else myLine.SetColor(GetColorFromString(color));//renderer.sharedMaterial.color=GetColorFromString(color);//new Color(22,70,109,255);//Color.blue;
 				_selected=value; 
 			}
 			
@@ -57,7 +60,8 @@ namespace Topology {
 			//get controller for prefab
 			//controller=Camera.main.gameObject.GetComponent<CameraControlZeroG>().controller;
 			
-			lineRenderer = gameObject.AddComponent<LineRenderer>();
+			//lineRenderer = gameObject.GetComponent<LineRenderer>();//gameObject.AddComponent<LineRenderer>();
+			
 			//add collider
 			capsule = gameObject.AddComponent<CapsuleCollider>();
 			
@@ -74,13 +78,14 @@ namespace Topology {
 			//draw line
 			//lineRenderer.sortingOrder=-2;
 			float lineWidth=0.3f;
-			lineRenderer.sortingOrder=-2;
-			lineRenderer.material = new Material (Shader.Find("Self-Illumin/Diffuse"));
-			lineRenderer.material.SetColor ("_Color",GetColorFromString(color));
-			lineRenderer.SetWidth(lineWidth,lineWidth);
-			lineRenderer.SetVertexCount(2);
-			lineRenderer.SetPosition(0, new Vector3(0,0,0));
-			lineRenderer.SetPosition(1, new Vector3(1,0,0));
+			//lineRenderer.sortingOrder=-2;
+			//lineRenderer.material = new Material (Shader.Find("Self-Illumin/Diffuse"));
+			//lineRenderer.material.SetColor ("_Color",GetColorFromString(color));
+			//lineRenderer.sharedMaterial.SetColor("_Color",GetColorFromString(color));
+			//lineRenderer.SetWidth(lineWidth,lineWidth);
+			//lineRenderer.SetVertexCount(2);
+			//lineRenderer.SetPosition(0, new Vector3(0,0,0));
+			//lineRenderer.SetPosition(1, new Vector3(1,0,0));
 			
 			//configure collider
 			capsule.radius = lineWidth;// / 2;
@@ -121,10 +126,17 @@ namespace Topology {
 			//First frame object setup
 			if(source && target && !loaded)
 			{
+				Vector3[] linePoints=new Vector3[2];
+				linePoints[0]=source.transform.position;
+				linePoints[1]=target.transform.position;
+				myLine=VectorLine.SetLine3D(GetColorFromString(color),linePoints);
+				myLine.SetWidth(2f);
+				myLine.sortingOrder=-5;
+				//myLine.Draw3DAuto();
 				//draw links as full duplex, half in each direction
 				//Vector3 m = (target.transform.position - source.transform.position)/2 + source.transform.position;
-				lineRenderer.SetPosition(0, source.transform.position);
-				lineRenderer.SetPosition(1, target.transform.position);
+				//lineRenderer.SetPosition(0, source.transform.position);
+				//lineRenderer.SetPosition(1, target.transform.position);
 				//configure collider
 				
 				capsule.transform.position = source.transform.position + (target.transform.position - source.transform.position)*0.5f;
@@ -132,14 +144,12 @@ namespace Topology {
 				capsule.height = (target.transform.position-source.transform.position).magnitude;//(m - source.transform.position).magnitude*8.5;
 				loaded = true;
 			}
-			
+			//if (Input.GetMouseButtonDown(0) && myLine.Selected(Input.mousePosition)) {print ("1");}//controller.ClickLink(this);}
 			
 		}
 		
 		void OnMouseDown()
 		{
-			//Camera.main.gameObject.GetComponent<CameraControlZeroG>().LinkReturn(this);
-			//controller.GetComponent<GameController>().ClickLink(this);
             controller.ClickLink(this);
 		}
 	}
