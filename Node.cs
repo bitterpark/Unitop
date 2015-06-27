@@ -28,6 +28,8 @@ namespace Topology {
 		public string id;
 		public TextMesh nodeText;
 		public GameController controller;
+		public Vector3 myPos;
+		
 		public bool selected
 		{
 			get{return _selected;}
@@ -48,6 +50,7 @@ namespace Topology {
 		void Start()
 		{
 			SetSprite(currentSprite);
+			//gameObject.isStatic=true;
 		}
 		
 		void Update () {
@@ -81,9 +84,9 @@ namespace Topology {
 				z=Camera.main.WorldToScreenPoint(transform.position).z;
 				transform.position=Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x,Input.mousePosition.y,z));
 				//call controller to align links
-				controller.DragNode(this);
 				yield return new WaitForFixedUpdate();
 			}
+			controller.DragNode(this);
 			yield break;
 		}
 		

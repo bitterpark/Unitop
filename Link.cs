@@ -24,7 +24,7 @@ using Vectrosity;
 
 namespace Topology {
 
-	public class Link : MonoBehaviour {
+	public class Link {//: MonoBehaviour {
 
 		public string id;
 		public Node source;
@@ -35,6 +35,8 @@ namespace Topology {
 		public string color;
 		public bool loaded = false;
 		VectorLine myLine;
+		//public int sourcePointIndex;
+		//public int targetPointIndex;
 		//public Material lineMaterial;
 
 		//LineRenderer lineRenderer;
@@ -47,14 +49,15 @@ namespace Topology {
 			get{return _selected;}
 			set
 			{
-				if (value) myLine.SetColor(Color.blue);//renderer.material.color=Color.blue; 
-				else myLine.SetColor(GetColorFromString(color));//renderer.sharedMaterial.color=GetColorFromString(color);//new Color(22,70,109,255);//Color.blue;
+				if (value) {controller.LinkChangeColor(this,Color.blue);}//myLine.SetColor(Color.blue);//renderer.material.color=Color.blue; 
+				else {controller.LinkChangeColor(this,GetColorFromString(color));}//myLine.SetColor(GetColorFromString(color));//renderer.sharedMaterial.color=GetColorFromString(color);//new Color(22,70,109,255);//Color.blue;
 				_selected=value; 
 			}
 			
 		}
 		bool _selected;
 		
+		/*
 		void Start () 
 		{
 			//get controller for prefab
@@ -63,18 +66,11 @@ namespace Topology {
 			//lineRenderer = gameObject.GetComponent<LineRenderer>();//gameObject.AddComponent<LineRenderer>();
 			
 			//add collider
-			capsule = gameObject.AddComponent<CapsuleCollider>();
+			//capsule = gameObject.AddComponent<CapsuleCollider>();
 			
 			//color link according to status
 			
 			
-			/*
-			if (status == "Up")
-				c = Color.black;
-			else
-				c = Color.red;
-			c.a = 0.5f;
-			*/
 			//draw line
 			//lineRenderer.sortingOrder=-2;
 			float lineWidth=0.3f;
@@ -88,11 +84,12 @@ namespace Topology {
 			//lineRenderer.SetPosition(1, new Vector3(1,0,0));
 			
 			//configure collider
+			
 			capsule.radius = lineWidth;// / 2;
 			capsule.center = Vector3.zero;
 			capsule.direction = 2; // Z-axis for easier "LookAt" orientation
 			capsule.isTrigger=true;
-		}
+		}*/
 		
 		public int GetColorIndex()
 		{
@@ -108,12 +105,12 @@ namespace Topology {
 			return retInt;
 		}
 		
-		Color GetColorFromString(string color)
+		public Color GetColorFromString(string color)
 		{
 			Color c=Color.cyan;
 			switch (color)
 			{
-				case "black": {c=Color.black; break;}
+				case "black": {c=Color.gray; break;}//Color.grey; break;}
 				case "red": {c=Color.red; break;}
 				case "green": {c=Color.green; break;}
 				case "yellow": {c=Color.yellow; break;}
@@ -122,6 +119,7 @@ namespace Topology {
 			return c;
 		}
 		
+		/*
 		void Update () {
 			//First frame object setup
 			if(source && target && !loaded)
@@ -129,9 +127,9 @@ namespace Topology {
 				Vector3[] linePoints=new Vector3[2];
 				linePoints[0]=source.transform.position;
 				linePoints[1]=target.transform.position;
-				myLine=VectorLine.SetLine3D(GetColorFromString(color),linePoints);
-				myLine.SetWidth(2f);
-				myLine.sortingOrder=-5;
+				//myLine=VectorLine.SetLine3D(GetColorFromString(color),linePoints);
+				//myLine.SetWidth(2f);
+				//myLine.sortingOrder=-5;
 				//myLine.Draw3DAuto();
 				//draw links as full duplex, half in each direction
 				//Vector3 m = (target.transform.position - source.transform.position)/2 + source.transform.position;
@@ -146,12 +144,12 @@ namespace Topology {
 			}
 			//if (Input.GetMouseButtonDown(0) && myLine.Selected(Input.mousePosition)) {print ("1");}//controller.ClickLink(this);}
 			
-		}
-		
+		}*/
+		/*
 		void OnMouseDown()
 		{
             controller.ClickLink(this);
-		}
+		}*/
 	}
 
 }
