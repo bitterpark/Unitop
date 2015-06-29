@@ -31,7 +31,7 @@ public class CameraControlZeroG : MonoBehaviour {
 
 	private Vector3 move = new Vector3();
 	//cluster 1 is also startpoint
-	private Vector3 cluster1 = new Vector3(1960, 1791, 2726);
+	private Vector3 cluster1 = new Vector3(1960, 1791, 0);
 	/*
 	private Vector3 cluster2 = new Vector3(2042, 1579, 4254);
 	private Vector3 cluster3 = new Vector3(2692, 81, 2526);
@@ -39,6 +39,7 @@ public class CameraControlZeroG : MonoBehaviour {
 	private Vector3 cluster5 = new Vector3(-587, 2043, 2194);
 	*/
 	public GameObject controller;
+	public float zoomSpd=64;
 	//private List <Node> selection=new List<Node>();
 	private int selectMode=0;
 	
@@ -47,7 +48,9 @@ public class CameraControlZeroG : MonoBehaviour {
 		transform.position = cluster1;
 	}
 	
-	void Update () {
+	void Update () 
+	{
+		/*
 		if (Input.GetMouseButton(2)) 
 		{
 			GetComponent<MouseLook>().enabled=true;
@@ -57,13 +60,24 @@ public class CameraControlZeroG : MonoBehaviour {
 		{
 			GetComponent<MouseLook>().enabled=false;
 			Screen.lockCursor=false;
+		}*/
+		float orthCameraSize=Camera.main.orthographicSize;
+		Vector3 perspCameraMove=Vector3.zero;
+		if (Input.GetAxis("Mouse ScrollWheel")>0) {perspCameraMove+=new Vector3(0,0,100);orthCameraSize-=zoomSpd;}
+		if (Input.GetAxis("Mouse ScrollWheel")<0) {perspCameraMove+=new Vector3(0,0,-100);orthCameraSize+=zoomSpd;}
+		if (Camera.main.isOrthoGraphic)
+		{
+			if (orthCameraSize<384) {orthCameraSize=384;}
+			Camera.main.orthographicSize=orthCameraSize;
 		}
-		
+		else {transform.position+=perspCameraMove;}
 		//if (Input.GetMouseButtonUp
 		
 		move.x = Input.GetAxis("Horizontal") * speed * Time.deltaTime;
-		move.z = Input.GetAxis("Vertical") * speed * Time.deltaTime;
-		move.y = 0;
+		//move.z = Input.GetAxis("Vertical") * speed * Time.deltaTime;
+		//move.y = 0;
+		move.y=Input.GetAxis("Vertical") * speed * Time.deltaTime;
+		move.z=0;
 		
 		if (Input.GetKey ("space")) {
 			move.y = speed * Time.deltaTime;
@@ -74,10 +88,11 @@ public class CameraControlZeroG : MonoBehaviour {
 		}
 
 		//adjust speed with mouse wheel
+		/*
 		speed += Input.GetAxis("Mouse ScrollWheel");
 		if (speed < 5)
 			speed = 5;
-
+		*/
 		movementSpeed.text = "Move Speed: " + speed;
 
 		move = transform.TransformDirection(move);

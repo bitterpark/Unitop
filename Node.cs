@@ -35,14 +35,14 @@ namespace Topology {
 			get{return _selected;}
 			set
 			{
-				if (value) renderer.material.color=Color.blue; 
+				if (value) renderer.material.color=Color.blue;//renderer.material.color=Color.blue; 
 				else renderer.material.color=Color.white;//new Color(22,70,109,255);//Color.blue;
 				_selected=value; 
 			}
 		
 		}
 		bool _selected;
-		public Sprite[] sprites;
+		public Texture[] textures;
 		int currentSprite=0;
 		
 		bool dragged=false;
@@ -50,54 +50,80 @@ namespace Topology {
 		void Start()
 		{
 			SetSprite(currentSprite);
+			//renderer.sharedMaterial.SetTexture(0,currentSprite);
 			//gameObject.isStatic=true;
 		}
 		
 		void Update () {
 			//node text always facing camera
-			transform.LookAt (Camera.main.transform);
-			nodeText.transform.LookAt (Camera.main.transform);
+			//transform.LookAt (Camera.main.transform);
+			//nodeText.transform.LookAt (Camera.main.transform);
+			//print ("fucknuts");
 		}
 		
 		
 		void OnMouseDown()
 		{
 			//Camera.main.gameObject.GetComponent<CameraControlZeroG>().controller
-			controller.ClickNode(this);
 			dragged=true;
+			
+//			controller.StartDragNode();
+			controller.ClickNode(this,dragged);
+			//print ("drag routine started!");
 			StartCoroutine(DragRoutine());
 		}
 		
 		IEnumerator DragRoutine()
 		{
 			float i=0;
+			Vector3 delta=Vector3.zero;
 			//Wait for an 0.2 of a second mouse button hold 
 			while (i<0.2 && dragged) 
 			{
 				i+=Time.deltaTime;
 				yield return new WaitForFixedUpdate();
 			}
-			//do drag until mouse is let go
-			while (dragged) 
-			{
-				float z=0;
-				z=Camera.main.WorldToScreenPoint(transform.position).z;
-				transform.position=Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x,Input.mousePosition.y,z));
-				//call controller to align links
-				yield return new WaitForFixedUpdate();
+			
+			if (!dragged) {}
+			else
+			{ 
+				//do drag until mouse is let go
+				while (dragged) 
+				{
+					//print ("start transform: "+transform.position);
+					delta=transform.position;
+					float z=0;
+					z=3000;//Camera.main.WorldToScreenPoint(transform.position).z;
+					transform.position=Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x,Input.mousePosition.y,z));
+					//print ("new transform: "+transform.position);
+					delta=transform.position-delta;
+					//print ("delta: "+delta);
+					//print ("applying move!");
+					controller.DragNode(this,delta);
+					//call controller to align links
+					yield return new WaitForFixedUpdate();
+				}
 			}
-			controller.DragNode(this);
 			yield break;
+		}
+		
+		public void DragAlong(Vector3 moveDelta)
+		{
+			moveDelta.z=0;
+			transform.position+=moveDelta;
+			//print ("applying dragalong!");
 		}
 		
 		void OnMouseUp()
 		{
 			dragged=false;
+			controller.ClickNode(this);
 		}
 		
 		public void SetSprite(int spriteNum)
 		{
-			gameObject.GetComponent<SpriteRenderer>().sprite=sprites[spriteNum];
+			//gameObject.GetComponent<SpriteRenderer>().sprite=sprites[spriteNum];
+			renderer.material.SetTexture(0,textures[spriteNum]);
 			currentSprite=spriteNum;
 		}
 		
