@@ -35,6 +35,8 @@ namespace Topology {
 		Hashtable nodes;
 		Hashtable links;
 		VectorLine linksVector;
+		//VectorLine selectionBoxLine;
+		public float vectorLineThickness=4f;
 		//List<Vector3> linksPoints=new List<Vector3>();
 		Dictionary<Link,Vector3Pair> linksPoints=new Dictionary<Link, Vector3Pair>();
 		Dictionary<Link,Color> linkColors=new Dictionary<Link, Color>();
@@ -48,6 +50,8 @@ namespace Topology {
 		//GUIContainer contextMenu;
 		public Rect contextMenuPosNodes;
 		public Rect contextMenuPosLinks;
+		
+		TimerDetector dclickTimer=null;
 		
 		List<Link> selectedLinks;
 		List<Node> selectedNodes;
@@ -79,6 +83,8 @@ namespace Topology {
 		//something was selected this frame, so no deselect
 		bool selectionMade=false;
 		
+		bool sceneLoaded=false;
+		
 		//Starting file browser object
 		FileBrowser fb;
 		//dropselect selection index
@@ -93,7 +99,8 @@ namespace Topology {
 		public GUISkin droplistSkin;
 		public Texture2D file,folder;
 		
-
+		bool draggingNode=false;
+		
 		//Method for loading the GraphML layout file
 		private IEnumerator LoadLayout()
 		{
@@ -131,7 +138,7 @@ namespace Topology {
 					{
 						float x = float.Parse(xmlNode.Attributes["x"].Value);
 						float y = float.Parse (xmlNode.Attributes["y"].Value);
-						float z = float.Parse(xmlNode.Attributes["z"].Value);
+						float z = 3000;//float.Parse(xmlNode.Attributes["z"].Value);
 
 						Node nodeObject = Instantiate(nodePrefab, new Vector3(x,y,z), Quaternion.identity) as Node;
 						nodeObject.nodeText.text = xmlNode.Attributes["name"].Value;
@@ -166,27 +173,8 @@ namespace Topology {
 			//map node edges
 			MapLinkNodes();
 			UpdateLinkVector();
-			//Turn links dictionary into a draw array
-			/*
-			Vector3[] linksDrawArray=new Vector3[linksPoints.Count*2];
-			int k=0;
-			foreach(Vector3Pair points in linksPoints.Values)
-			{
-				linksDrawArray[k]=points.p1;
-				k++;
-				linksDrawArray[k]=points.p2;
-				k++;
-			}
-			//Turns link colors dictionary into a draw array
-			Color[] linksColorsDrawArray=new Color[linkColors.Count];
-			linkColors.Values.CopyTo(linksColorsDrawArray,0);
-			
-			linksVector=new VectorLine("All Link Line",linksDrawArray,linksColorsDrawArray,linksMat,3f,LineType.Discrete);
-			//linksVector.SetColor(Color.black);
-			linksVector.sortingOrder=-5;
-			linksVector.Draw3D();//Draw3DAuto();
-			*/
 			statusText.text = "";
+			sceneLoaded=true;
 			//Vector3Pair pear=new Vector3Pair(
 		}
 
@@ -216,7 +204,7 @@ namespace Topology {
 			Link linkSelect=null;
 			float closestYet = Mathf.Infinity;
 			
-			float selectionThreshold=0.22f;
+			float selectionThreshold=20f;//0.22f;
 			
 			//for (int i = 0; i < linksPoints.Count-1; i++) {
 			foreach (Vector3Pair points in linksPoints.Values)
@@ -294,17 +282,20 @@ namespace Topology {
 			}
 			Color[] arColors=new Color[linkColors.Values.Count];
 			linkColors.Values.CopyTo(arColors,0);
-			
-			linksVector=new VectorLine("All Link Line",linksDrawArray,arColors,linksMat,3f,LineType.Discrete);
-			//linksVector.SetColor(Color.black);
-			linksVector.sortingOrder=-5;
-			linksVector.Draw3D();
+			//If there is a vector to draw
+			if (linksDrawArray.Length>1)
+			{
+				linksVector=new VectorLine("All Link Line",linksDrawArray,arColors,linksMat,vectorLineThickness,LineType.Discrete);
+				//linksVector.SetColor(Color.black);
+				linksVector.sortingOrder=-5;
+				linksVector.Draw3DAuto();
+			}
 		}
 		
 		void CreateNewNode()
 		{
-
-			Vector3 newNodePos=Camera.main.transform.position+Camera.main.transform.forward*40;
+			Vector3 newNodePos=Camera.main.ScreenToWorldPoint(Input.mousePosition);//Camera.main.transform.forward*40;;//Camera.main.transform.position+Camera.main.transform.forward*40;
+			newNodePos.z=3000;
 			Node nodeObject = Instantiate(nodePrefab, newNodePos, Quaternion.identity) as Node;
 			//nodeObject.nodeText.text = xmlNode.Attributes["name"].Value;
 			
@@ -510,23 +501,41 @@ namespace Topology {
 		public void ClickNode(Node clickedNode)
 		{
 			ClickedNodeAction(clickedNode);
-			print ("Color black is:"+Color.black);
-			print ("Color green is:"+Color.green);
+			//print ("Color black is:"+Color.black);
+			//print ("Color green is:"+Color.green);
+		}
+		
+		public void ClickNode(Node clickedNode, bool dragged)
+		{
+			selectMode=1;
+			ClickedNodeAction(clickedNode);
 		}
 		
 		//Called by node when its dragged
-		public void DragNode(Node draggedNode)
+		//public void StartDragNode() {draggingNode=true;}
+		//public void StopDragNode() {draggingNode=false;}
+		
+		public void DragNode(Node draggedNode, Vector3 moveDelta)
 		{
-			//call all connected links to realign
-			foreach (Link link in links.Values)
+			//print (moveDelta);
+			//selectMode=1;
+			foreach (Node node in selectedNodes)
 			{
-				if (link.source==draggedNode) 
-				{//link.loaded=false;
-					linksPoints[link]=new Vector3Pair(draggedNode.transform.position,linksPoints[link].p2);
+				//print ("dragalong node count:"+selectedNodes.Count);
+				if (node!=draggedNode) {node.DragAlong(moveDelta);}
+				//call all connected links to realign
+				foreach (Link link in links.Values)
+				{
+					if (link.source==node) 
+					{//link.loaded=false;
+						linksPoints[link]=new Vector3Pair(node.transform.position,linksPoints[link].p2);
+					}
+					if (link.target==node){linksPoints[link]=new Vector3Pair(linksPoints[link].p1,node.transform.position);}
+					
 				}
-				if (link.target==draggedNode){linksPoints[link]=new Vector3Pair(linksPoints[link].p1,draggedNode.transform.position);}
+				UpdateLinkVector();
 			}
-			UpdateLinkVector();
+			
 		
 		}
 		
@@ -536,6 +545,7 @@ namespace Topology {
 			if (Input.GetKey("left shift")) {selectMode=1;}
 			if (Input.GetKey("left ctrl")) {selectMode=2;}
 			if (Input.GetKey("left alt"))  {selectMode=3;}
+			//if (draggingNode) {selectMode=1;}
 		
 		}
 		
@@ -597,6 +607,7 @@ namespace Topology {
 		void ClickedLinkAction(Link actionLink, Link sibling)
 		{
 			selectionMade=true;
+			//print ("link clicked!");
 			DeselectAllNodes();
 			//drawTooltip=true;
 			tooltipMode=1;
@@ -791,6 +802,8 @@ namespace Topology {
 			// single select mode
 			if (selectMode==0)
 			{
+				//print ("node clicked in single select!");
+				
 				DeselectAllNodes();
 				selectedNodes.Add(clickedNode);//HashtableAppendNum(selectedNodes,clickedNode);//selectedNodes.Add(clickedNode);
 				clickedNode.selected=true;
@@ -800,8 +813,11 @@ namespace Topology {
 			if (selectMode==1)
 			{ 
 				//selectedNodes.Add(clickedNode);
-				selectedNodes.Add(clickedNode);//HashtableAppendNum(selectedNodes,clickedNode);
-				clickedNode.selected=true;
+				if (!selectedNodes.Contains(clickedNode))
+				{
+					selectedNodes.Add(clickedNode);//HashtableAppendNum(selectedNodes,clickedNode);
+					clickedNode.selected=true;
+				}
 			}
 			
 			// ctrl(alt) select mode
@@ -990,7 +1006,7 @@ namespace Topology {
 		//Deselect current selection on clicking empty space
 		void ManageClickDeselect()
 		{
-			if (Input.GetMouseButtonDown(0)) 
+			if (Input.GetMouseButtonDown(0) && sceneLoaded) 
 			{
 				Vector2 mousePosInGUICoords = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
 				if (selectMode==0 && !selectionMade && !contextMenuPosNodes.Contains(mousePosInGUICoords) 
@@ -999,10 +1015,113 @@ namespace Topology {
 				   && !selectColorDroplist.GetCurrentDimensions().Contains(mousePosInGUICoords)
 				   	&& !selectIconDroplist.GetCurrentDimensions().Contains(mousePosInGUICoords))
 				{	
+					//print ("full deselect primed!");
 					DeselectAllNodes();
 					DeselectAllLinks();
+					//ManageDoubleclick();
 				}
 			}
+		}
+		
+		void ManageSelectionBox()
+		{
+			if (Input.GetMouseButtonDown(0)) 
+			{
+				Vector2 mousePosInGUICoords = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
+				if (selectMode==0 && !selectionMade && !contextMenuPosNodes.Contains(mousePosInGUICoords) 
+				    && !contextMenuPosLinks.Contains(mousePosInGUICoords)
+				    && !selectItemDroplist.GetCurrentDimensions().Contains(mousePosInGUICoords) 
+				    && !selectColorDroplist.GetCurrentDimensions().Contains(mousePosInGUICoords)
+				    && !selectIconDroplist.GetCurrentDimensions().Contains(mousePosInGUICoords))
+				{StartCoroutine(ManageSelectionBoxRoutine());}	
+			}
+		}
+		
+		IEnumerator ManageSelectionBoxRoutine()
+		{
+			//Switches to multiselect
+			Rect screenSelectRect=new Rect();
+			Vector2 originalPos = Input.mousePosition;
+			VectorLine selectionBoxLine=new VectorLine("Selection", new Vector2[5], null, 4.0f, LineType.Continuous);
+			selectionBoxLine.textureScale=4.0f;
+			yield return new WaitForEndOfFrame();
+			//if (Input.GetMouseButton(0)) {print ("Select box primed");}
+			while(Input.GetMouseButton(0))
+			{	
+				selectionBoxLine.MakeRect (originalPos, Input.mousePosition);
+				selectionBoxLine.Draw();
+				selectionBoxLine.textureOffset = -Time.time*2.0f % 1;
+				
+				//screenSelectRect.x=Mathf.Max(originalPos.x,Input.mousePosition.x);
+				//screenSelectRect.y=Mathf.Max(originalPos.y,Input.mousePosition.y);
+				//screenSelectRect.xMax=Mathf.Max(originalPos.x,Input.mousePosition.x);
+				//screenSelectRect.yMax=Mathf.Max(originalPos.x,Input.mousePosition.x);
+				//screenSelectRect.x=originalPos.x;
+				selectMode=1;
+				screenSelectRect.position=originalPos;
+				screenSelectRect.xMax=Input.mousePosition.x;
+				screenSelectRect.yMax=Input.mousePosition.y;
+				
+				//DeselectAllNodes();
+				
+				foreach (Node node in nodes.Values)
+				{
+					if (screenSelectRect.Contains(Camera.main.WorldToScreenPoint(node.transform.position),true)) 
+					{
+						ClickedNodeAction(node);
+					} 
+					else 
+					{
+						if (selectedNodes.Contains(node)) {node.selected=false; selectedNodes.Remove(node);}
+					}
+				}
+				
+				yield return new WaitForFixedUpdate();
+			}
+			VectorLine.Destroy(ref selectionBoxLine);
+			yield break;
+		}
+		
+		void ManageDoubleclick()
+		{
+			if (Input.GetMouseButtonDown(0) && sceneLoaded) 
+			{
+				Vector2 mousePosInGUICoords = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
+				if (selectMode==0 && !selectionMade && !contextMenuPosNodes.Contains(mousePosInGUICoords) 
+				    && !contextMenuPosLinks.Contains(mousePosInGUICoords)
+				    && !selectItemDroplist.GetCurrentDimensions().Contains(mousePosInGUICoords) 
+				    && !selectColorDroplist.GetCurrentDimensions().Contains(mousePosInGUICoords)
+				    && !selectIconDroplist.GetCurrentDimensions().Contains(mousePosInGUICoords))
+				{	
+					if (dclickTimer==null) {StartCoroutine(ManageDoubleclickTimer());}
+				}
+		
+			}
+		}
+		
+		IEnumerator ManageDoubleclickTimer()
+		{
+			//if (Input.GetMouseButtonUp(0))
+			//{
+			dclickTimer=new TimerDetector(0.22f);
+			yield return new WaitForFixedUpdate();
+			while (!dclickTimer.UpdateTimer())
+			{
+				if (Input.GetMouseButtonDown(0) && sceneLoaded) 
+				{
+					Vector2 mousePosInGUICoords = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
+					if (selectMode==0 && !selectionMade && !contextMenuPosNodes.Contains(mousePosInGUICoords) 
+					    && !contextMenuPosLinks.Contains(mousePosInGUICoords)
+					    && !selectItemDroplist.GetCurrentDimensions().Contains(mousePosInGUICoords) 
+					    && !selectColorDroplist.GetCurrentDimensions().Contains(mousePosInGUICoords)
+					    && !selectIconDroplist.GetCurrentDimensions().Contains(mousePosInGUICoords))
+					{CreateNewNode(); break;}
+				}
+				yield return new WaitForFixedUpdate();	
+			}
+			yield return new WaitForFixedUpdate();
+			dclickTimer=null;
+			yield break;
 		}
 		
 		void DeselectAllNodes()
@@ -1043,14 +1162,8 @@ namespace Topology {
 		//fires before physics clicks and Update
 		void FixedUpdate()
 		{
-			HandleSelectMode();
-			if (Input.GetMouseButtonDown(0))
-			{
-				//int selectedPointIndex=AttemptSelectLink();
-				//if (selectedPointIndex!=-1) {ClickLink(GetLinkFromPointIndex(selectedPointIndex));}
-				Link selectedLink=AttemptSelectLink();
-				if (selectedLink!=null) {ClickLink(selectedLink);}
-			}	
+			HandleSelectMode();	
+				
 		}
 		
 		
@@ -1059,7 +1172,18 @@ namespace Topology {
 		void Update()
 		{
 			//manage input
+			if (Input.GetMouseButtonDown(0) && !selectionMade)
+			{
+				//int selectedPointIndex=AttemptSelectLink();
+				//if (selectedPointIndex!=-1) {ClickLink(GetLinkFromPointIndex(selectedPointIndex));}
+				Link selectedLink=AttemptSelectLink();
+				if (selectedLink!=null) {ClickLink(selectedLink);}
+			}
+			
 			ManageClickDeselect();
+			ManageDoubleclick();
+			ManageSelectionBox();
+			
 			if (Input.GetKeyDown (KeyCode.Delete))
 			{
 				if (selectedNodes.Count>0){DeleteSelectedNodes();}
@@ -1070,6 +1194,21 @@ namespace Topology {
 			if (Input.GetKeyDown("n")) {CreateNewNode();}
 			selectionMade=false;
 		}
+		
+		
+		/*
+		IEnumerator DetectDoubleclick()
+		{
+			bool isdoubleclick=false;
+			float timefortwo=0.2f;
+			while(timefortwo>0)
+			{
+				if (Input.GetMouseButtonDown(0)) {CreateNewNode(); break;}
+				timefortwo-=Time.deltaTime;
+				yield return new WaitForFixedUpdate();
+			}
+			yield break;
+		}*/
 		
 		protected void OnGUI () 
 		{
