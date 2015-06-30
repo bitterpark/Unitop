@@ -1,23 +1,4 @@
-﻿/*
- * Copyright 2014 Jason Graves (GodLikeMouse/Collaboradev)
- * http://www.collaboradev.com
- *
- * This file is part of Unity - Topology.
- *
- * Unity - Topology is free software: you can redistribute it 
- * and/or modify it under the terms of the GNU General Public 
- * License as published by the Free Software Foundation, either 
- * version 3 of the License, or (at your option) any later version.
- *
- * Unity - Topology is distributed in the hope that it will be useful, 
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License 
- * along with Unity - Topology. If not, see http://www.gnu.org/licenses/.
- */
-
+﻿
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
@@ -26,7 +7,8 @@ using Topology;
 [AddComponentMenu("Camera-Control/Move ZeroG")]
 public class CameraControlZeroG : MonoBehaviour {
 
-	public float speed = 5f;
+	public float startSpeed = 1000f;
+	float realSpeed;
 	public GUIText movementSpeed;
 
 	private Vector3 move = new Vector3();
@@ -39,7 +21,8 @@ public class CameraControlZeroG : MonoBehaviour {
 	private Vector3 cluster5 = new Vector3(-587, 2043, 2194);
 	*/
 	public GameObject controller;
-	public float zoomSpd=64;
+	public float zoomSpd=96;
+	int zoomLvl=0;
 	//private List <Node> selection=new List<Node>();
 	private int selectMode=0;
 	
@@ -50,54 +33,66 @@ public class CameraControlZeroG : MonoBehaviour {
 	
 	void Update () 
 	{
-		/*
-		if (Input.GetMouseButton(2)) 
-		{
-			GetComponent<MouseLook>().enabled=true;
-			Screen.lockCursor=true;
-		}
-		else 
-		{
-			GetComponent<MouseLook>().enabled=false;
-			Screen.lockCursor=false;
-		}*/
 		float orthCameraSize=Camera.main.orthographicSize;
 		Vector3 perspCameraMove=Vector3.zero;
-		if (Input.GetAxis("Mouse ScrollWheel")>0) {perspCameraMove+=new Vector3(0,0,100);orthCameraSize-=zoomSpd;}
-		if (Input.GetAxis("Mouse ScrollWheel")<0) {perspCameraMove+=new Vector3(0,0,-100);orthCameraSize+=zoomSpd;}
+		if (Input.GetAxis("Mouse ScrollWheel")>0) 
+		{
+			perspCameraMove+=new Vector3(0,0,100); 
+			orthCameraSize-=zoomSpd;
+			zoomLvl-=1;
+		}
+		if (Input.GetAxis("Mouse ScrollWheel")<0) 
+		{
+			perspCameraMove+=new Vector3(0,0,-100);
+			orthCameraSize+=zoomSpd;
+			zoomLvl+=1;
+		}
 		if (Camera.main.isOrthoGraphic)
 		{
 			if (orthCameraSize<384) {orthCameraSize=384;}
+			if (zoomLvl<0) {zoomLvl=0;}
+			realSpeed=startSpeed+startSpeed*zoomLvl;
 			Camera.main.orthographicSize=orthCameraSize;
 		}
 		else {transform.position+=perspCameraMove;}
 		//if (Input.GetMouseButtonUp
 		
-		move.x = Input.GetAxis("Horizontal") * speed * Time.deltaTime;
+		move.x = Input.GetAxis("Horizontal") * realSpeed * Time.deltaTime;
 		//move.z = Input.GetAxis("Vertical") * speed * Time.deltaTime;
 		//move.y = 0;
-		move.y=Input.GetAxis("Vertical") * speed * Time.deltaTime;
+		move.y=Input.GetAxis("Vertical") * realSpeed * Time.deltaTime;
 		move.z=0;
 		
 		if (Input.GetKey ("space")) {
-			move.y = speed * Time.deltaTime;
+			move.y = realSpeed * Time.deltaTime;
 		}
 
 		if (Input.GetKey ("z")) {
-			move.y = -speed * Time.deltaTime;
+			move.y = -realSpeed * Time.deltaTime;
 		}
-
+		
+		ManageBorderScroll();
 		//adjust speed with mouse wheel
 		/*
 		speed += Input.GetAxis("Mouse ScrollWheel");
 		if (speed < 5)
 			speed = 5;
 		*/
-		movementSpeed.text = "Move Speed: " + speed;
+		movementSpeed.text = "Move Speed: " + realSpeed;
 
 		move = transform.TransformDirection(move);
 		transform.position += move;
 		
+	}
+	
+	void ManageBorderScroll()
+	{
+		float xTolerance=10f;
+		float yTolerance=5f;
+		if ((Input.mousePosition.x)<xTolerance) {move.x-=realSpeed*Time.deltaTime;}
+		if ((Input.mousePosition.y)<yTolerance) {move.y-=realSpeed*Time.deltaTime;}
+		if ((Input.mousePosition.x)>Screen.width-xTolerance) {move.x+=realSpeed*Time.deltaTime;}
+		if ((Input.mousePosition.y)>Screen.height-yTolerance) {move.y+=realSpeed*Time.deltaTime;}
 	}
 
 }

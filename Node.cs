@@ -1,22 +1,4 @@
-﻿/*
- * Copyright 2014 Jason Graves (GodLikeMouse/Collaboradev)
- * http://www.collaboradev.com
- *
- * This file is part of Unity - Topology.
- *
- * Unity - Topology is free software: you can redistribute it 
- * and/or modify it under the terms of the GNU General Public 
- * License as published by the Free Software Foundation, either 
- * version 3 of the License, or (at your option) any later version.
- *
- * Unity - Topology is distributed in the hope that it will be useful, 
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License 
- * along with Unity - Topology. If not, see http://www.gnu.org/licenses/.
- */
+﻿
 
 using UnityEngine;
 using System.Collections;
@@ -46,6 +28,7 @@ namespace Topology {
 		int currentSprite=0;
 		
 		bool dragged=false;
+		TimerDetector myTimer=null;
 		
 		void Start()
 		{
@@ -65,20 +48,50 @@ namespace Topology {
 		void OnMouseDown()
 		{
 			//Camera.main.gameObject.GetComponent<CameraControlZeroG>().controller
-			dragged=true;
+			//dragged=true;
 			
 //			controller.StartDragNode();
-			controller.ClickNode(this,dragged);
+			controller.ClickNode(this,true);
 			//print ("drag routine started!");
-			StartCoroutine(DragRoutine());
+			//StartCoroutine(DragRoutine());
 		}
 		
+		void OnMouseDrag()
+		{
+			//Wait for mouse hold for 0.2 sec
+			if (!dragged)
+			{
+				if (myTimer==null) {myTimer=new TimerDetector(0.2f);}
+				else 
+				{
+					if (myTimer.UpdateTimer()) 
+					{
+						dragged=true;
+						myTimer=null;
+					}
+				}
+			}
+			else
+			{
+				//if mouse was held, activate drag mode
+				Vector3 delta=Vector3.zero;
+				delta=transform.position;
+				float z=0;
+				z=3000;//Camera.main.WorldToScreenPoint(transform.position).z;
+				transform.position=Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x,Input.mousePosition.y,z));
+				delta=transform.position-delta;
+				//Call controller to align links and dragalong nodes
+				controller.DragNode(this,delta);
+			}
+		}
+		
+		/*
 		IEnumerator DragRoutine()
 		{
 			float i=0;
 			Vector3 delta=Vector3.zero;
 			//Wait for an 0.2 of a second mouse button hold 
-			while (i<0.1 && dragged) 
+			while (i<0.1) 
 			{
 				i+=Time.deltaTime;
 				yield return new WaitForFixedUpdate();
@@ -105,7 +118,7 @@ namespace Topology {
 				}
 			}
 			yield break;
-		}
+		}*/
 		
 		public void DragAlong(Vector3 moveDelta)
 		{
@@ -116,8 +129,11 @@ namespace Topology {
 		
 		void OnMouseUp()
 		{
+			//if (dragged) {}
+			//dragged=false;
+			controller.ClickNode(this,dragged);
 			dragged=false;
-			controller.ClickNode(this);
+			myTimer=null;
 		}
 		
 		public void SetSprite(int spriteNum)

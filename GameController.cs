@@ -1,23 +1,4 @@
-﻿/*
- * Copyright 2014 Jason Graves (GodLikeMouse/Collaboradev)
- * http://www.collaboradev.com
- *
- * This file is part of Unity - Topology.
- *
- * Unity - Topology is free software: you can redistribute it 
- * and/or modify it under the terms of the GNU General Public 
- * License as published by the Free Software Foundation, either 
- * version 3 of the License, or (at your option) any later version.
- *
- * Unity - Topology is distributed in the hope that it will be useful, 
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU 
- * General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License 
- * along with Unity - Topology. If not, see http://www.gnu.org/licenses/.
- */
-
+﻿
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
@@ -101,6 +82,8 @@ namespace Topology {
 		
 		bool draggingNode=false;
 		
+		List<Node> nodeCopyBuffer;
+		
 		//Method for loading the GraphML layout file
 		private IEnumerator LoadLayout()
 		{
@@ -139,7 +122,9 @@ namespace Topology {
 						float x = float.Parse(xmlNode.Attributes["x"].Value);
 						float y = float.Parse (xmlNode.Attributes["y"].Value);
 						float z = 3000;//float.Parse(xmlNode.Attributes["z"].Value);
-
+						
+						CreateNewNode(new Vector2(x,y),xmlNode.Attributes["name"].Value,xmlNode.Attributes["id"].Value);
+						/*
 						Node nodeObject = Instantiate(nodePrefab, new Vector3(x,y,z), Quaternion.identity) as Node;
 						nodeObject.nodeText.text = xmlNode.Attributes["name"].Value;
 
@@ -150,6 +135,8 @@ namespace Topology {
 						
 						statusText.text = "Загрузка топологии: Вершина " + nodeObject.id;
 						nodeCount++;
+						*/
+						statusText.text = "Загрузка топологии: Вершина " + nodeCount;//nodeObject.id;
 						nodeCountText.text = "Вершин: " + nodeCount;
 					}
 
@@ -271,6 +258,7 @@ namespace Topology {
 		void UpdateLinkVector()
 		{
 			VectorLine.Destroy(ref linksVector);
+			//VectorLine.
 			Vector3[] linksDrawArray=new Vector3[linksPoints.Count*2];
 			int k=0;
 			foreach(Vector3Pair points in linksPoints.Values)
@@ -285,17 +273,21 @@ namespace Topology {
 			//If there is a vector to draw
 			if (linksDrawArray.Length>1)
 			{
-				linksVector=new VectorLine("All Link Line",linksDrawArray,arColors,linksMat,vectorLineThickness,LineType.Discrete);
+				
+				//float lineWidth=vectorLineThickness*(Screen.height/2)*Camera.main.orthographicSize;
+				float lineWidth=vectorLineThickness*Screen.height/(Camera.main.orthographicSize*2);
+				linksVector=new VectorLine("All Link Line",linksDrawArray,arColors,linksMat,lineWidth,LineType.Discrete);
 				//linksVector.SetColor(Color.black);
 				linksVector.sortingOrder=-5;
-				linksVector.Draw3DAuto();
+				linksVector.Draw3D();
+				//linksVector.SetWidth=vectorLineThickness;
 			}
 		}
 		
 		void CreateNewNode()
 		{
-			Vector3 newNodePos=Camera.main.ScreenToWorldPoint(Input.mousePosition);//Camera.main.transform.forward*40;;//Camera.main.transform.position+Camera.main.transform.forward*40;
-			newNodePos.z=3000;
+			/*
+			
 			Node nodeObject = Instantiate(nodePrefab, newNodePos, Quaternion.identity) as Node;
 			//nodeObject.nodeText.text = xmlNode.Attributes["name"].Value;
 			
@@ -305,6 +297,57 @@ namespace Topology {
 				i++;
 			}
 			nodeObject.id = "node_"+i.ToString();
+			
+			nodeObject.controller=this;
+			nodes.Add(nodeObject.id, nodeObject);
+			nodeCount++;*/
+			Vector3 newNodePos=Camera.main.ScreenToWorldPoint(Input.mousePosition);//Camera.main.transform.forward*40;;//Camera.main.transform.position+Camera.main.transform.forward*40;
+			//newNodePos.z=3000;
+			CreateNewNode (newNodePos);
+		}
+		
+		void CreateNewNode(Vector2 newNodePosition) {CreateNewNode(newNodePosition,"127.0.0.1");}
+		
+		void CreateNewNode(Vector2 newNodePosition,string newNodeText)
+		{
+			/*
+			Vector3 newNodePos=(Vector3)newNodePosition;//Camera.main.transform.forward*40;;//Camera.main.transform.position+Camera.main.transform.forward*40;
+			newNodePos.z=3000;
+			
+			Node nodeObject = Instantiate(nodePrefab, newNodePos, Quaternion.identity) as Node;
+			//nodeObject.nodeText.text = xmlNode.Attributes["name"].Value;
+			
+			int i=0;
+			while (nodes.ContainsKey("node_"+i.ToString()))
+			{
+				i++;
+			}
+			nodeObject.id = "node_"+i.ToString();
+			nodeObject.nodeText=nodeText;
+			
+			nodeObject.controller=this;
+			nodes.Add(nodeObject.id, newNodeObject);
+			nodeCount++;*/
+			int i=0;
+			while (nodes.ContainsKey("node_"+i.ToString()))
+			{
+				i++;
+			}
+			string generatedId="node_"+i.ToString();
+			CreateNewNode(newNodePosition,newNodeText,generatedId);
+		
+		}
+		
+		void CreateNewNode(Vector2 newNodePosition,string newNodeText, string newNodeId)
+		{
+			Vector3 newNodePos=(Vector3)newNodePosition;//Camera.main.transform.forward*40;;//Camera.main.transform.position+Camera.main.transform.forward*40;
+			newNodePos.z=3000;
+			
+			Node nodeObject = Instantiate(nodePrefab, newNodePos, Quaternion.identity) as Node;
+			//nodeObject.nodeText.text = xmlNode.Attributes["name"].Value;
+			
+			nodeObject.id = newNodeId;
+			nodeObject.nodeText.text=newNodeText;
 			
 			nodeObject.controller=this;
 			nodes.Add(nodeObject.id, nodeObject);
@@ -326,6 +369,24 @@ namespace Topology {
 				}
 			}
 			GameObject.Destroy(deletedNode.gameObject);
+		}
+		
+		void CopyNodes()
+		{
+			foreach (Node copiedNode in selectedNodes)
+			{
+				//nodeCopyBuffer
+				nodeCopyBuffer.AddRange(selectedNodes);
+			}
+		
+		}
+		
+		void PasteNodes()
+		{
+			foreach(Node pastedNode in nodeCopyBuffer)
+			{
+				CreateNewNode(pastedNode.myPos,pastedNode.nodeText.text);
+			}
 		}
 		
 		//Method for adding new links
@@ -507,7 +568,7 @@ namespace Topology {
 		
 		public void ClickNode(Node clickedNode, bool dragged)
 		{
-			selectMode=1;
+			if (dragged) {selectMode=1;}
 			ClickedNodeAction(clickedNode);
 		}
 		
@@ -862,17 +923,6 @@ namespace Topology {
 		
 		void DrawTooltip(int mode)
 		{
-			/*
-			float ttStartx=10;
-			float ttStarty=100;
-			float ttSizex=100;
-			float ttSizey=30;
-			float ttStartHPad=10;
-			float ttStartVPad=10;
-			float ttHPad=20;
-			float ttVPad=5;
-			string ttText="";
-			*/
 			float elementSizeX=110;
 			float elementSizeY=40;
 			float leftColumnStartX=30;
@@ -922,7 +972,9 @@ namespace Topology {
 				//select icon droplist
 				selectIconDroplist.List(new Rect(leftColumnStartX+elementSizeX*0.5f,leftColumnStartY+elementSizeY*2+vPad*2,elementSizeX,elementSizeY)
 				 ,iconDroplistContent,"box",droplistSkin.customStyles[0]);
-				currentNode.SetSprite(selectIconDroplist.GetSelectedItemIndex());
+				//Set new icon for all selected nodes
+				foreach (Node node in selectedNodes) {node.SetSprite(selectIconDroplist.GetSelectedItemIndex());}
+				//currentNode.SetSprite(selectIconDroplist.GetSelectedItemIndex());
 				
 				//select obj menu (must be last item rendered)
 				selectItemDroplist.List(new Rect(leftColumnStartX,leftColumnStartY+elementSizeY,elementSizeX,elementSizeY)
@@ -943,8 +995,7 @@ namespace Topology {
 				for (int i=0; i<selectedLinks.Count; i++)
 				{
 					droplistContent[i]=new GUIContent(selectedLinks[i].id);
-				}
-				
+				}	
 				
 				//main box and left hand labels
 				GUI.Box(contextMenuPosLinks,"");
@@ -1162,7 +1213,12 @@ namespace Topology {
 		//fires before physics clicks and Update
 		void FixedUpdate()
 		{
-			HandleSelectMode();	
+			HandleSelectMode();
+			//print (""+linksVector.get);
+			/*
+			float lineWidth=vectorLineThickness*(Screen.height/2)*Camera.main.orthographicSize;
+			if (linksVector!=null)	{linksVector.SetWidth(lineWidth);}*/
+			//print (Screen.width);
 				
 		}
 		
