@@ -10,7 +10,7 @@ namespace Topology {
 		public string id;
 		public TextMesh nodeText;
 		public GameController controller;
-		public Vector3 myPos;
+		//public Vector3 myPos;
 		
 		public bool selected
 		{
@@ -51,7 +51,8 @@ namespace Topology {
 			//dragged=true;
 			
 //			controller.StartDragNode();
-			controller.ClickNode(this,true);
+			//controller.ClickNode(this,true);
+			controller.ClickedNodeAction(this,true);
 			//print ("drag routine started!");
 			//StartCoroutine(DragRoutine());
 		}
@@ -67,6 +68,7 @@ namespace Topology {
 					if (myTimer.UpdateTimer()) 
 					{
 						dragged=true;
+						controller.NodeDragStart();
 						myTimer=null;
 					}
 				}
@@ -85,40 +87,11 @@ namespace Topology {
 			}
 		}
 		
-		/*
-		IEnumerator DragRoutine()
+		void OnDestroy() 
 		{
-			float i=0;
-			Vector3 delta=Vector3.zero;
-			//Wait for an 0.2 of a second mouse button hold 
-			while (i<0.1) 
-			{
-				i+=Time.deltaTime;
-				yield return new WaitForFixedUpdate();
-			}
-			
-			if (!dragged) {}
-			else
-			{ 
-				//do drag until mouse is let go
-				while (dragged) 
-				{
-					//print ("start transform: "+transform.position);
-					delta=transform.position;
-					float z=0;
-					z=3000;//Camera.main.WorldToScreenPoint(transform.position).z;
-					transform.position=Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x,Input.mousePosition.y,z));
-					//print ("new transform: "+transform.position);
-					delta=transform.position-delta;
-					//print ("delta: "+delta);
-					//print ("applying move!");
-					controller.DragNode(this,delta);
-					//call controller to align links
-					yield return new WaitForFixedUpdate();
-				}
-			}
-			yield break;
-		}*/
+			if (dragged) {controller.NodeDragComplete();}
+			StopAllCoroutines();
+		}
 		
 		public void DragAlong(Vector3 moveDelta)
 		{
@@ -131,7 +104,8 @@ namespace Topology {
 		{
 			//if (dragged) {}
 			//dragged=false;
-			controller.ClickNode(this,dragged);
+			if (dragged) {controller.NodeDragComplete();}
+			controller.ClickedNodeAction(this,dragged);
 			dragged=false;
 			myTimer=null;
 		}
