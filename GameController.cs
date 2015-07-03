@@ -11,20 +11,11 @@ namespace Topology {
 	public class GameController : MonoBehaviour {
 
 		public Node nodePrefab;
-		public Link linkPrefab;
 
 		Hashtable nodes=new Hashtable();
 		Hashtable links=new Hashtable();
-		VectorLine linksVector;
-		VectorLine swapLinksVector;
-		//VectorLine selectionBoxLine;
-		public float vectorLineThickness=4f;
-		Dictionary<Link,Vector3Pair> linkPoints=new Dictionary<Link, Vector3Pair>();
-		Dictionary<Link,Color> linkColors=new Dictionary<Link, Color>();
-		Dictionary<Link,Vector3Pair> dragConnectLinkPoints= new Dictionary<Link, Vector3Pair >();
-		Dictionary<Link,Color> dragConnectLinkColors= new Dictionary<Link, Color>();
 		
-		public Material linksMat;
+		LinkDrawManager linkDrawManager;
 		
 		GUIText statusText;
 		int nodeCount = 0;
@@ -135,20 +126,17 @@ namespace Topology {
 						//CreateNewNode(new Vector2(x,y),xmlNode.Attributes["name"].Value,xmlNode.Attributes["id"].Value);
 						statusText.text = "Загрузка топологии: Вершина " + nodeCount;//nodeObject.id;
 						nodeCountText.text = "Вершин: " + nodeCount;
-						
-						//print ("Icon value is: "+xmlNode.Attributes["icon"].Value);
-						//if (xmlNode.HasAttribute) {}
 					}
 
 					//create links
 					if(xmlNode.Name == "edge")
 					{
-						CreateNewLink(xmlNode.Attributes["source"].Value,xmlNode.Attributes["target"].Value
+						 //Nodes are mapped in later in MapLinkNodes. It makes sure all the nodes are loaded in and created first.
+						 //It is added to link draw manager in MapLinkNodes
+						CreateNewLinkWithUnmappedConnectNodes(xmlNode.Attributes["source"].Value,xmlNode.Attributes["target"].Value
 						 ,xmlNode.Attributes["id"].Value,xmlNode.Attributes["color"].Value);
 						statusText.text = "Загрузка топологии: Ребро " + xmlNode.Attributes["id"].Value;
-						
 						//linkCountText.text = "Ребер: " + linkCount;
-						
 					}
 
 					//every 100 cycles return control to unity
@@ -159,26 +147,30 @@ namespace Topology {
 
 			//map node edges
 			MapLinkNodes();
-			UpdateLinkVector();
 			statusText.text = "";
 			sceneLoaded=true;
 		}
 
 		//Method for mapping links to nodes
-		private void MapLinkNodes(){
+		void MapLinkNodes()
+		{
+			//Prepare all drawn links
+			Link[] drawnLinks=new Link[links.Count];
+			int i=0;
 			foreach(string key in links.Keys)
 			{
 				Link link = links[key] as Link;
 				link.source = nodes[link.sourceId] as Node;
 				link.target = nodes[link.targetId] as Node;
-				linkPoints.Add(link,new Vector3Pair(link.source.transform.position,link.target.transform.position));
-				linkColors.Add (link,link.GetColorFromString(link.color));
-				//print ("color assigned:"+link.color);
-				//linkPoints.Add (link.source.myPos);
-				//linkPoints.
-				//linkPoints.Add (link.target.myPos);
-				//link.sourcePointIndex=linkPoints.FindIndex();
+				
+				//Put this here to save iterations, might move later
+				//Setup link drawing
+				drawnLinks[i]=link;
+				i++;
+				//linkPoints.Add(link,new Vector3Pair(link.source.transform.position,link.target.transform.position));
+				//linkColors.Add (link,link.GetColorFromString(link.color));
 			}
+			linkDrawManager.AddDrawnLinks(drawnLinks);
 		}
 		
 		Link AttemptSelectLink() 
@@ -192,8 +184,8 @@ namespace Topology {
 			
 			float selectionThreshold=20f;//0.22f;
 			
-			//for (int i = 0; i < linkPoints.Count-1; i++) {
-			foreach (Vector3Pair points in linkPoints.Values)
+			Dictionary<Link, Vector3Pair> allPoints=linkDrawManager.GetLinkPoints();
+			foreach (Vector3Pair points in allPoints.Values)
 			{
 				Vector3 closest1;
 				Vector3 closest2;
@@ -203,7 +195,7 @@ namespace Topology {
 					if (dist < closestYet && dist < selectionThreshold) 
 					{
 						//iSelect = i;
-						linkSelect=PointDictionaryFindKey(points);
+						linkSelect=linkDrawManager.PointDictionaryFindKey(points);//PointDictionaryFindKey(points);
 						closestYet = dist;
 					}
 				}
@@ -212,75 +204,13 @@ namespace Topology {
 			return linkSelect;
 		}
 		
-		Link PointDictionaryFindKey(Vector3Pair value)
-		{
-			Link retLink=null;
-			foreach(Link key in linkPoints.Keys)
-			{
-				if (linkPoints[key].p1 == value.p1 && linkPoints[key].p2==value.p2) 
-				{retLink=key; break;}
-			}
-			return retLink;	
-		}
+		
 		
 		public void LinkChangeColor(Link changedLink, Color c)
 		{
-			linkColors[changedLink]=c;
-			UpdateLinkColors();
-		}
-		
-		void UpdateLinkColors()
-		{
-			Color[] arColors=new Color[linkColors.Values.Count];
-			linkColors.Values.CopyTo(arColors,0);
-			linksVector.SetColors(arColors);
-		}
-		/*
-		void UpdateLinkPoints()
-		{	
-			//Turn links twinned point dictionary into a point-based draw array
-			Vector3[] linksDrawArray=new Vector3[linkPoints.Count*2];
-			int k=0;
-			foreach(Vector3Pair points in linkPoints.Values)
-			{
-				linksDrawArray[k]=points.p1;
-				k++;
-				linksDrawArray[k]=points.p2;
-				k++;
-			}
-			linksVector.points3=linksDrawArray;
-			print ("points updated!");
-			print ("Points count: "+linksDrawArray.Length);
-		}*/
-		
-		//Call this when points are updated to apply color properly
-		void UpdateLinkVector()
-		{
-			VectorLine.Destroy(ref linksVector);
-			//VectorLine.
-			Vector3[] linksDrawArray=new Vector3[linkPoints.Count*2];
-			int k=0;
-			foreach(Vector3Pair points in linkPoints.Values)
-			{
-				linksDrawArray[k]=points.p1;
-				k++;
-				linksDrawArray[k]=points.p2;
-				k++;
-			}
-			Color[] arColors=new Color[linkColors.Values.Count];
-			linkColors.Values.CopyTo(arColors,0);
-			//If there is a vector to draw
-			if (linksDrawArray.Length>1)
-			{
-				
-				//float lineWidth=vectorLineThickness*(Screen.height/2)*Camera.main.orthographicSize;
-				float lineWidth=vectorLineThickness*Screen.height/(Camera.main.orthographicSize*2);
-				linksVector=new VectorLine("All Link Line",linksDrawArray,arColors,linksMat,lineWidth,LineType.Discrete);
-				//linksVector.SetColor(Color.black);
-				linksVector.sortingOrder=-5;
-				linksVector.Draw3D();
-				//linksVector.SetWidth=vectorLineThickness;
-			}
+			//linkColors[changedLink]=c;
+			//UpdateLinkColors();
+			linkDrawManager.LinkChangeColor(changedLink,c);
 		}
 		
 		void CreateNewNode()
@@ -415,10 +345,9 @@ namespace Topology {
 					CreateNewNode (pastedNodePos);
 				}
 			}
-			//nodeCopyBuffer.Clear();
 		}
 		
-		//Method for adding new links
+		//Method for adding new links on layout load
 		void CreateNewLink(string newLinkSourceId, string newLinkTargetId)
 		{
 			//Check if link already exists
@@ -455,8 +384,10 @@ namespace Topology {
 				linkObject.targetId = newLinkTargetId;
 				//linkObject.status = "Up";
 				links.Add(linkObject.id, linkObject);
-				linkPoints.Add(linkObject,new Vector3Pair(linkObject.source.transform.position,linkObject.target.transform.position));
-				linkColors.Add (linkObject,linkObject.GetColorFromString(linkObject.color));
+				
+				//linkPoints.Add(linkObject,new Vector3Pair(linkObject.source.transform.position,linkObject.target.transform.position));
+				//linkColors.Add (linkObject,linkObject.GetColorFromString(linkObject.color));
+				linkDrawManager.AddDrawnLink(linkObject);
 				
 				//Raise count
 				linkCount++;
@@ -467,6 +398,20 @@ namespace Topology {
 		
 		void CreateNewLink(string newLinkSourceId, string newLinkTargetId, string newLinkId, string newLinkColor)
 		{
+			Link newLink=CreateNewLinkWithUnmappedConnectNodes(newLinkSourceId,newLinkTargetId,newLinkId,newLinkColor);
+			if (newLink!=null)
+			{
+				//Map links
+				newLink.source = nodes[newLinkSourceId] as Node;
+				newLink.target = nodes[newLinkTargetId] as Node;
+			}
+		
+		}
+		
+		//Pass Link to add in node mappings
+		Link CreateNewLinkWithUnmappedConnectNodes(string newLinkSourceId, string newLinkTargetId, string newLinkId, string newLinkColor)
+		{
+			Link linkObject=null;
 			//Check if link already exists
 			bool exists=false;
 			foreach (Link link in links.Values)
@@ -483,15 +428,15 @@ namespace Topology {
 				//Create link
 			{
 				
-				Link linkObject = new Link();//Instantiate(linkPrefab, new Vector3(0,0,0), Quaternion.identity) as Link;
+				linkObject = new Link();//Instantiate(linkPrefab, new Vector3(0,0,0), Quaternion.identity) as Link;
 				
 				linkObject.id = newLinkId;
 				if (newLinkColor!="") {linkObject.color=newLinkColor;}
 				else {linkObject.color="black";}
 				linkObject.controller=this;
 				//Map links
-				linkObject.source = nodes[newLinkSourceId] as Node;
-				linkObject.target = nodes[newLinkTargetId] as Node;
+				//linkObject.source = nodes[newLinkSourceId] as Node;
+				//linkObject.target = nodes[newLinkTargetId] as Node;
 				linkObject.sourceId = newLinkSourceId;
 				linkObject.targetId = newLinkTargetId;
 				//linkObject.status = "Up";
@@ -501,28 +446,28 @@ namespace Topology {
 				linkCount++;
 				linkCountText.text = "Ребер: " + linkCount;
 			}
-		
+			
+			return linkObject;
 		}
 		
 		//Remove one link duplex
 		void DeleteLink(Link deletedLink, Link sibling)
 		{
 			links.Remove(deletedLink.id);
-			linkPoints.Remove(deletedLink);
-			linkColors.Remove(deletedLink);
+//			linkPoints.Remove(deletedLink);
+//			linkColors.Remove(deletedLink);
+			linkDrawManager.RemoveDrawnLink(deletedLink);
 			//GameObject.Destroy(deletedLink.gameObject);
 			linkCount--;
 			if (sibling!=null) 
 			{
 				links.Remove(sibling.id);
-				linkPoints.Remove(sibling);
-				linkColors.Remove(sibling);
+				//linkPoints.Remove(sibling);
+				//linkColors.Remove(sibling);
+				linkDrawManager.RemoveDrawnLink(sibling);
 				//GameObject.Destroy(sibling.gameObject);
 				linkCount--;
 			}
-			//UpdateLinkPoints();
-			//UpdateLinkColors();
-			UpdateLinkVector();
 		}
 		
 		//Remove selected links
@@ -588,19 +533,12 @@ namespace Topology {
 		{
 			if (ClickApplicable()) {ClickedNodeAction(clickedNode);}
 		}
-		/*
-		public void ClickNode(Node clickedNode, bool dragged)
-		{
-			if (dragged) {selectMode=1;}
-			ClickedNodeAction(clickedNode);
-		}*/
 		
-		//Called by node when its dragged
-		//public void StartDragNode() {draggingNode=true;}
-		//public void StopDragNode() {draggingNode=false;}
-		
+		//Called by node when its dragged	
 		public void DragNode(Node draggedNode, Vector3 moveDelta)
 		{
+			List<Link> affectedLinks=new List<Link>();
+			//List<Vector3Pair> affectedLinkPoss=new List<Vector3Pair>();
 			foreach (Node node in selectedNodes)
 			{
 				if (node!=draggedNode) {node.DragAlong(moveDelta);}
@@ -608,18 +546,21 @@ namespace Topology {
 				foreach (Link link in links.Values)
 				{
 					if (link.source==node) 
-					{//link.loaded=false;
-						dragConnectLinkPoints[link]=new Vector3Pair(node.transform.position,dragConnectLinkPoints[link].p2);
+					{
+						if (!affectedLinks.Contains(link)) {affectedLinks.Add(link);}
 					}
-					if (link.target==node){dragConnectLinkPoints[link]=new Vector3Pair(dragConnectLinkPoints[link].p1,node.transform.position);}
+					if (link.target==node)
+					{
+						if (!affectedLinks.Contains(link)) {affectedLinks.Add(link);}
+					}
 				}
-				//UpdateLinkVector();
 			}
-			UpdateSwapLinkVector();	
+			linkDrawManager.UpdateSwappedLinkPositions(affectedLinks);//,affectedLinkPoss);	
 		}
 		
 		public void NodeDragStart()
 		{
+			List<Link> swapLinks=new List<Link>();
 			//Swap links in main linkvector for a separate swap object
 			foreach(Node node in selectedNodes)
 			{
@@ -627,94 +568,39 @@ namespace Topology {
 				{
 					if (link.source==node | link.target==node) 
 					{
-						if (!dragConnectLinkPoints.ContainsKey(link))
-						{
-							dragConnectLinkPoints.Add(link,linkPoints[link]);
-							dragConnectLinkColors.Add (link,linkColors[link]);
-							linkPoints.Remove(link);
-							linkColors.Remove(link);
-						}
+						swapLinks.Add (link);
 					}
-					if (link.target==node){}//linkPoints[link]=new Vector3Pair(linkPoints[link].p1,node.transform.position);}
 				}
 			}
-			UpdateLinkVector();
-			UpdateSwapLinkVector();
-			/*
-			//Create new swap line drawer
-			VectorLine.Destroy(ref swapLinksVector);
-			Vector3[] linksDrawArray=new Vector3[dragConnectLinkPoints.Count*2];
-			int k=0;
-			foreach(Vector3Pair points in dragConnectLinkPoints.Values)
-			{
-				linksDrawArray[k]=points.p1;
-				k++;
-				linksDrawArray[k]=points.p2;
-				k++;
-			}
-			Color[] arColors=new Color[dragConnectLinkColors.Values.Count];
-			linkColors.Values.CopyTo(arColors,0);
-			//If there is a vector to draw
-			if (linksDrawArray.Length>1)
-			{
-				
-				//float lineWidth=vectorLineThickness*(Screen.height/2)*Camera.main.orthographicSize;
-				float lineWidth=vectorLineThickness*Screen.height/(Camera.main.orthographicSize*2);
-				swapLinksVector=new VectorLine("All Link Line",linksDrawArray,arColors,linksMat,lineWidth,LineType.Discrete);
-				//linksVector.SetColor(Color.black);
-				swapLinksVector.sortingOrder=-5;
-				swapLinksVector.Draw3D();
-				//linksVector.SetWidth=vectorLineThickness;
-			}*/
+			Link[] swapOverAr=new Link[swapLinks.Count];
+			//swapLinks.ToArray(swapOverAr);
+			swapOverAr=swapLinks.ToArray();
+			linkDrawManager.SwapDrawnLinks(swapOverAr);
 		}
 		
 		//Put connecting link drawing back into the main renderer
 		public void NodeDragComplete()
 		{
-			VectorLine.Destroy(ref swapLinksVector);
+			//VectorLine.Destroy(ref swapLinksVector);
+			
+			List<Link> unswapLinks=new List<Link>();
 			foreach(Node node in selectedNodes)
 			{
+				//Link[] unswapLinks=new Link[];
+				
 				foreach (Link link in links.Values)
 				{
 					if (link.source==node | link.target==node) 
 					{
-						if (dragConnectLinkColors.ContainsKey(link))
-						{
-							linkPoints.Add(link,dragConnectLinkPoints[link]);
-							linkColors.Add (link,dragConnectLinkColors[link]);
-							dragConnectLinkPoints.Remove(link);
-							dragConnectLinkColors.Remove(link);
-						}
+						unswapLinks.Add(link);
 					}
 				}
+				
 			}
-			UpdateLinkVector();
-		}
-		
-		void UpdateSwapLinkVector()
-		{
-			//Create new swap line drawer
-			VectorLine.Destroy(ref swapLinksVector);
-			Vector3[] linksDrawArray=new Vector3[dragConnectLinkPoints.Count*2];
-			int k=0;
-			foreach(Vector3Pair points in dragConnectLinkPoints.Values)
-			{
-				linksDrawArray[k]=points.p1;
-				k++;
-				linksDrawArray[k]=points.p2;
-				k++;
-			}
-			Color[] arColors=new Color[dragConnectLinkColors.Values.Count];
-			dragConnectLinkColors.Values.CopyTo(arColors,0);
-			//If there is a vector to draw
-			if (linksDrawArray.Length>1)
-			{
-				float lineWidth=vectorLineThickness*Screen.height/(Camera.main.orthographicSize*2);
-				swapLinksVector=new VectorLine("All Link Line",linksDrawArray,arColors,linksMat,lineWidth,LineType.Discrete);
-				swapLinksVector.sortingOrder=-5;
-				swapLinksVector.Draw3D();
-			}
-		
+			//UpdateLinkVector();
+			Link[] swapOverAr=new Link[unswapLinks.Count];
+			swapOverAr=unswapLinks.ToArray();
+			linkDrawManager.UnswapDrawnLinks(swapOverAr);
 		}
 		
 		void HandleSelectMode()
@@ -727,60 +613,7 @@ namespace Topology {
 		
 		}
 		
-		/*
-		void HashtableAppendNum( Hashtable apTable, Object apObj)
-		{
-			int i=0;
-			while(apTable.ContainsKey(i))
-			{
-				i++;
-			}
-			apTable.Add(i,apObj);
-		}
 		
-		int HashtableFindKeyOfValue(Hashtable searchedTable, Object value)
-		{
-			int ret=0;
-			foreach (int key in searchedTable.Keys)
-			{
-				if(searchedTable[key]==value) {ret=key; break;}
-			}
-			return ret;
-		}
-		
-		//N starts at 1
-		Object HashtableGetNthElement(Hashtable iterTable, int n)
-		{
-			if (iterTable.Count<n) return -1;
-			int i=-1;
-			int j=0;
-			while(j<n)
-			{
-				i++;
-				if (iterTable.ContainsKey(i)) {j++;}
-			}
-			return iterTable[i];
-		}
-		
-		//Orders hasthbale values numerically
-		Object[] HashtableToArrayInOrder(Hashtable hashToAr)
-		{
-			Object[] returnAr=new Object[hashToAr.Count];
-			int i=0;
-			int j=0;
-			while(j<hashToAr.Count)
-			{
-				if (iterTable.ContainsKey(i)) 
-				{
-					returnAr[j]=hashToAr[i];
-					j++;
-				}
-				i++;
-			}
-			
-			return iterTable[j];
-		}
-		*/
 		//Do action based on select mode
 		void ClickedLinkAction(Link actionLink, Link sibling)
 		{
@@ -1026,10 +859,8 @@ namespace Topology {
 						{
 							
 							CreateNewLink(selectedNode.id,clickedNode.id);
-							//CreateNewLink(clickedNode.id,selectedNode.id);
 						}
 					}
-					UpdateLinkVector();
 				}
 			}
 		}
@@ -1168,6 +999,8 @@ namespace Topology {
 			//selectedLinks=new Hashtable();
 			//selectedNodes=new Hashtable();
 			//initial stats
+			linkDrawManager=gameObject.GetComponent<LinkDrawManager>();
+			
 			nodeCountText = GameObject.Find("NodeCount").guiText;
 			nodeCountText.text = "Вершин: 0";
 			linkCountText = GameObject.Find("LinkCount").guiText;
@@ -1188,9 +1021,12 @@ namespace Topology {
 			nodeCountText.text = "Вершин: 0";
 			linkCountText.text = "Ребер: 0";
 			statusText.text = "";
+			/*
 			VectorLine.Destroy(ref linksVector);
 			linkPoints.Clear();
 			linkColors.Clear();
+			*/
+			linkDrawManager.ClearAllLinks();
 			//awaitingPath=true;
 			sceneLoaded=false;
 			
@@ -1235,11 +1071,6 @@ namespace Topology {
 				selectionBoxLine.Draw();
 				selectionBoxLine.textureOffset = -Time.time*2.0f % 1;
 				
-				//screenSelectRect.x=Mathf.Max(originalPos.x,Input.mousePosition.x);
-				//screenSelectRect.y=Mathf.Max(originalPos.y,Input.mousePosition.y);
-				//screenSelectRect.xMax=Mathf.Max(originalPos.x,Input.mousePosition.x);
-				//screenSelectRect.yMax=Mathf.Max(originalPos.x,Input.mousePosition.x);
-				//screenSelectRect.x=originalPos.x;
 				selectMode=1;
 				screenSelectRect.position=originalPos;
 				screenSelectRect.xMax=Input.mousePosition.x;
@@ -1341,22 +1172,10 @@ namespace Topology {
 			}
 		}
 		
-		/*
-		Link GetLinkFromPointIndex(int index)
-		{
-			Link ret=null;
-			foreach (Link link in links.Values)
-			{
-				if (link.sourcePointIndex==index) {ret=link; break;}
-			}
-			return ret;
-		}*/
-		
 		//fires before physics clicks and Update
 		void FixedUpdate()
 		{
 			HandleSelectMode();
-				
 		}		
 		
 		//fires after physics clicks

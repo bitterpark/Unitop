@@ -60,9 +60,11 @@ namespace Topology {
 		void OnMouseDrag()
 		{
 			//Wait for mouse hold for 0.2 sec
+			
 			if (!dragged)
 			{
-				if (myTimer==null) {myTimer=new TimerDetector(0.2f);}
+				/*
+				if (myTimer==null) {myTimer=new TimerDetector(0.1f);}
 				else 
 				{
 					if (myTimer.UpdateTimer()) 
@@ -71,6 +73,22 @@ namespace Topology {
 						controller.NodeDragStart();
 						myTimer=null;
 					}
+				}*/
+				
+				//Vector3 mouseProjection=(Camera.main.ScreenToWorldPoint(Input.mousePosition));
+				Vector3 myPosProjection=Camera.main.WorldToScreenPoint(transform.position);
+				//print ("Start pos proj:"+myPosProjection);
+				myPosProjection.z=0;
+				//print ("Corrected pos proj:"+myPosProjection);
+				//print ("Mouse pos:"+Input.mousePosition);
+				
+				//mouseProjection.z=3000;
+				//float projectedDragTolerance=50f*Screen.height/(Camera.main.orthographicSize*2);
+				if ((Input.mousePosition-myPosProjection).magnitude>50)//projectedDragTolerance) 
+				{
+					print ("Magn: "+(Input.mousePosition-myPosProjection).magnitude);
+					controller.NodeDragStart();
+					dragged=true;
 				}
 			}
 			else

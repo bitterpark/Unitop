@@ -71,6 +71,15 @@ public class CameraControlZeroG : MonoBehaviour {
 			move.y = -realSpeed * Time.deltaTime;
 		}
 		
+		//mmb camera pan
+		if (Input.GetMouseButton(2))
+		{
+			Screen.lockCursor=true;
+			move.x = Input.GetAxis("Mouse X") * realSpeed * Time.deltaTime;
+			move.y = Input.GetAxis("Mouse Y") * realSpeed * Time.deltaTime;
+		}
+		else {Screen.lockCursor=false;}
+		
 		ManageBorderScroll();
 		//adjust speed with mouse wheel
 		/*
