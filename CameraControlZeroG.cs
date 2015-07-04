@@ -22,6 +22,7 @@ public class CameraControlZeroG : MonoBehaviour {
 	*/
 	public GameObject controller;
 	public float zoomSpd=96;
+	public float maxZoom=768;
 	int zoomLvl=0;
 	//private List <Node> selection=new List<Node>();
 	private int selectMode=0;
@@ -33,33 +34,10 @@ public class CameraControlZeroG : MonoBehaviour {
 	
 	void Update () 
 	{
-		float orthCameraSize=Camera.main.orthographicSize;
-		Vector3 perspCameraMove=Vector3.zero;
-		if (Input.GetAxis("Mouse ScrollWheel")>0) 
-		{
-			perspCameraMove+=new Vector3(0,0,100); 
-			orthCameraSize-=zoomSpd;
-			zoomLvl-=1;
-		}
-		if (Input.GetAxis("Mouse ScrollWheel")<0) 
-		{
-			perspCameraMove+=new Vector3(0,0,-100);
-			orthCameraSize+=zoomSpd;
-			zoomLvl+=1;
-		}
-		if (Camera.main.isOrthoGraphic)
-		{
-			if (orthCameraSize<384) {orthCameraSize=384;}
-			if (zoomLvl<0) {zoomLvl=0;}
-			realSpeed=startSpeed+startSpeed*zoomLvl;
-			Camera.main.orthographicSize=orthCameraSize;
-		}
-		else {transform.position+=perspCameraMove;}
-		//if (Input.GetMouseButtonUp
 		
-		move.x = Input.GetAxis("Horizontal") * realSpeed * Time.deltaTime;
-		//move.z = Input.GetAxis("Vertical") * speed * Time.deltaTime;
-		//move.y = 0;
+		ManageCameraZoom();
+		//Shift+a is for select all
+		if(Input.GetAxis("Horizontal")>0 | !Input.GetKey(KeyCode.LeftShift)) {move.x = Input.GetAxis("Horizontal") * realSpeed * Time.deltaTime;}
 		move.y=Input.GetAxis("Vertical") * realSpeed * Time.deltaTime;
 		move.z=0;
 		
@@ -92,6 +70,32 @@ public class CameraControlZeroG : MonoBehaviour {
 		move = transform.TransformDirection(move);
 		transform.position += move;
 		
+	}
+	
+	void ManageCameraZoom()
+	{
+		float orthCameraSize=Camera.main.orthographicSize;
+		Vector3 perspCameraMove=Vector3.zero;
+		if (Input.GetAxis("Mouse ScrollWheel")>0) 
+		{
+			perspCameraMove+=new Vector3(0,0,100); 
+			orthCameraSize-=zoomSpd;
+			zoomLvl-=1;
+		}
+		if (Input.GetAxis("Mouse ScrollWheel")<0) 
+		{
+			perspCameraMove+=new Vector3(0,0,-100);
+			orthCameraSize+=zoomSpd;
+			zoomLvl+=1;
+		}
+		if (Camera.main.isOrthoGraphic)
+		{
+			if (orthCameraSize<maxZoom) {orthCameraSize=maxZoom;}
+			if (zoomLvl<0) {zoomLvl=0;}
+			realSpeed=startSpeed+startSpeed*zoomLvl;
+			Camera.main.orthographicSize=orthCameraSize;
+		}
+		else {transform.position+=perspCameraMove;}
 	}
 	
 	void ManageBorderScroll()

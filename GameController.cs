@@ -11,15 +11,25 @@ namespace Topology {
 	public class GameController : MonoBehaviour {
 
 		public Node nodePrefab;
-
+		
 		Hashtable nodes=new Hashtable();
 		Hashtable links=new Hashtable();
 		
-		LinkDrawManager linkDrawManager;
 		
+		public LinkDrawManager linkDrawManager;
+		public InputManager myInputManager;
+		
+		GUIText nodeCountText;
+		GUIText linkCountText;
 		GUIText statusText;
+		
 		int nodeCount = 0;
 		int linkCount = 0;
+		/*
+		//GUIText statusText;
+		int nodeCount = 0;
+		int linkCount = 0;
+		
 		GUIText nodeCountText;
 		GUIText linkCountText;
 		//GUIContainer contextMenu;
@@ -28,7 +38,8 @@ namespace Topology {
 		Rect saveButtonRect=new Rect(5,90,80,20);
 		Rect openButtonRect=new Rect(5,60,80,20);
 		Rect fileBrowserWindowRect=new Rect(100, 100, 600, 500);
-		
+*/
+		/*
 		TimerDetector dclickTimer=null;
 		
 		List<Link> selectedLinks=new List<Link>();
@@ -36,9 +47,13 @@ namespace Topology {
 		//Object lastSelectedLinkNode=null;	
 		Link lastSelectedLink=null;
 		Node lastSelectedNode=null;
+		*/
+		public Texture[] nodeIconTextures;
 		
 		string sourceFile;
+		//string _sourceFile;
 		//0 - node mode. 1 - link mode
+		/*
 		int tooltipMode
 		{
 			get {return _tooltipMode;}
@@ -55,17 +70,19 @@ namespace Topology {
 		
 		}
 		int _tooltipMode=0;
+		
 		//ctrl, shift or alt select
 		int selectMode;
 		//something was selected this frame, so no deselect
 		bool selectionMade=false;
-		
+		*/
 		bool sceneLoaded=false;
 		
 		//Starting file browser object
-		FileBrowser fb;
+		//FileBrowser fb;
 		//dropselect selection index
 		//int listSelectIndex=0;
+		/*
 		Popup selectItemDroplist=new Popup();
 		Popup selectColorDroplist=new Popup();
 		Popup selectIconDroplist=new Popup();
@@ -78,6 +95,18 @@ namespace Topology {
 		
 		bool draggingNode=false;
 		
+		List<Node> nodeCopyBuffer=new List<Node>();
+		*/
+		
+		public void SetSourceFile(string filePath) {sourceFile=filePath;}
+		//public bool GetSourceFile() {return sourceFile;}
+		
+		public void StartLayoutLoad() {StartCoroutine(LoadLayout());}
+		
+		public Hashtable GetLinks() {return links;}
+		public Hashtable GetNodes() {return nodes;}
+		
+		public Texture[] GetNodeTextures () {return nodeIconTextures;}
 		List<Node> nodeCopyBuffer=new List<Node>();
 		
 		//Method for loading the GraphML layout file
@@ -173,6 +202,9 @@ namespace Topology {
 			linkDrawManager.AddDrawnLinks(drawnLinks);
 		}
 		
+		public bool SceneIsLoaded() {return sceneLoaded;}
+		
+		/*
 		Link AttemptSelectLink() 
 		{
 			Ray ray = Camera.main.ScreenPointToRay (Input.mousePosition);
@@ -202,7 +234,7 @@ namespace Topology {
 			}
 			//Returns the index of the point of selected link
 			return linkSelect;
-		}
+		}*/
 		
 		
 		
@@ -213,7 +245,7 @@ namespace Topology {
 			linkDrawManager.LinkChangeColor(changedLink,c);
 		}
 		
-		void CreateNewNode()
+		public void CreateNewNode()
 		{
 			Vector3 newNodePos=Camera.main.ScreenToWorldPoint(Input.mousePosition);//Camera.main.transform.forward*40;;//Camera.main.transform.position+Camera.main.transform.forward*40;
 			//newNodePos.z=3000;
@@ -285,15 +317,15 @@ namespace Topology {
 		}
 		
 		//For node copy-pasting
-		void CopyNodes()
+		public void CopyNodes(List<Node> copiedNodes)
 		{
 			//print ("nodes copied!");
-			if (selectedNodes.Count>0)
+			if (copiedNodes.Count>0)
 			{
 				if (nodeCopyBuffer.Count>0) {nodeCopyBuffer.Clear();}
 				//selectedNodes.CopyTo(nodeCopyBuffer);
 				
-				foreach (Node copiedNode in selectedNodes)
+				foreach (Node copiedNode in copiedNodes)
 				{
 					//nodeCopyBuffer
 					//nodeCopyBuffer.AddRange(selectedNodes);
@@ -302,7 +334,7 @@ namespace Topology {
 			}
 		}
 		
-		void PasteNodes()
+		public void PasteCopiedNodes()
 		{
 			//print ("nodes pasted!");
 			if (nodeCopyBuffer.Count>0)
@@ -347,8 +379,8 @@ namespace Topology {
 			}
 		}
 		
-		//Method for adding new links on layout load
-		void CreateNewLink(string newLinkSourceId, string newLinkTargetId)
+		
+		public void CreateNewLink(string newLinkSourceId, string newLinkTargetId)
 		{
 			//Check if link already exists
 			bool exists=false;
@@ -408,7 +440,8 @@ namespace Topology {
 		
 		}
 		
-		//Pass Link to add in node mappings
+		//Method for adding new links on layout load
+		//Pass Link to add in node mappings later
 		Link CreateNewLinkWithUnmappedConnectNodes(string newLinkSourceId, string newLinkTargetId, string newLinkId, string newLinkColor)
 		{
 			Link linkObject=null;
@@ -470,30 +503,30 @@ namespace Topology {
 			}
 		}
 		
-		//Remove selected links
-		void DeleteSelectedLinks()
+		//Remove links
+		public void DeleteLinks(List<Link> deletedLinks)
 		{
-			if (selectedLinks.Count>0)
+			if (deletedLinks.Count>0)
 			{
-				foreach(Link selectedLink in selectedLinks)
+				foreach(Link deletedLink in deletedLinks)
 				{
 					//Link sibling=GetLinkSibling(selectedLink);
 					Link sibling=null;
-					DeleteLink(selectedLink,sibling);
+					DeleteLink(deletedLink,sibling);
 				}
-				selectedLinks.Clear();
+				//selectedLinks.Clear();
 			}
 		}
 		
-		void DeleteSelectedNodes()
+		public void DeleteNodes(List<Node> deletedNodes)
 		{
-			if (selectedNodes.Count>0)
+			if (deletedNodes.Count>0)
 			{
-				foreach(Node selectedNode in selectedNodes)
+				foreach(Node deletedNode in deletedNodes)
 				{
-					DeleteNode(selectedNode);
+					DeleteNode(deletedNode);
 				}
-				selectedNodes.Clear();
+				//selectedNodes.Clear();
 			}
 		}
 		
@@ -516,6 +549,7 @@ namespace Topology {
 			return sibling; 
 		}
 		
+		/*
 		//Link click action
 		public void ClickLink(Link clickedLink)
 		{
@@ -679,7 +713,7 @@ namespace Topology {
 				}
 			}
 		}
-	
+		*/
 		void ClearXmlNodes()
 		{
 			string filepath = sourceFile;
@@ -736,8 +770,8 @@ namespace Topology {
 			}
 		}
 		
-		//Method for saving new links
-		void SaveAll()
+		//Method for saving all changes
+		public void SaveAll()
 		{
 			ClearXmlLinks();
 			WriteLinksToXml();
@@ -805,6 +839,7 @@ namespace Topology {
 			
 		}
 		
+		/*
 		public void ClickedNodeAction(Node clickedNode, bool dragged)
 		{
 			if (dragged) {selectMode=1;}
@@ -864,6 +899,9 @@ namespace Topology {
 				}
 			}
 		}
+		*/
+		
+		/*
 		
 		void ManageTooltip()
 		{
@@ -917,13 +955,19 @@ namespace Topology {
 				Node currentNode=selectedNodes[selectItemDroplist.GetSelectedItemIndex()];
 				selectIconDroplist.SetSelectedItemIndex(currentNode.GetSpriteIndex());
 				//generate icon droplist content
-				GUIContent[] iconDroplistContent=new GUIContent[4];
-				iconDroplistContent[0]=new GUIContent("WinXP",nodeTextures[0]);
-				iconDroplistContent[1]=new GUIContent("Win07",nodeTextures[1]);
-				iconDroplistContent[2]=new GUIContent("2008",nodeTextures[2]);
-				iconDroplistContent[3]=new GUIContent("2003",nodeTextures[3]);
+				GUIContent[] iconDroplistContent=new GUIContent[nodeIconTextures.Length];//new GUIContent[4];
+				
+				iconDroplistContent[0]=new GUIContent("WinXP",nodeIconTextures[0]);
+				iconDroplistContent[1]=new GUIContent("Windows 7",nodeIconTextures[1]);
+				iconDroplistContent[2]=new GUIContent("Windows 8",nodeIconTextures[2]);
+				iconDroplistContent[3]=new GUIContent("Server 2008",nodeIconTextures[3]);
+				iconDroplistContent[4]=new GUIContent("Server 2012",nodeIconTextures[4]);
+				//iconDroplistContent[0]=new GUIContent("WinXP",nodeTextures[0]);
+				//iconDroplistContent[1]=new GUIContent("Win07",nodeTextures[1]);
+				//iconDroplistContent[2]=new GUIContent("2008",nodeTextures[2]);
+				//iconDroplistContent[3]=new GUIContent("2003",nodeTextures[3]);
 				//select icon droplist
-				selectIconDroplist.List(new Rect(leftColumnStartX+elementSizeX*0.5f,leftColumnStartY+elementSizeY*2+vPad*2,elementSizeX,elementSizeY)
+				selectIconDroplist.List(new Rect(leftColumnStartX+elementSizeX*0.5f,leftColumnStartY+elementSizeY*2+vPad*2,elementSizeX*1.5f,elementSizeY)
 				 ,iconDroplistContent,"box",droplistSkin.customStyles[0]);
 				//Set new icon for all selected nodes
 				foreach (Node node in selectedNodes) {node.SetSprite(selectIconDroplist.GetSelectedItemIndex());}
@@ -986,20 +1030,71 @@ namespace Topology {
 				lastSelectedLink=selectedLinks[selectItemDroplist.GetSelectedItemIndex()];
 			}
 		}
+		*/
+		/*
+		private void LoadImages() 
+		{ 
+		string pathPrefix = @"file://"; string pathImageAssets = @"C:\HistoryCube_Assets\"; string pathSmall = @"small\"; string filename = @"icon"; string fileSuffix = @".jpg";
+			
+			//create filename index suffix "001",...,"027" (could be "999" either)
+			for (int i=0; i &lt; 27; i++)
+			{
+				string indexSuffix = "";
+				float logIdx = Mathf.Log10(i+1);
+				if (logIdx &lt; 1.0)
+					indexSuffix += "00";
+				else if (logIdx &lt; 2.0)
+					indexSuffix += "0";
+				indexSuffix += (i+1);
+				
+				string fullFilename = pathPrefix + pathImageAssets + pathSmall + filename + indexSuffix + fileSuffix;
+				
+				WWW www = new WWW(fullFilename);
+				Texture2D texTmp = new Texture2D(1024, 1024, TextureFormat.DXT1, false);
+				//LoadImageIntoTexture compresses JPGs by DXT1 and PNGs by DXT5     
+				www.LoadImageIntoTexture(texTmp);
+				
+				imageBuffer.Add(texTmp);
+			}
+			
+		}*/
 		
 		void Start () 
 		{
-			//nodes = new Hashtable();
-			//links = new Hashtable();
-			//linksVector = new VectorLine("poop",new Vector3[],
+			//Object[] tempAr=Resources.LoadAll("");
+			string mainPath=Application.dataPath+"/../";//+"../";//"C:/Users/GAME/Documents/Unity Work/Unity-Topology/Unity - Topology";//
+			//mainPath.Remove(mainPath.LastIndexOf("Top_Data"));
 			
-			//selectedLinks=new List<Link>();
-			//selectedNodes=new List<Node>();
+			string texturesPath="file://"+mainPath+"/Skin/WinXP.png";
+			WWW www=new WWW(texturesPath);
+			//www.texture;
+			nodeIconTextures=new Texture[5];
 			
-			//selectedLinks=new Hashtable();
-			//selectedNodes=new Hashtable();
+			nodeIconTextures[0]=www.texture;
+			
+			texturesPath="file://"+mainPath+"/Skin/Win7.png";
+			www=new WWW(texturesPath);
+			//www.texture;
+			nodeIconTextures[1]=www.texture;
+			
+			texturesPath="file://"+mainPath+"/Skin/Win8.png";
+			www=new WWW(texturesPath);
+			//www.texture;
+			nodeIconTextures[2]=www.texture;
+			
+			texturesPath="file://"+mainPath+"/Skin/WinServer2008.png";
+			www=new WWW(texturesPath);
+			//www.texture;
+			nodeIconTextures[3]=www.texture;
+			
+			texturesPath="file://"+mainPath+"/Skin/WinServer2012.png";
+			www=new WWW(texturesPath);
+			//www.texture;
+			nodeIconTextures[4]=www.texture;
+
 			//initial stats
 			linkDrawManager=gameObject.GetComponent<LinkDrawManager>();
+			myInputManager=gameObject.GetComponent<InputManager>();
 			
 			nodeCountText = GameObject.Find("NodeCount").guiText;
 			nodeCountText.text = "Вершин: 0";
@@ -1009,15 +1104,15 @@ namespace Topology {
 			statusText.text = "";
 		}
 		
-		void ClearScene()
+		public void ClearScene()
 		{
 			StopAllCoroutines();
 			foreach (Node node in nodes.Values) {GameObject.Destroy(node.gameObject);}
 			nodes.Clear();
 			//print ("cleared nodes, nodes:"+nodes.Count);
 			links.Clear();
-			selectedLinks.Clear();
-			selectedNodes.Clear();
+			//selectedLinks.Clear();
+			//selectedNodes.Clear();
 			nodeCountText.text = "Вершин: 0";
 			linkCountText.text = "Ребер: 0";
 			statusText.text = "";
@@ -1032,6 +1127,7 @@ namespace Topology {
 			
 		}
 		
+		/*
 		//Deselect current selection on clicking empty space
 		void ManageClickDeselect()
 		{
@@ -1171,13 +1267,16 @@ namespace Topology {
 				selectedLinks.Clear();
 			}
 		}
+		*/
 		
+		/*
 		//fires before physics clicks and Update
 		void FixedUpdate()
 		{
 			HandleSelectMode();
-		}		
+		}	*/	
 		
+		/*
 		//fires after physics clicks
 		void Update()
 		{
@@ -1194,7 +1293,9 @@ namespace Topology {
 			selectionMade=false;
 			if (Input.GetKeyDown(KeyCode.O)) {ClearScene();}
 		}
+		*/
 		
+		/*
 		void ManageLinkSelection()
 		{
 			if (Input.GetMouseButtonDown(0) && !selectionMade)
@@ -1206,7 +1307,9 @@ namespace Topology {
 			}
 		
 		}
+		*/
 		
+		/*
 		void ManageObjectDeletion()
 		{
 			if (Input.GetKeyDown (KeyCode.Delete))
@@ -1228,7 +1331,9 @@ namespace Topology {
 				PasteNodes();
 			}
 		}
+		*/
 		
+		/*
 		protected void OnGUI () 
 		{
 			GUI.skin=fbSkin;
@@ -1243,7 +1348,7 @@ namespace Topology {
 			if (sceneLoaded) {if (GUI.Button(saveButtonRect,"Сохранить")) {SaveAll();}}
 			ManageTooltip();
 		}
-		
+		*/
 		/*
 		void DrawMenu()
 		{
@@ -1256,6 +1361,7 @@ namespace Topology {
 			
 		}*/
 		
+		/*
 		protected void OnGUIMain() {
 			
 			GUILayout.BeginHorizontal();
@@ -1286,5 +1392,6 @@ namespace Topology {
 		}
 
 	}
-
+	*/
+}
 }

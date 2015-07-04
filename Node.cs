@@ -52,7 +52,7 @@ namespace Topology {
 			
 //			controller.StartDragNode();
 			//controller.ClickNode(this,true);
-			controller.ClickedNodeAction(this,true);
+			controller.myInputManager.ClickedNodeAction(this,true);//ClickedNodeAction(this,true);
 			//print ("drag routine started!");
 			//StartCoroutine(DragRoutine());
 		}
@@ -84,10 +84,11 @@ namespace Topology {
 				
 				//mouseProjection.z=3000;
 				//float projectedDragTolerance=50f*Screen.height/(Camera.main.orthographicSize*2);
-				if ((Input.mousePosition-myPosProjection).magnitude>50)//projectedDragTolerance) 
+				if ((Input.mousePosition-myPosProjection).magnitude>25)//projectedDragTolerance) 
 				{
-					print ("Magn: "+(Input.mousePosition-myPosProjection).magnitude);
-					controller.NodeDragStart();
+					//print ("Magn: "+(Input.mousePosition-myPosProjection).magnitude);
+					//controller.NodeDragStart();
+					controller.myInputManager.NodeDragStart();
 					dragged=true;
 				}
 			}
@@ -101,13 +102,13 @@ namespace Topology {
 				transform.position=Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x,Input.mousePosition.y,z));
 				delta=transform.position-delta;
 				//Call controller to align links and dragalong nodes
-				controller.DragNode(this,delta);
+				controller.myInputManager.DragNode(this,delta);//controller.DragNode(this,delta);
 			}
 		}
 		
 		void OnDestroy() 
 		{
-			if (dragged) {controller.NodeDragComplete();}
+			if (dragged) {controller.myInputManager.NodeDragComplete();}
 			StopAllCoroutines();
 		}
 		
@@ -122,8 +123,8 @@ namespace Topology {
 		{
 			//if (dragged) {}
 			//dragged=false;
-			if (dragged) {controller.NodeDragComplete();}
-			controller.ClickedNodeAction(this,dragged);
+			if (dragged) {controller.myInputManager.NodeDragComplete();}
+			controller.myInputManager.ClickedNodeAction(this,dragged);
 			dragged=false;
 			myTimer=null;
 		}
@@ -131,8 +132,17 @@ namespace Topology {
 		public void SetSprite(int spriteNum)
 		{
 			//gameObject.GetComponent<SpriteRenderer>().sprite=sprites[spriteNum];
-			renderer.material.SetTexture(0,textures[spriteNum]);
-			currentSprite=spriteNum;
+			//renderer.material.SetTexture(0,textures[spriteNum]);
+			if (spriteNum<controller.nodeIconTextures.Length && spriteNum>=0)
+			{
+				renderer.material.SetTexture(0,controller.nodeIconTextures[spriteNum]);
+				currentSprite=spriteNum;
+			}
+			else 
+			{
+				renderer.material.SetTexture(0,textures[0]);
+				currentSprite=0;
+			}
 		}
 		
 		public int GetSpriteIndex()
