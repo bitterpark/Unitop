@@ -29,7 +29,7 @@ public class Popup{
 			Rect listRect = new Rect( box.x, box.y, box.width, box.height * items.Length);
 			//Set dimensions to fit the selectbox
 			currentDimensions=listRect;
-			GUI.Box( listRect, "", boxStyle );
+			//GUI.Box( listRect, "", boxStyle );
 			
 			// Draw a SelectionGrid and listen for user selection
 			selectedItemIndex = GUI.SelectionGrid( listRect, selectedItemIndex, items, 1, listStyle );

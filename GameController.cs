@@ -6,6 +6,8 @@ using System.Xml;
 using System.IO;
 using Vectrosity;
 
+
+
 namespace Topology {
 
 	public class GameController : MonoBehaviour {
@@ -25,78 +27,12 @@ namespace Topology {
 		
 		int nodeCount = 0;
 		int linkCount = 0;
-		/*
-		//GUIText statusText;
-		int nodeCount = 0;
-		int linkCount = 0;
-		
-		GUIText nodeCountText;
-		GUIText linkCountText;
-		//GUIContainer contextMenu;
-		public Rect contextMenuPosNodes;
-		public Rect contextMenuPosLinks;
-		Rect saveButtonRect=new Rect(5,90,80,20);
-		Rect openButtonRect=new Rect(5,60,80,20);
-		Rect fileBrowserWindowRect=new Rect(100, 100, 600, 500);
-*/
-		/*
-		TimerDetector dclickTimer=null;
-		
-		List<Link> selectedLinks=new List<Link>();
-		List<Node> selectedNodes=new List<Node>();
-		//Object lastSelectedLinkNode=null;	
-		Link lastSelectedLink=null;
-		Node lastSelectedNode=null;
-		*/
+
 		public Texture[] nodeIconTextures;
 		
 		string sourceFile;
-		//string _sourceFile;
-		//0 - node mode. 1 - link mode
-		/*
-		int tooltipMode
-		{
-			get {return _tooltipMode;}
-			set 
-			{
-				if (value!=_tooltipMode) 
-				{
-					//lastSelectedLinkNode=null;
-					if (value==0) {lastSelectedLink=null;}
-					if (value==1) {lastSelectedNode=null;}
-				}
-				_tooltipMode=value;
-			}
-		
-		}
-		int _tooltipMode=0;
-		
-		//ctrl, shift or alt select
-		int selectMode;
-		//something was selected this frame, so no deselect
-		bool selectionMade=false;
-		*/
 		bool sceneLoaded=false;
 		
-		//Starting file browser object
-		//FileBrowser fb;
-		//dropselect selection index
-		//int listSelectIndex=0;
-		/*
-		Popup selectItemDroplist=new Popup();
-		Popup selectColorDroplist=new Popup();
-		Popup selectIconDroplist=new Popup();
-		public Texture[] nodeTextures;
-		public Texture[] colorTextures;
-		bool renderList=false;
-		public GUISkin fbSkin;
-		public GUISkin droplistSkin;
-		public Texture2D file,folder;
-		
-		bool draggingNode=false;
-		
-		List<Node> nodeCopyBuffer=new List<Node>();
-		*/
 		
 		public void SetSourceFile(string filePath) {sourceFile=filePath;}
 		//public bool GetSourceFile() {return sourceFile;}
@@ -177,6 +113,7 @@ namespace Topology {
 			//map node edges
 			MapLinkNodes();
 			statusText.text = "";
+			LoadCameraPos();
 			sceneLoaded=true;
 		}
 
@@ -203,39 +140,6 @@ namespace Topology {
 		}
 		
 		public bool SceneIsLoaded() {return sceneLoaded;}
-		
-		/*
-		Link AttemptSelectLink() 
-		{
-			Ray ray = Camera.main.ScreenPointToRay (Input.mousePosition);
-			
-			//-1 means no point selected
-			//int iSelect = -1;
-			Link linkSelect=null;
-			float closestYet = Mathf.Infinity;
-			
-			float selectionThreshold=20f;//0.22f;
-			
-			Dictionary<Link, Vector3Pair> allPoints=linkDrawManager.GetLinkPoints();
-			foreach (Vector3Pair points in allPoints.Values)
-			{
-				Vector3 closest1;
-				Vector3 closest2;
-				if (Math3d.ClosestPointsOnTwoLines(out closest1, out  closest2, ray.origin, ray.direction, points.p1, points.p2 - points.p1)) {
-					Vector3 v = Math3d.ProjectPointOnLineSegment(points.p1, points.p2, closest1);
-					float dist = (v - closest1).magnitude;
-					if (dist < closestYet && dist < selectionThreshold) 
-					{
-						//iSelect = i;
-						linkSelect=linkDrawManager.PointDictionaryFindKey(points);//PointDictionaryFindKey(points);
-						closestYet = dist;
-					}
-				}
-			}
-			//Returns the index of the point of selected link
-			return linkSelect;
-		}*/
-		
 		
 		
 		public void LinkChangeColor(Link changedLink, Color c)
@@ -549,171 +453,47 @@ namespace Topology {
 			return sibling; 
 		}
 		
-		/*
-		//Link click action
-		public void ClickLink(Link clickedLink)
+		//Method for saving all changes
+		public void SaveAll()
 		{
-			if (ClickApplicable())
-			{
-				//get sibling (if one exists)
-				Link sibling=null;
-				//Link sibling=GetLinkSibling(clickedLink);
-				//If sibling doesn't exist, pass null
-				ClickedLinkAction(clickedLink,sibling);
-			}
+			ClearXmlLinks();
+			WriteLinksToXml();
+			ClearXmlNodes();
+			WriteNodesToXml();
+			SaveCameraPosToXml();
 		}
 		
-		public void ClickNode(Node clickedNode)
+		void SaveCameraPosToXml()
 		{
-			if (ClickApplicable()) {ClickedNodeAction(clickedNode);}
-		}
-		
-		//Called by node when its dragged	
-		public void DragNode(Node draggedNode, Vector3 moveDelta)
-		{
-			List<Link> affectedLinks=new List<Link>();
-			//List<Vector3Pair> affectedLinkPoss=new List<Vector3Pair>();
-			foreach (Node node in selectedNodes)
-			{
-				if (node!=draggedNode) {node.DragAlong(moveDelta);}
-				//call all connected links to realign
-				foreach (Link link in links.Values)
-				{
-					if (link.source==node) 
-					{
-						if (!affectedLinks.Contains(link)) {affectedLinks.Add(link);}
-					}
-					if (link.target==node)
-					{
-						if (!affectedLinks.Contains(link)) {affectedLinks.Add(link);}
-					}
-				}
-			}
-			linkDrawManager.UpdateSwappedLinkPositions(affectedLinks);//,affectedLinkPoss);	
-		}
-		
-		public void NodeDragStart()
-		{
-			List<Link> swapLinks=new List<Link>();
-			//Swap links in main linkvector for a separate swap object
-			foreach(Node node in selectedNodes)
-			{
-				foreach (Link link in links.Values)
-				{
-					if (link.source==node | link.target==node) 
-					{
-						swapLinks.Add (link);
-					}
-				}
-			}
-			Link[] swapOverAr=new Link[swapLinks.Count];
-			//swapLinks.ToArray(swapOverAr);
-			swapOverAr=swapLinks.ToArray();
-			linkDrawManager.SwapDrawnLinks(swapOverAr);
-		}
-		
-		//Put connecting link drawing back into the main renderer
-		public void NodeDragComplete()
-		{
-			//VectorLine.Destroy(ref swapLinksVector);
+			string filepath = sourceFile;
+			XmlDocument xmlDoc = new XmlDocument();
+			xmlDoc.Load(filepath);
 			
-			List<Link> unswapLinks=new List<Link>();
-			foreach(Node node in selectedNodes)
-			{
-				//Link[] unswapLinks=new Link[];
-				
-				foreach (Link link in links.Values)
-				{
-					if (link.source==node | link.target==node) 
-					{
-						unswapLinks.Add(link);
-					}
-				}
-				
-			}
-			//UpdateLinkVector();
-			Link[] swapOverAr=new Link[unswapLinks.Count];
-			swapOverAr=unswapLinks.ToArray();
-			linkDrawManager.UnswapDrawnLinks(swapOverAr);
+			XmlElement elmRoot = (XmlElement)xmlDoc.DocumentElement.FirstChild;
+			if (!elmRoot.HasAttribute("camerax")) {elmRoot.SetAttributeNode("camerax","");}
+			elmRoot.SetAttribute("camerax",Camera.main.transform.position.x.ToString());
+			if (!elmRoot.HasAttribute("cameray")) {elmRoot.SetAttributeNode("cameray","");}
+			elmRoot.SetAttribute("cameray",Camera.main.transform.position.y.ToString());
+			//if (elmRoot)
+			xmlDoc.Save(filepath);
 		}
 		
-		void HandleSelectMode()
+		void LoadCameraPos()
 		{
-			selectMode=0;
-			if (Input.GetKey("left shift")) {selectMode=1;}
-			if (Input.GetKey("left ctrl")) {selectMode=2;}
-			if (Input.GetKey("left alt"))  {selectMode=3;}
-			//if (draggingNode) {selectMode=1;}
-		
+			string filepath = sourceFile;
+			XmlDocument xmlDoc = new XmlDocument();
+			xmlDoc.Load(filepath);
+			
+			XmlElement elmRoot = (XmlElement) xmlDoc.DocumentElement.FirstChild;
+			Vector3 cameraPos=Vector3.zero;
+			if (elmRoot.HasAttribute("camerax")) {cameraPos.x=float.Parse(elmRoot.GetAttribute("camerax"));}
+			else {cameraPos.x=2000;}
+			if (elmRoot.HasAttribute("cameray")) {cameraPos.y=float.Parse(elmRoot.GetAttribute("cameray"));}
+			else {cameraPos.y=2000;}
+			
+			Camera.main.transform.position=cameraPos;	
 		}
 		
-		
-		//Do action based on select mode
-		void ClickedLinkAction(Link actionLink, Link sibling)
-		{
-			selectionMade=true;
-			DeselectAllNodes();
-			//drawTooltip=true;
-			tooltipMode=1;
-			switch (selectMode)
-			{
-				//Single select
-				case 0:
-				{
-					DeselectAllLinks();
-					selectedLinks.Add (actionLink);//HashtableAppendNum(selectedLinks,actionLink);//selectedLinks.Add (actionLink);
-					actionLink.selected=true;
-					//Make sure sibling is kept selected
-					if (sibling!=null)
-					{	
-						selectedLinks.Add (sibling);//HashtableAppendNum(selectedLinks,actionLink);//selectedLinks.Add (sibling);
-						sibling.selected=true;
-					}
-					break;
-				}
-				//multiselect
-				case 1:
-				{
-					selectedLinks.Add (actionLink);//HashtableAppendNum(selectedLinks,actionLink);//selectedLinks.Add (actionLink);
-					actionLink.selected=true;
-					if (sibling!=null)
-					{
-						selectedLinks.Add (sibling);//HashtableAppendNum(selectedLinks,sibling);//selectedLinks.Add (sibling);
-						sibling.selected=true;
-					}
-					break;
-				}
-				//ctrl select
-				case 2:
-				{
-					if (actionLink.selected)
-					{
-						selectedLinks.Remove (actionLink);//selectedLinks.Remove(HashtableFindKeyOfValue(actionLink));//selectedLinks.Remove(actionLink);
-						actionLink.selected=false;
-						//assume sibling has the same status as main
-						if (sibling!=null)
-						{
-							selectedLinks.Remove(sibling);//selectedLinks.Remove(HashtableFindKeyOfValue(sibling));//selectedLinks.Remove(sibling);
-							sibling.selected=false;
-						}
-					}
-					else
-					{
-						selectedLinks.Add (actionLink);//HashtableAppendNum(actionLink);//selectedLinks.Add(actionLink);
-						actionLink.selected=true;
-						//assume sibling has the same status as main
-						if (sibling!=null)
-						{
-							selectedLinks.Add (sibling);//HashtableAppendNum(sibling);//selectedLinks.Add(sibling);
-							sibling.selected=true;
-						}
-					
-					}
-					break;
-				}
-			}
-		}
-		*/
 		void ClearXmlNodes()
 		{
 			string filepath = sourceFile;
@@ -768,15 +548,6 @@ namespace Topology {
 				}
 				xmlDoc.Save(filepath); // save file.
 			}
-		}
-		
-		//Method for saving all changes
-		public void SaveAll()
-		{
-			ClearXmlLinks();
-			WriteLinksToXml();
-			ClearXmlNodes();
-			WriteNodesToXml();
 		}
 		
 		void ClearXmlLinks()
@@ -839,231 +610,10 @@ namespace Topology {
 			
 		}
 		
-		/*
-		public void ClickedNodeAction(Node clickedNode, bool dragged)
-		{
-			if (dragged) {selectMode=1;}
-			ClickedNodeAction(clickedNode);
-		}
-		
-		public void ClickedNodeAction(Node clickedNode)
-		{
-			selectionMade=true;
-			DeselectAllLinks();
-			tooltipMode=0;
-			// single select mode
-			if (selectMode==0)
-			{	
-				DeselectAllNodes();
-				selectedNodes.Add(clickedNode);//HashtableAppendNum(selectedNodes,clickedNode);//selectedNodes.Add(clickedNode);
-				clickedNode.selected=true;
-			}
-			
-			//shift select mode
-			if (selectMode==1)
-			{ 
-				//selectedNodes.Add(clickedNode);
-				if (!selectedNodes.Contains(clickedNode))
-				{
-					selectedNodes.Add(clickedNode);//HashtableAppendNum(selectedNodes,clickedNode);
-					clickedNode.selected=true;
-				}
-			}
-			
-			// ctrl(alt) select mode
-			if (selectMode==2) 
-			{
-				if (selectedNodes.Contains(clickedNode))//selectedNodes.Contains(clickedNode)) 
-				{
-					selectedNodes.Remove(clickedNode);//selectedNodes.Remove(HashtableFindKeyOfValue(clickedNode));
-					clickedNode.selected=false;
-				}
-				else
-				{
-					selectedNodes.Add(clickedNode);//HashtableAppendNum(selectedNodes,clickedNode);//selectedNodes.Add(clickedNode);
-					clickedNode.selected=true;
-				}
-			}
-			if (selectMode==3)
-			{
-				if (selectedNodes.Count>0) 
-				{
-					foreach (Node selectedNode in selectedNodes)
-					{
-						if (selectedNode.id!=clickedNode.id)
-						{
-							
-							CreateNewLink(selectedNode.id,clickedNode.id);
-						}
-					}
-				}
-			}
-		}
-		*/
-		
-		/*
-		
-		void ManageTooltip()
-		{
-			int ttMode=0;
-			if (selectedNodes.Count>0) {ttMode=1;}
-			if (selectedLinks.Count>0) {ttMode=2;}
-			if (ttMode!=0) {DrawTooltip(ttMode);}
-		}
-		
-		void DrawTooltip(int mode)
-		{
-			float elementSizeX=110;
-			float elementSizeY=40;
-			//This only works as long as links and nodes context menus have the same startpoint (upper left point)
-			float leftColumnStartX=contextMenuPosLinks.x+20;//30;
-			float leftColumnStartY=contextMenuPosLinks.y+15;//115;
-			float rightColumnStartX=contextMenuPosLinks.x+160;//170;
-			float rightColumnStartY=contextMenuPosLinks.y+15;
-			float vPad=5;
-			
-			//nodes tooltip
-			if (mode==1)
-			{
-				//check if last select is still in the list
-				if (selectedNodes.Contains(lastSelectedNode))//(Node)lastSelectedLinkNode))
-				{
-					selectItemDroplist.SetSelectedItemIndex(selectedNodes.IndexOf(lastSelectedNode));//((Node)lastSelectedLinkNode));
-				} else {selectItemDroplist.SetSelectedItemIndex(0);}
-				
-				//Generate droplist content
-				GUIContent[] droplistContent=new GUIContent[selectedNodes.Count];
-				for (int i=0; i<selectedNodes.Count; i++)
-				{
-					droplistContent[i]=new GUIContent(selectedNodes[i].id);
-				}
-				
-				//Main box and labels
-				GUI.Box(contextMenuPosNodes,"");
-				//GUI.BeginGroup(contextMenuPosNodes);
-				GUI.Label (new Rect(leftColumnStartX,leftColumnStartY,elementSizeX,elementSizeY),"Выбор элемента:");
-				GUI.Label (new Rect(rightColumnStartX,rightColumnStartY,elementSizeX,elementSizeY),"Имя элемента:");
-				GUI.Label (new Rect(leftColumnStartX,leftColumnStartY+elementSizeY*2+vPad*2,elementSizeX,elementSizeY),"Иконка:");
-				
-				//name edit field
-				string nodeName=selectedNodes[selectItemDroplist.GetSelectedItemIndex()].nodeText.text;
-				nodeName=GUI.TextField(new Rect(rightColumnStartX,rightColumnStartY+elementSizeY+3,elementSizeX,elementSizeY),nodeName);
-				selectedNodes[selectItemDroplist.GetSelectedItemIndex()].nodeText.text=nodeName;
-				//GUI.EndGroup();
-				
-				//set current icon selection
-				Node currentNode=selectedNodes[selectItemDroplist.GetSelectedItemIndex()];
-				selectIconDroplist.SetSelectedItemIndex(currentNode.GetSpriteIndex());
-				//generate icon droplist content
-				GUIContent[] iconDroplistContent=new GUIContent[nodeIconTextures.Length];//new GUIContent[4];
-				
-				iconDroplistContent[0]=new GUIContent("WinXP",nodeIconTextures[0]);
-				iconDroplistContent[1]=new GUIContent("Windows 7",nodeIconTextures[1]);
-				iconDroplistContent[2]=new GUIContent("Windows 8",nodeIconTextures[2]);
-				iconDroplistContent[3]=new GUIContent("Server 2008",nodeIconTextures[3]);
-				iconDroplistContent[4]=new GUIContent("Server 2012",nodeIconTextures[4]);
-				//iconDroplistContent[0]=new GUIContent("WinXP",nodeTextures[0]);
-				//iconDroplistContent[1]=new GUIContent("Win07",nodeTextures[1]);
-				//iconDroplistContent[2]=new GUIContent("2008",nodeTextures[2]);
-				//iconDroplistContent[3]=new GUIContent("2003",nodeTextures[3]);
-				//select icon droplist
-				selectIconDroplist.List(new Rect(leftColumnStartX+elementSizeX*0.5f,leftColumnStartY+elementSizeY*2+vPad*2,elementSizeX*1.5f,elementSizeY)
-				 ,iconDroplistContent,"box",droplistSkin.customStyles[0]);
-				//Set new icon for all selected nodes
-				foreach (Node node in selectedNodes) {node.SetSprite(selectIconDroplist.GetSelectedItemIndex());}
-				//currentNode.SetSprite(selectIconDroplist.GetSelectedItemIndex());
-				
-				//select obj menu (must be last item rendered)
-				selectItemDroplist.List(new Rect(leftColumnStartX,leftColumnStartY+elementSizeY,elementSizeX,elementSizeY)
-				 ,droplistContent,"box",droplistSkin.customStyles[0]);
-				lastSelectedNode=selectedNodes[selectItemDroplist.GetSelectedItemIndex()];//lastSelectedLinkNode=selectedNodes[selectItemDroplist.GetSelectedItemIndex()];
-			}
-			
-			//links tooltip
-			if (mode==2) 
-			{
-				//check if last select is still in the list
-				if (selectedLinks.Contains(lastSelectedLink))//(Link)lastSelectedLinkNode))
-				{
-					selectItemDroplist.SetSelectedItemIndex(selectedLinks.IndexOf(lastSelectedLink));//(Link)lastSelectedLinkNode));
-				} else {selectItemDroplist.SetSelectedItemIndex(0);}
-				//Generate droplist content
-				GUIContent[] droplistContent=new GUIContent[selectedLinks.Count];
-				for (int i=0; i<selectedLinks.Count; i++)
-				{
-					droplistContent[i]=new GUIContent(selectedLinks[i].id);
-				}	
-				
-				//main box and left hand labels
-				GUI.Box(contextMenuPosLinks,"");
-				//GUI.BeginGroup(contextMenuPosLinks);
-				GUI.Label (new Rect(leftColumnStartX,leftColumnStartY,elementSizeX,elementSizeY),"Выбор элемента:");
-				GUI.Label (new Rect(rightColumnStartX,rightColumnStartY,elementSizeX,elementSizeY),"Цвет элемента:");
-				//GUI.EndGroup();
-
-				//Set current color select
-				Link coloredLink=selectedLinks[selectItemDroplist.GetSelectedItemIndex()];
-				selectColorDroplist.SetSelectedItemIndex(coloredLink.GetColorIndex());
-				//Generate droplist content
-				GUIContent[] droplistColorContent=new GUIContent[5];
-				droplistColorContent[0]=new GUIContent(colorTextures[0]);//"black");
-				droplistColorContent[1]=new GUIContent(colorTextures[1]);//"red");
-				droplistColorContent[2]=new GUIContent(colorTextures[2]);//"green");
-				droplistColorContent[3]=new GUIContent(colorTextures[3]);//"yellow");
-				droplistColorContent[4]=new GUIContent(colorTextures[4]);//"cyan");
-				//Draw color droplist
-				int droplistPick=selectColorDroplist.List(new Rect(rightColumnStartX,rightColumnStartY+elementSizeY,elementSizeX,elementSizeY)
-				 ,droplistColorContent,"box",droplistSkin.customStyles[0]); 
-				switch (droplistPick)
-				{
-					case 0:{coloredLink.color="black"; break;}
-					case 1:{coloredLink.color="red"; break;}
-					case 2:{coloredLink.color="green"; break;}
-					case 3:{coloredLink.color="yellow"; break;}
-					case 4:{coloredLink.color="cyan"; break;}
-				}
-				
-				//select obj menu (must be after endgroup rendered)
-				selectItemDroplist.List(new Rect(leftColumnStartX,leftColumnStartY+elementSizeY,elementSizeX,elementSizeY)
-				 ,droplistContent,"box",droplistSkin.customStyles[0]);
-				//lastSelectedLinkNode=selectedLinks[selectItemDroplist.GetSelectedItemIndex()];
-				lastSelectedLink=selectedLinks[selectItemDroplist.GetSelectedItemIndex()];
-			}
-		}
-		*/
-		/*
-		private void LoadImages() 
-		{ 
-		string pathPrefix = @"file://"; string pathImageAssets = @"C:\HistoryCube_Assets\"; string pathSmall = @"small\"; string filename = @"icon"; string fileSuffix = @".jpg";
-			
-			//create filename index suffix "001",...,"027" (could be "999" either)
-			for (int i=0; i &lt; 27; i++)
-			{
-				string indexSuffix = "";
-				float logIdx = Mathf.Log10(i+1);
-				if (logIdx &lt; 1.0)
-					indexSuffix += "00";
-				else if (logIdx &lt; 2.0)
-					indexSuffix += "0";
-				indexSuffix += (i+1);
-				
-				string fullFilename = pathPrefix + pathImageAssets + pathSmall + filename + indexSuffix + fileSuffix;
-				
-				WWW www = new WWW(fullFilename);
-				Texture2D texTmp = new Texture2D(1024, 1024, TextureFormat.DXT1, false);
-				//LoadImageIntoTexture compresses JPGs by DXT1 and PNGs by DXT5     
-				www.LoadImageIntoTexture(texTmp);
-				
-				imageBuffer.Add(texTmp);
-			}
-			
-		}*/
-		
 		void Start () 
 		{
 			//Object[] tempAr=Resources.LoadAll("");
-			string mainPath=Application.dataPath+"/../";//+"../";//"C:/Users/GAME/Documents/Unity Work/Unity-Topology/Unity - Topology";//
-			//mainPath.Remove(mainPath.LastIndexOf("Top_Data"));
+			string mainPath=Application.dataPath+"/../";
 			
 			string texturesPath="file://"+mainPath+"/Skin/WinXP.png";
 			WWW www=new WWW(texturesPath);
@@ -1102,6 +652,18 @@ namespace Topology {
 			linkCountText.text = "Ребер: 0";
 			statusText = GameObject.Find("StatusText").guiText;
 			statusText.text = "";
+			
+			#if UNITY_EDITOR
+			string defaultFilepath=Application.dataPath+"/Data/layout_small.xml";
+			#else
+			string defaultFilepath=Application.dataPath+"/../layout_small.xml";
+			#endif
+			if (File.Exists(defaultFilepath)) 
+			{
+				sourceFile=defaultFilepath;
+				StartLayoutLoad();
+			}
+			//if () {}
 		}
 		
 		public void ClearScene()
@@ -1109,289 +671,16 @@ namespace Topology {
 			StopAllCoroutines();
 			foreach (Node node in nodes.Values) {GameObject.Destroy(node.gameObject);}
 			nodes.Clear();
-			//print ("cleared nodes, nodes:"+nodes.Count);
 			links.Clear();
-			//selectedLinks.Clear();
-			//selectedNodes.Clear();
 			nodeCountText.text = "Вершин: 0";
 			linkCountText.text = "Ребер: 0";
 			statusText.text = "";
-			/*
-			VectorLine.Destroy(ref linksVector);
-			linkPoints.Clear();
-			linkColors.Clear();
-			*/
+
 			linkDrawManager.ClearAllLinks();
 			//awaitingPath=true;
 			sceneLoaded=false;
 			
 		}
 		
-		/*
-		//Deselect current selection on clicking empty space
-		void ManageClickDeselect()
-		{
-			if (Input.GetMouseButtonDown(0) && sceneLoaded) 
-			{
-				Vector2 mousePosInGUICoords = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
-				if (ClickApplicable())
-				{	
-					DeselectAllNodes();
-					DeselectAllLinks();
-				}
-			}
-		}
-		
-		void ManageSelectionBox()
-		{
-			if (Input.GetMouseButtonDown(0)) 
-			{
-				Vector2 mousePosInGUICoords = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
-				if (ClickApplicable())
-				{StartCoroutine(ManageSelectionBoxRoutine());}	
-			}
-		}
-		
-		IEnumerator ManageSelectionBoxRoutine()
-		{
-			//Switches to multiselect
-			Rect screenSelectRect=new Rect();
-			Vector2 originalPos = Input.mousePosition;
-			VectorLine selectionBoxLine=new VectorLine("Selection", new Vector2[5], null, 4.0f, LineType.Continuous);
-			selectionBoxLine.textureScale=4.0f;
-			yield return new WaitForEndOfFrame();
-			//if (Input.GetMouseButton(0)) {print ("Select box primed");}
-			while(Input.GetMouseButton(0))
-			{	
-				selectionBoxLine.MakeRect (originalPos, Input.mousePosition);
-				selectionBoxLine.Draw();
-				selectionBoxLine.textureOffset = -Time.time*2.0f % 1;
-				
-				selectMode=1;
-				screenSelectRect.position=originalPos;
-				screenSelectRect.xMax=Input.mousePosition.x;
-				screenSelectRect.yMax=Input.mousePosition.y;
-				
-				//DeselectAllNodes();
-				
-				foreach (Node node in nodes.Values)
-				{
-					if (screenSelectRect.Contains(Camera.main.WorldToScreenPoint(node.transform.position),true)) 
-					{
-						ClickedNodeAction(node);
-					} 
-					else 
-					{
-						if (selectedNodes.Contains(node)) {node.selected=false; selectedNodes.Remove(node);}
-					}
-				}
-				
-				yield return new WaitForFixedUpdate();
-			}
-			VectorLine.Destroy(ref selectionBoxLine);
-			yield break;
-		}
-		
-		void ManageDoubleclick()
-		{
-			if (Input.GetMouseButtonDown(0) && sceneLoaded) 
-			{
-				//Vector2 mousePosInGUICoords = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
-				if (ClickApplicable())
-				{	
-					if (dclickTimer==null) {StartCoroutine(ManageDoubleclickTimer());}
-				}
-		
-			}
-		}
-		
-		//checks if select mode is right and the click doesn't land on GUI elements
-		bool ClickApplicable()
-		{
-			bool clickApplicable=true;
-			Vector2 mousePosInGUICoords = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
-			if (selectMode==0 && !selectionMade && sceneLoaded && (fb==null | !fileBrowserWindowRect.Contains(mousePosInGUICoords))
-			    && !openButtonRect.Contains(mousePosInGUICoords)
-			    && !saveButtonRect.Contains(mousePosInGUICoords)
-			    && !contextMenuPosNodes.Contains(mousePosInGUICoords) 
-			    && !contextMenuPosLinks.Contains(mousePosInGUICoords)
-			    && !selectItemDroplist.GetCurrentDimensions().Contains(mousePosInGUICoords) 
-			    && !selectColorDroplist.GetCurrentDimensions().Contains(mousePosInGUICoords)
-			    && !selectIconDroplist.GetCurrentDimensions().Contains(mousePosInGUICoords))
-			    {clickApplicable=true;} else {clickApplicable=false;}
-			return clickApplicable;
-		}
-		
-		IEnumerator ManageDoubleclickTimer()
-		{
-			//if (Input.GetMouseButtonUp(0))
-			//{
-			dclickTimer=new TimerDetector(0.22f);
-			yield return new WaitForFixedUpdate();
-			while (!dclickTimer.UpdateTimer())
-			{
-				if (Input.GetMouseButtonDown(0) && sceneLoaded) 
-				{
-					Vector2 mousePosInGUICoords = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
-					//make sure it doesn't fire while over gui elements
-					if (ClickApplicable())
-					{CreateNewNode(); break;}
-				}
-				yield return new WaitForFixedUpdate();	
-			}
-			yield return new WaitForFixedUpdate();
-			dclickTimer=null;
-			yield break;
-		}
-		
-		void DeselectAllNodes()
-		{
-			if ( selectedNodes.Count>0) 
-			{
-				foreach (Node selectedNode in selectedNodes)
-				{
-					selectedNode.selected=false;
-				}
-				selectedNodes.Clear();
-			}
-		}
-		
-		void DeselectAllLinks()
-		{
-			if (selectedLinks.Count>0) 
-			{
-				foreach (Link selectedLink in selectedLinks)
-				{
-					selectedLink.selected=false;
-				}
-				selectedLinks.Clear();
-			}
-		}
-		*/
-		
-		/*
-		//fires before physics clicks and Update
-		void FixedUpdate()
-		{
-			HandleSelectMode();
-		}	*/	
-		
-		/*
-		//fires after physics clicks
-		void Update()
-		{
-			//manage input
-			ManageLinkSelection();
-			
-			ManageClickDeselect();
-			ManageDoubleclick();
-			ManageSelectionBox();
-			
-			ManageObjectDeletion();
-			ManageObjectCopying();
-			//Prepare selection var for next frame
-			selectionMade=false;
-			if (Input.GetKeyDown(KeyCode.O)) {ClearScene();}
-		}
-		*/
-		
-		/*
-		void ManageLinkSelection()
-		{
-			if (Input.GetMouseButtonDown(0) && !selectionMade)
-			{
-				//int selectedPointIndex=AttemptSelectLink();
-				//if (selectedPointIndex!=-1) {ClickLink(GetLinkFromPointIndex(selectedPointIndex));}
-				Link selectedLink=AttemptSelectLink();
-				if (selectedLink!=null) {ClickLink(selectedLink);}
-			}
-		
-		}
-		*/
-		
-		/*
-		void ManageObjectDeletion()
-		{
-			if (Input.GetKeyDown (KeyCode.Delete))
-			{
-				if (selectedNodes.Count>0){DeleteSelectedNodes();}
-				if (selectedLinks.Count>0){DeleteSelectedLinks();}
-			}
-		}
-		
-		void ManageObjectCopying()
-		{
-			if (Input.GetKeyDown (KeyCode.C))
-			{
-				CopyNodes();
-				//Event.KeyboardEvent
-			}
-			if (Input.GetKeyDown (KeyCode.V))//if (Input.GetKey(KeyCode.LeftControl) &&Input.GetKeyDown(KeyCode.V))
-			{
-				PasteNodes();
-			}
-		}
-		*/
-		
-		/*
-		protected void OnGUI () 
-		{
-			GUI.skin=fbSkin;
-			if (fb != null) 
-			{
-				fb.OnGUI();
-			} 
-			else 
-			{
-				OnGUIMain();
-			}
-			if (sceneLoaded) {if (GUI.Button(saveButtonRect,"Сохранить")) {SaveAll();}}
-			ManageTooltip();
-		}
-		*/
-		/*
-		void DrawMenu()
-		{
-			string[] menuButtons=new string[2];
-			menuButtons[0]="Открыть...";
-			menuButtons[1]="Сохранить";
-			
-			int menuSelect=GUI.SelectionGrid(new Rect(0,0,1024,50), 2, menuButtons, menuButtons.Length,droplistSkin.customStyles[0]); 
-			print ("selected on menu:"+menuSelect);
-			
-		}*/
-		
-		/*
-		protected void OnGUIMain() {
-			
-			GUILayout.BeginHorizontal();
-			//GUILayout.Label("Xml File", GUILayout.Width(100));
-			GUILayout.FlexibleSpace();
-			//GUILayout.Label(sourceFile ?? "none selected");
-			if (GUI.Button(openButtonRect,"Открыть..."))
-			{//GUILayout.ExpandWidth(false))) {
-				fb = new FileBrowser(fileBrowserWindowRect,"Выберите xml файл",FileSelectedCallback);
-				
-				fb.SelectionPattern = "*.xml";
-				fb.DirectoryImage=folder;
-				fb.FileImage=file;
-				
-			}
-			GUILayout.EndHorizontal();
-		}
-		
-		protected void FileSelectedCallback(string path) {
-			
-			sourceFile = path;
-			if (sourceFile!=null)
-			{
-				if (sceneLoaded) {ClearScene();}
-				StartCoroutine( LoadLayout() );
-			}
-			fb=null;
-		}
-
-	}
-	*/
 }
 }

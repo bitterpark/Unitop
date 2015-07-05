@@ -10,6 +10,7 @@ namespace Topology {
 		public string id;
 		public TextMesh nodeText;
 		public GameController controller;
+		Vector3 beginDragMousePos=Vector3.zero;
 		//public Vector3 myPos;
 		
 		public bool selected
@@ -52,7 +53,9 @@ namespace Topology {
 			
 //			controller.StartDragNode();
 			//controller.ClickNode(this,true);
-			controller.myInputManager.ClickedNodeAction(this,true);//ClickedNodeAction(this,true);
+			controller.myInputManager.ClickedNodeAction(this,true);
+			beginDragMousePos=Input.mousePosition;
+			//ClickedNodeAction(this,true);
 			//print ("drag routine started!");
 			//StartCoroutine(DragRoutine());
 		}
@@ -76,15 +79,12 @@ namespace Topology {
 				}*/
 				
 				//Vector3 mouseProjection=(Camera.main.ScreenToWorldPoint(Input.mousePosition));
-				Vector3 myPosProjection=Camera.main.WorldToScreenPoint(transform.position);
-				//print ("Start pos proj:"+myPosProjection);
-				myPosProjection.z=0;
-				//print ("Corrected pos proj:"+myPosProjection);
-				//print ("Mouse pos:"+Input.mousePosition);
+				//Vector3 myPosProjection=Camera.main.WorldToScreenPoint(transform.position);
+				//myPosProjection.z=0;
 				
 				//mouseProjection.z=3000;
 				//float projectedDragTolerance=50f*Screen.height/(Camera.main.orthographicSize*2);
-				if ((Input.mousePosition-myPosProjection).magnitude>25)//projectedDragTolerance) 
+				if ((Input.mousePosition-beginDragMousePos).magnitude>25)//projectedDragTolerance) 
 				{
 					//print ("Magn: "+(Input.mousePosition-myPosProjection).magnitude);
 					//controller.NodeDragStart();

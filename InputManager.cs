@@ -109,7 +109,11 @@ public class InputManager : MonoBehaviour {
 		{
 			OnGUIMain();
 		}
-		if (controller.SceneIsLoaded()) {if (GUI.Button(saveButtonRect,"Сохранить")) {controller.SaveAll();}}
+		if (controller.SceneIsLoaded()) 
+		{
+			//DrawNodeList();
+			if (GUI.Button(saveButtonRect,"Сохранить")) {controller.SaveAll();}
+		}
 		ManageTooltip();
 	}
 	
@@ -720,7 +724,7 @@ public class InputManager : MonoBehaviour {
 			//currentNode.SetSprite(selectIconDroplist.GetSelectedItemIndex());
 			
 			//select obj menu (must be last item rendered)
-			selectItemDroplist.List(new Rect(leftColumnStartX,leftColumnStartY+elementSizeY,elementSizeX,elementSizeY)
+			selectItemDroplist.List(new Rect(leftColumnStartX,leftColumnStartY+elementSizeY,elementSizeX,elementSizeY)//elementSizeY+100)
 			                        ,droplistContent,"box",droplistSkin.customStyles[0]);
 			lastSelectedNode=selectedNodes[selectItemDroplist.GetSelectedItemIndex()];//lastSelectedLinkNode=selectedNodes[selectItemDroplist.GetSelectedItemIndex()];
 		}
@@ -758,23 +762,39 @@ public class InputManager : MonoBehaviour {
 			droplistColorContent[3]=new GUIContent(colorTextures[3]);//"yellow");
 			droplistColorContent[4]=new GUIContent(colorTextures[4]);//"cyan");
 			//Draw color droplist
-			int droplistPick=selectColorDroplist.List(new Rect(rightColumnStartX,rightColumnStartY+elementSizeY,elementSizeX,elementSizeY)
-			                                          ,droplistColorContent,"box",droplistSkin.customStyles[0]); 
+			int droplistPick=selectColorDroplist.List(new Rect(rightColumnStartX,rightColumnStartY+elementSizeY,elementSizeX,elementSizeY)//elementSizeY)
+			 ,droplistColorContent,"box",droplistSkin.customStyles[0]); 
 			switch (droplistPick)
 			{
-			case 0:{coloredLink.color="black"; break;}
-			case 1:{coloredLink.color="red"; break;}
-			case 2:{coloredLink.color="green"; break;}
-			case 3:{coloredLink.color="yellow"; break;}
-			case 4:{coloredLink.color="cyan"; break;}
+				case 0:{coloredLink.color="black"; break;}
+				case 1:{coloredLink.color="red"; break;}
+				case 2:{coloredLink.color="green"; break;}
+				case 3:{coloredLink.color="yellow"; break;}
+				case 4:{coloredLink.color="cyan"; break;}
 			}
 			
 			//select obj menu (must be after endgroup rendered)
-			selectItemDroplist.List(new Rect(leftColumnStartX,leftColumnStartY+elementSizeY,elementSizeX,elementSizeY)
+			selectItemDroplist.List(new Rect(leftColumnStartX,leftColumnStartY+elementSizeY,elementSizeX,elementSizeY)//elementSizeY)
 			                        ,droplistContent,"box",droplistSkin.customStyles[0]);
 			//lastSelectedLinkNode=selectedLinks[selectItemDroplist.GetSelectedItemIndex()];
 			lastSelectedLink=selectedLinks[selectItemDroplist.GetSelectedItemIndex()];
 		}
 	}
-
+	
+	void DrawNodeList()
+	{
+		//GUI.
+		Hashtable cachedNodes=controller.GetNodes();
+		GUIContent[] cont=new GUIContent[cachedNodes.Count];
+		int i=0;
+		foreach(Node node in cachedNodes.Values)
+		{
+			cont[i]=new GUIContent(node.nodeText.text);
+			i++;	
+		}
+		int select=GUI.SelectionGrid(new Rect(Screen.width-100,0,100,Screen.height),-1,cont,1,droplistSkin.customStyles[0]);
+		//if(select!=-1) {Camera.main.transform.position=}
+		//print ("Selected:"+select);
+	}
+	
 }

@@ -29,7 +29,7 @@ public class CameraControlZeroG : MonoBehaviour {
 	
 	void Start(){
 		//set to first cluster position
-		transform.position = cluster1;
+		//transform.position = cluster1;
 	}
 	
 	void Update () 

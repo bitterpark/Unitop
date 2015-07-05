@@ -31,7 +31,13 @@ namespace Topology {
 			get{return _selected;}
 			set
 			{
-				if (value) {controller.LinkChangeColor(this,Color.blue);}//myLine.SetColor(Color.blue);//renderer.material.color=Color.blue; 
+				if (value) 
+				{
+					Color myNewColor=Color.blue;//GetColorFromString(color);
+					//myNewColor=myNewColor+Color.blue;
+					controller.LinkChangeColor(this,myNewColor);//Color.blue);
+					
+				}
 				else {controller.LinkChangeColor(this,GetColorFromString(color));}//myLine.SetColor(GetColorFromString(color));//renderer.sharedMaterial.color=GetColorFromString(color);//new Color(22,70,109,255);//Color.blue;
 				_selected=value; 
 			}
