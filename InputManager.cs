@@ -19,6 +19,10 @@ public class InputManager : MonoBehaviour {
 	//GUIContainer contextMenu;
 	public Rect contextMenuPosNodes=new Rect(5,125,290,150);
 	public Rect contextMenuPosLinks=new Rect(5,125,290,100);
+	Rect nodeListRect=new Rect(Screen.width-150,0,150,Screen.height);
+	bool nodeListShown=false;
+	
+	int nodeListFirstElementIndex=0;
 	Rect saveButtonRect=new Rect(5,90,80,20);
 	Rect openButtonRect=new Rect(5,60,80,20);
 	Rect fileBrowserWindowRect=new Rect(100, 100, 600, 500);
@@ -63,6 +67,7 @@ public class InputManager : MonoBehaviour {
 	
 	// Use this for initialization
 	void Start () {
+		Rect nodeListRect=new Rect(Screen.width-150,0,150,Screen.height);
 		controller=gameObject.GetComponent<GameController>();
 	}
 	
@@ -111,7 +116,7 @@ public class InputManager : MonoBehaviour {
 		}
 		if (controller.SceneIsLoaded()) 
 		{
-			//DrawNodeList();
+			DrawNodeList();
 			if (GUI.Button(saveButtonRect,"Сохранить")) {controller.SaveAll();}
 		}
 		ManageTooltip();
@@ -166,71 +171,73 @@ public class InputManager : MonoBehaviour {
 	//Nodes
 	
 	
-	public void ClickNode(Node clickedNode)
+	public void ClickNode(Node clickedNode, bool nonClick)
 	{
-		if (ClickApplicable()) {ClickedNodeAction(clickedNode);}
+		ClickedNodeAction(clickedNode,nonClick);
 	}
 	
-	public void ClickedNodeAction(Node clickedNode, bool dragged)
+	public void ClickedNodeAction(Node clickedNode, bool nonClick, bool dragged)
 	{
 		if (dragged) {currentClickMode=MouseClickMode.MultiSelect;}
-		ClickedNodeAction(clickedNode);
+		ClickedNodeAction(clickedNode,nonClick);
 	}
 	
-	public void ClickedNodeAction(Node clickedNode)
+	public void ClickedNodeAction(Node clickedNode, bool nonClick)
 	{
-		selectionMade=true;
-		DeselectAllLinks();
-		tooltipMode=0;
-		// single select mode
-		if (currentClickMode==MouseClickMode.SingleSelect)
-		{	
-			DeselectAllNodes();
-			selectedNodes.Add(clickedNode);//HashtableAppendNum(selectedNodes,clickedNode);//selectedNodes.Add(clickedNode);
-			clickedNode.selected=true;
-		}
-		
-		//shift select mode
-		if (currentClickMode==MouseClickMode.MultiSelect)
-		{ 
-			//selectedNodes.Add(clickedNode);
-			if (!selectedNodes.Contains(clickedNode))
-			{
-				selectedNodes.Add(clickedNode);//HashtableAppendNum(selectedNodes,clickedNode);
-				clickedNode.selected=true;
-			}
-		}
-		
-		// ctrl select mode
-		if (currentClickMode==MouseClickMode.ControlSelect) 
+		if (!ClickedOnGUI() | nonClick)
 		{
-			if (selectedNodes.Contains(clickedNode))//selectedNodes.Contains(clickedNode)) 
-			{
-				selectedNodes.Remove(clickedNode);//selectedNodes.Remove(HashtableFindKeyOfValue(clickedNode));
-				clickedNode.selected=false;
-			}
-			else
-			{
+			selectionMade=true;
+			DeselectAllLinks();
+			tooltipMode=0;
+			// single select mode
+			if (currentClickMode==MouseClickMode.SingleSelect)
+			{	
+				DeselectAllNodes();
 				selectedNodes.Add(clickedNode);//HashtableAppendNum(selectedNodes,clickedNode);//selectedNodes.Add(clickedNode);
 				clickedNode.selected=true;
 			}
-		}
-		if (currentClickMode==MouseClickMode.CreateLinkMode)
-		{
-			if (selectedNodes.Count>0) 
-			{
-				foreach (Node selectedNode in selectedNodes)
+		
+			//shift select mode
+			if (currentClickMode==MouseClickMode.MultiSelect)
+			{ 
+				//selectedNodes.Add(clickedNode);
+				if (!selectedNodes.Contains(clickedNode))
 				{
-					if (selectedNode.id!=clickedNode.id)
+					selectedNodes.Add(clickedNode);//HashtableAppendNum(selectedNodes,clickedNode);
+					clickedNode.selected=true;
+				}
+			}
+		
+			// ctrl select mode
+			if (currentClickMode==MouseClickMode.ControlSelect) 
+			{
+				if (selectedNodes.Contains(clickedNode))//selectedNodes.Contains(clickedNode)) 
+				{
+					selectedNodes.Remove(clickedNode);//selectedNodes.Remove(HashtableFindKeyOfValue(clickedNode));
+					clickedNode.selected=false;
+				}
+				else
+				{
+					selectedNodes.Add(clickedNode);//HashtableAppendNum(selectedNodes,clickedNode);//selectedNodes.Add(clickedNode);
+					clickedNode.selected=true;
+				}
+			}
+			if (currentClickMode==MouseClickMode.CreateLinkMode)
+			{
+				if (selectedNodes.Count>0) 
+				{
+					foreach (Node selectedNode in selectedNodes)
 					{
-						
-						controller.CreateNewLink(selectedNode.id,clickedNode.id);
+						if (selectedNode.id!=clickedNode.id)
+						{
+							
+							controller.CreateNewLink(selectedNode.id,clickedNode.id);
+						}
 					}
 				}
 			}
 		}
 	}
-	
 	//Called by node when its dragged	
 	public void DragNode(Node draggedNode, Vector3 moveDelta)
 	{
@@ -311,7 +318,7 @@ public class InputManager : MonoBehaviour {
 			Hashtable cachedNodes=controller.GetNodes();
 			foreach(Node node in cachedNodes.Values)
 			{
-				ClickedNodeAction(node,true);
+				ClickedNodeAction(node,true, true);
 			}
 		}
 		#else
@@ -322,7 +329,7 @@ public class InputManager : MonoBehaviour {
 				Hashtable cachedNodes=controller.GetNodes();
 				foreach(Node node in cachedNodes.Values)
 				{
-					ClickedNodeAction(node,true);
+					ClickedNodeAction(node,true, true);
 				}
 			} 
 		}
@@ -402,7 +409,7 @@ public class InputManager : MonoBehaviour {
 	//Link click action
 	public void ClickLink(Link clickedLink)
 	{
-		if (ClickApplicable())
+		if (!ClickedOnGUI())
 		{
 			//get sibling (if one exists)
 			Link sibling=null;
@@ -505,7 +512,7 @@ public class InputManager : MonoBehaviour {
 		if (Input.GetMouseButtonDown(0) && controller.SceneIsLoaded()) 
 		{
 			Vector2 mousePosInGUICoords = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
-			if (ClickApplicable())
+			if (EmptySpaceClick())
 			{	
 				DeselectAllNodes();
 				DeselectAllLinks();
@@ -518,7 +525,7 @@ public class InputManager : MonoBehaviour {
 		if (Input.GetMouseButtonDown(0)) 
 		{
 			Vector2 mousePosInGUICoords = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
-			if (ClickApplicable())
+			if (EmptySpaceClick())
 			{StartCoroutine(ManageSelectionBoxRoutine());}	
 		}
 	}
@@ -549,7 +556,7 @@ public class InputManager : MonoBehaviour {
 			{
 				if (screenSelectRect.Contains(Camera.main.WorldToScreenPoint(node.transform.position),true)) 
 				{
-					ClickedNodeAction(node);
+					ClickedNodeAction(node,true);
 				} 
 				else 
 				{
@@ -568,7 +575,7 @@ public class InputManager : MonoBehaviour {
 		if (Input.GetMouseButtonDown(0) && controller.SceneIsLoaded()) 
 		{
 			//Vector2 mousePosInGUICoords = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
-			if (ClickApplicable())
+			if (EmptySpaceClick())
 			{	
 				if (dclickTimer==null) {StartCoroutine(ManageDoubleclickTimer());}
 			}
@@ -577,22 +584,33 @@ public class InputManager : MonoBehaviour {
 	}
 	
 	//checks if select mode is right and the click doesn't land on GUI elements
-	bool ClickApplicable()
+	bool EmptySpaceClick()
 	{
 		bool clickApplicable=true;
 		Vector2 mousePosInGUICoords = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
-		if (currentClickMode==MouseClickMode.SingleSelect && !selectionMade && controller.SceneIsLoaded() && (fb==null | !fileBrowserWindowRect.Contains(mousePosInGUICoords))
+		if (currentClickMode==MouseClickMode.SingleSelect && !selectionMade && controller.SceneIsLoaded() && !ClickedOnGUI())
+		{clickApplicable=true;} else {clickApplicable=false;}
+		return clickApplicable;
+	}
+	
+	bool ClickedOnGUI()
+	{
+		bool clickedOnGUI=false;
+		Vector2 mousePosInGUICoords = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
+		if ((fb==null | !fileBrowserWindowRect.Contains(mousePosInGUICoords))
 		    && !openButtonRect.Contains(mousePosInGUICoords)
 		    && !saveButtonRect.Contains(mousePosInGUICoords)
 		    && !contextMenuPosNodes.Contains(mousePosInGUICoords) 
 		    && !contextMenuPosLinks.Contains(mousePosInGUICoords)
 		    && !selectItemDroplist.GetCurrentDimensions().Contains(mousePosInGUICoords) 
 		    && !selectColorDroplist.GetCurrentDimensions().Contains(mousePosInGUICoords)
-		    && !selectIconDroplist.GetCurrentDimensions().Contains(mousePosInGUICoords))
-		{clickApplicable=true;} else {clickApplicable=false;}
-		return clickApplicable;
+		    && !selectIconDroplist.GetCurrentDimensions().Contains(mousePosInGUICoords)
+		    && !nodeListRect.Contains(mousePosInGUICoords))
+		{clickedOnGUI=false;} else {clickedOnGUI=true;}
+		return clickedOnGUI;
 	}
 	
+	//for dclick creating new nodes
 	IEnumerator ManageDoubleclickTimer()
 	{
 		//if (Input.GetMouseButtonUp(0))
@@ -605,7 +623,7 @@ public class InputManager : MonoBehaviour {
 			{
 				Vector2 mousePosInGUICoords = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
 				//make sure it doesn't fire while over gui elements
-				if (ClickApplicable())
+				if (EmptySpaceClick())
 				{controller.CreateNewNode(); break;}
 			}
 			yield return new WaitForFixedUpdate();	
@@ -782,8 +800,56 @@ public class InputManager : MonoBehaviour {
 	}
 	
 	void DrawNodeList()
-	{
+	{	
+		
+		float entryHeight=30f;
+		float vPad=3f;
+		float width=nodeListRect.width;//150f;
+		
+		Node[] cachedNodes=new Node[controller.GetNodes().Count];
+		controller.GetNodes().Values.CopyTo(cachedNodes,0);
+		
+		GUI.Box(new Rect(nodeListRect),"");
+		
+		Rect entryRect=new Rect(Screen.width-width+5,10,width-5,entryHeight);
+		GUIContent rootContent=new GUIContent("...",folder);
+		
+		//Box has to be drawn first, otherwise it draws over the button
+		if (nodeListShown) GUI.Box(entryRect,"",droplistSkin.customStyles[2]);
+		if (GUI.Button(entryRect,rootContent,droplistSkin.customStyles[1])) {nodeListShown=!nodeListShown;}
+		
+		if (nodeListShown)
+		{
+			entryRect.y+=entryHeight+vPad;
+			
+			int maxEntries=Mathf.Min(Mathf.FloorToInt(Screen.height/(entryHeight+vPad))-1,cachedNodes.Length);
+			//int firstEntry=0;
+			int firstEntryMaxIndex=cachedNodes.Length-maxEntries-1;
+			if (firstEntryMaxIndex>0)
+			{
+				nodeListFirstElementIndex=Mathf.FloorToInt(GUI.VerticalScrollbar(new Rect(Screen.width-width-10,0,10,Screen.height)
+				,nodeListFirstElementIndex,1,0,16));
+			}
+			else {nodeListFirstElementIndex=0;}
+		
+			GUIContent buttonContent=new GUIContent();
+			//GUIContent listContent=new GUIContent[maxEntries];
+			for (int i=nodeListFirstElementIndex; i<nodeListFirstElementIndex+maxEntries; i++) 
+			{
+				if (selectedNodes.Contains(cachedNodes[i])) 
+				{GUI.Box(entryRect,"",droplistSkin.customStyles[2]);}
+				buttonContent.text=cachedNodes[i].nodeText.text;
+				buttonContent.image=cachedNodes[i].renderer.material.GetTexture(0);
+				if (GUI.Button(entryRect,buttonContent,droplistSkin.customStyles[1])) 
+				{
+					ClickNode(cachedNodes[i],true);
+					Camera.main.transform.position=(Vector2)cachedNodes[i].transform.position;
+				}
+				entryRect.y+=entryHeight+vPad;
+			}
+		}
 		//GUI.
+		/*
 		Hashtable cachedNodes=controller.GetNodes();
 		GUIContent[] cont=new GUIContent[cachedNodes.Count];
 		int i=0;
@@ -793,6 +859,7 @@ public class InputManager : MonoBehaviour {
 			i++;	
 		}
 		int select=GUI.SelectionGrid(new Rect(Screen.width-100,0,100,Screen.height),-1,cont,1,droplistSkin.customStyles[0]);
+		*/
 		//if(select!=-1) {Camera.main.transform.position=}
 		//print ("Selected:"+select);
 	}

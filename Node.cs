@@ -53,7 +53,7 @@ namespace Topology {
 			
 //			controller.StartDragNode();
 			//controller.ClickNode(this,true);
-			controller.myInputManager.ClickedNodeAction(this,true);
+			controller.myInputManager.ClickedNodeAction(this,false,true);
 			beginDragMousePos=Input.mousePosition;
 			//ClickedNodeAction(this,true);
 			//print ("drag routine started!");
@@ -124,7 +124,7 @@ namespace Topology {
 			//if (dragged) {}
 			//dragged=false;
 			if (dragged) {controller.myInputManager.NodeDragComplete();}
-			controller.myInputManager.ClickedNodeAction(this,dragged);
+			controller.myInputManager.ClickedNodeAction(this,false,dragged);
 			dragged=false;
 			myTimer=null;
 		}
