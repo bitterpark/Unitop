@@ -19,13 +19,16 @@ public class InputManager : MonoBehaviour {
 	//GUIContainer contextMenu;
 	public Rect contextMenuPosNodes=new Rect(5,125,290,150);
 	public Rect contextMenuPosLinks=new Rect(5,125,290,100);
-	Rect nodeListRect=new Rect(Screen.width-150,0,150,Screen.height);
+	Rect nodeListRect=new Rect(Screen.width-160,0,160,Screen.height);
+	string nodeListSearchFilter="";
 	bool nodeListShown=false;
 	
 	int nodeListFirstElementIndex=0;
 	Rect saveButtonRect=new Rect(5,90,80,20);
 	Rect openButtonRect=new Rect(5,60,80,20);
 	Rect fileBrowserWindowRect=new Rect(100, 100, 600, 500);
+	
+	bool testHierarchyMode=true;
 	
 	int tooltipMode
 	{
@@ -67,7 +70,7 @@ public class InputManager : MonoBehaviour {
 	
 	// Use this for initialization
 	void Start () {
-		Rect nodeListRect=new Rect(Screen.width-150,0,150,Screen.height);
+		//Rect nodeListRect=new Rect(Screen.width-160,0,160,Screen.height);
 		controller=gameObject.GetComponent<GameController>();
 	}
 	
@@ -230,8 +233,11 @@ public class InputManager : MonoBehaviour {
 					{
 						if (selectedNode.id!=clickedNode.id)
 						{
-							
 							controller.CreateNewLink(selectedNode.id,clickedNode.id);
+							if (testHierarchyMode)
+							{
+								//controller.ToggleNodeHierarchy(clickedNode,selectedNode);
+							}
 						}
 					}
 				}
@@ -800,20 +806,26 @@ public class InputManager : MonoBehaviour {
 	}
 	
 	void DrawNodeList()
-	{	
-		
+	{		
 		float entryHeight=30f;
 		float vPad=3f;
 		float width=nodeListRect.width;//150f;
+		float topOffset=40f;
 		
+		//link a selection index to node dictionary
 		Node[] cachedNodes=new Node[controller.GetNodes().Count];
 		controller.GetNodes().Values.CopyTo(cachedNodes,0);
 		
+		//backdrop
 		GUI.Box(new Rect(nodeListRect),"");
 		
-		Rect entryRect=new Rect(Screen.width-width+5,10,width-5,entryHeight);
+		//Set starting position for the first item in the list
+		Rect entryRect=new Rect(Screen.width-width+5,topOffset,width-10,entryHeight);
 		GUIContent rootContent=new GUIContent("...",folder);
 		
+		//Search bar
+		nodeListSearchFilter=GUI.TextField(new Rect(Screen.width-width+5,5,width-10,entryHeight),nodeListSearchFilter);
+		//Draw main folder
 		//Box has to be drawn first, otherwise it draws over the button
 		if (nodeListShown) GUI.Box(entryRect,"",droplistSkin.customStyles[2]);
 		if (GUI.Button(entryRect,rootContent,droplistSkin.customStyles[1])) {nodeListShown=!nodeListShown;}
@@ -821,10 +833,13 @@ public class InputManager : MonoBehaviour {
 		if (nodeListShown)
 		{
 			entryRect.y+=entryHeight+vPad;
+			entryRect.x+=5;
 			
-			int maxEntries=Mathf.Min(Mathf.FloorToInt(Screen.height/(entryHeight+vPad))-1,cachedNodes.Length);
-			//int firstEntry=0;
-			int firstEntryMaxIndex=cachedNodes.Length-maxEntries-1;
+			//Find max amount of entries that will fit on the screen, or node count if it is lower
+			int maxEntries=Mathf.Min(Mathf.FloorToInt((Screen.height-(entryHeight+vPad+topOffset))/(entryHeight+vPad)),cachedNodes.Length);
+			
+			//Find the max first entry index that will still allow the list to fill the entire screen
+			int firstEntryMaxIndex=cachedNodes.Length-maxEntries;
 			if (firstEntryMaxIndex>0)
 			{
 				nodeListFirstElementIndex=Mathf.FloorToInt(GUI.VerticalScrollbar(new Rect(Screen.width-width-10,0,10,Screen.height)
@@ -832,36 +847,25 @@ public class InputManager : MonoBehaviour {
 			}
 			else {nodeListFirstElementIndex=0;}
 		
+			//Draw all nodes as buttons
 			GUIContent buttonContent=new GUIContent();
-			//GUIContent listContent=new GUIContent[maxEntries];
 			for (int i=nodeListFirstElementIndex; i<nodeListFirstElementIndex+maxEntries; i++) 
 			{
-				if (selectedNodes.Contains(cachedNodes[i])) 
-				{GUI.Box(entryRect,"",droplistSkin.customStyles[2]);}
-				buttonContent.text=cachedNodes[i].nodeText.text;
-				buttonContent.image=cachedNodes[i].renderer.material.GetTexture(0);
-				if (GUI.Button(entryRect,buttonContent,droplistSkin.customStyles[1])) 
+				if (nodeListSearchFilter=="" | cachedNodes[i].nodeText.text.StartsWith(nodeListSearchFilter))
 				{
-					ClickNode(cachedNodes[i],true);
-					Camera.main.transform.position=(Vector2)cachedNodes[i].transform.position;
+					if (selectedNodes.Contains(cachedNodes[i])) 
+					{GUI.Box(entryRect,"",droplistSkin.customStyles[2]);}
+					buttonContent.text=cachedNodes[i].nodeText.text;
+					buttonContent.image=cachedNodes[i].renderer.material.GetTexture(0);
+					if (GUI.Button(entryRect,buttonContent,droplistSkin.customStyles[1])) 
+					{
+						ClickNode(cachedNodes[i],true);
+						Camera.main.transform.position=(Vector2)cachedNodes[i].transform.position;
+					}
+					entryRect.y+=entryHeight+vPad;
 				}
-				entryRect.y+=entryHeight+vPad;
 			}
 		}
-		//GUI.
-		/*
-		Hashtable cachedNodes=controller.GetNodes();
-		GUIContent[] cont=new GUIContent[cachedNodes.Count];
-		int i=0;
-		foreach(Node node in cachedNodes.Values)
-		{
-			cont[i]=new GUIContent(node.nodeText.text);
-			i++;	
-		}
-		int select=GUI.SelectionGrid(new Rect(Screen.width-100,0,100,Screen.height),-1,cont,1,droplistSkin.customStyles[0]);
-		*/
-		//if(select!=-1) {Camera.main.transform.position=}
-		//print ("Selected:"+select);
 	}
 	
 }

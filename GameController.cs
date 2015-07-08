@@ -35,15 +35,17 @@ namespace Topology {
 		
 		
 		public void SetSourceFile(string filePath) {sourceFile=filePath;}
-		//public bool GetSourceFile() {return sourceFile;}
-		
-		public void StartLayoutLoad() {StartCoroutine(LoadLayout());}
+		//public bool GetSourceFile() {return sourceFile;}	
 		
 		public Hashtable GetLinks() {return links;}
 		public Hashtable GetNodes() {return nodes;}
+		public List<Node> rootNodes=new List<Node>();
+		public Dictionary<Node,List<Node>> nodeTrees=new Dictionary<Node, List<Node>>();
 		
 		public Texture[] GetNodeTextures () {return nodeIconTextures;}
 		List<Node> nodeCopyBuffer=new List<Node>();
+		
+		public void StartLayoutLoad() {StartCoroutine(LoadLayout());}
 		
 		//Method for loading the GraphML layout file
 		IEnumerator LoadLayout()
@@ -172,6 +174,7 @@ namespace Topology {
 		
 		void CreateNewNode(Vector2 newNodePosition,string newNodeText, string newNodeId)
 		{
+			/*
 			Vector3 newNodePos=(Vector3)newNodePosition;//Camera.main.transform.forward*40;;//Camera.main.transform.position+Camera.main.transform.forward*40;
 			newNodePos.z=3000;
 			
@@ -183,7 +186,8 @@ namespace Topology {
 //			nodeObject.myPos=newNodePos;
 			nodeObject.controller=this;
 			nodes.Add(nodeObject.id, nodeObject);
-			nodeCount++;
+			nodeCount++;*/
+			CreateNewNode (newNodePosition,newNodeText,newNodeId,0);
 		}
 		
 		void CreateNewNode(Vector2 newNodePosition,string newNodeText, string newNodeId, int newNodeSpriteIndex)
@@ -200,12 +204,43 @@ namespace Topology {
 			nodeObject.controller=this;
 			nodeObject.SetSprite(newNodeSpriteIndex);
 			nodes.Add(nodeObject.id, nodeObject);
+			rootNodes.Add(nodeObject);
 			nodeCount++;
+		}
+		
+		public void ToggleNodeHierarchy(Node child, Node parent)
+		{
+			if (nodeTrees[parent].Contains(child))
+			{
+				RemoveNodeFromRoot(child);
+				RemoveChildFromAllTrees(child);
+			}
+			else
+			{
+				RemoveNodeFromRoot(child);
+				RemoveChildFromAllTrees(child);
+				nodeTrees[parent].Add(child);
+			}
+			
+		}
+		
+		void SetNodeAsChild(Node child, Node parent)
+		{
+			RemoveNodeFromRoot(child);
+			RemoveChildFromAllTrees(child);
+			nodeTrees[parent].Add (child);
 		}
 		
 		void DeleteNode(Node deletedNode)
 		{
+			RemoveNodeFromRoot(deletedNode);
+			RemoveParentedTree(deletedNode);
+			RemoveChildFromAllTrees(deletedNode);
 			nodes.Remove(deletedNode.id);
+			
+			
+			
+			
 			nodeCount--;
 			//Remove all connecting links
 			Link[] iterAr=new Link[links.Count];
@@ -219,6 +254,45 @@ namespace Topology {
 			}
 			GameObject.Destroy(deletedNode.gameObject);
 		}
+		
+		void RemoveNodeFromRoot(Node removedNode)
+		{
+			if (rootNodes.Contains(removedNode)) {rootNodes.Remove(removedNode);}
+		}
+		
+		//Put all children in root and remove tree
+		void RemoveParentedTree(Node parent)
+		{
+			if (nodeTrees.ContainsKey(parent)) 
+			{
+				//Return children of deleted node to root
+				foreach (Node childNode in nodeTrees[parent]) 
+				{
+					rootNodes.Add(childNode);
+				}
+				nodeTrees.Remove(parent);
+			}
+		}
+		
+		//Remove node from each tree it is a child of
+		void RemoveChildFromAllTrees(Node child)
+		{
+			foreach (List<Node> tree in nodeTrees.Values) 
+			{
+				if(tree.Contains(child)) {tree.Remove(child);}
+			}
+		}
+		/*
+		Node TreeDictionaryGetKeyOfValue(Node value)
+		{
+			Node retNode=null;
+			foreach(Node key in nodeTrees.Keys)
+			{
+				if (nodeTrees[key]==value) 
+				{retNode=key; break;}
+			}
+			return retNode;	
+		}*/
 		
 		//For node copy-pasting
 		public void CopyNodes(List<Node> copiedNodes)
@@ -283,6 +357,12 @@ namespace Topology {
 			}
 		}
 		
+		/*
+		public void SetLinkTree()
+		{
+			
+		
+		}*/
 		
 		public void CreateNewLink(string newLinkSourceId, string newLinkTargetId)
 		{
@@ -302,33 +382,13 @@ namespace Topology {
 			//Create link
 			{
 				
-				Link linkObject = new Link();//Instantiate(linkPrefab, new Vector3(0,0,0), Quaternion.identity) as Link;
+				Link linkObject = new Link();
 				//find free link id
 				int i=0;
-				while (links.ContainsKey("link_"+i.ToString()))
-				{
-					i++;
-				}
+				while (links.ContainsKey("link_"+i.ToString())) {i++;}
 				
-				linkObject.id = "link_"+i.ToString();
-				linkObject.color="black";
-				linkObject.controller=this;
-				//Map links
-				linkObject.source = nodes[newLinkSourceId] as Node;
-				linkObject.target = nodes[newLinkTargetId] as Node;
-				linkObject.sourceId = newLinkSourceId;
-				linkObject.targetId = newLinkTargetId;
-				//linkObject.status = "Up";
-				links.Add(linkObject.id, linkObject);
-				
-				//linkPoints.Add(linkObject,new Vector3Pair(linkObject.source.transform.position,linkObject.target.transform.position));
-				//linkColors.Add (linkObject,linkObject.GetColorFromString(linkObject.color));
-				linkDrawManager.AddDrawnLink(linkObject);
-				
-				//Raise count
-				linkCount++;
-				linkCountText.text = "Ребер: " + linkCount;
-				//print ("Link created!");
+				string generatedLinkId = "link_"+i.ToString();
+				CreateNewLink(newLinkSourceId,newLinkTargetId,generatedLinkId,"black");
 			}
 		}
 		
@@ -364,19 +424,15 @@ namespace Topology {
 			if (!exists)
 				//Create link
 			{
-				
 				linkObject = new Link();//Instantiate(linkPrefab, new Vector3(0,0,0), Quaternion.identity) as Link;
-				
+					
 				linkObject.id = newLinkId;
 				if (newLinkColor!="") {linkObject.color=newLinkColor;}
 				else {linkObject.color="black";}
 				linkObject.controller=this;
-				//Map links
-				//linkObject.source = nodes[newLinkSourceId] as Node;
-				//linkObject.target = nodes[newLinkTargetId] as Node;
+
 				linkObject.sourceId = newLinkSourceId;
 				linkObject.targetId = newLinkTargetId;
-				//linkObject.status = "Up";
 				links.Add(linkObject.id, linkObject);
 				//Raise count
 				
@@ -610,7 +666,7 @@ namespace Topology {
 			
 		}
 		
-		void Start () 
+		void LoadIconTextures()
 		{
 			//Object[] tempAr=Resources.LoadAll("");
 			string mainPath=Application.dataPath+"/../";
@@ -641,7 +697,17 @@ namespace Topology {
 			www=new WWW(texturesPath);
 			//www.texture;
 			nodeIconTextures[4]=www.texture;
-
+			
+			foreach (Texture tex in nodeIconTextures) 
+			{
+				tex.filterMode=FilterMode.Trilinear;
+			}
+		}
+		
+		void Start () 
+		{
+			
+			LoadIconTextures();
 			//initial stats
 			linkDrawManager=gameObject.GetComponent<LinkDrawManager>();
 			myInputManager=gameObject.GetComponent<InputManager>();
