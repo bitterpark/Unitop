@@ -15,5 +15,7 @@ public class TimerDetector
 		if (time<=0) {timeUp=true;}
 		return timeUp;
 	}
+	
+	public bool TimeIsUp () {return timeUp;}
 
 }

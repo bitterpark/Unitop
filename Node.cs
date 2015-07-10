@@ -25,6 +25,21 @@ namespace Topology {
 		
 		}
 		bool _selected;
+		public bool hasChildren
+		{
+			get {return _hasChildren;}
+			set 
+			{
+				_hasChildren=value;	
+				if (!_hasChildren) {unfoldChildren=false;}
+			}
+		}
+		bool _hasChildren=false;
+		public bool unfoldChildren=false;
+		//public bool hasParent
+		
+		public Node parentNode=null;
+		
 		public Texture[] textures;
 		int currentSprite=0;
 		

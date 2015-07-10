@@ -39,8 +39,10 @@ namespace Topology {
 		
 		public Hashtable GetLinks() {return links;}
 		public Hashtable GetNodes() {return nodes;}
-		public List<Node> rootNodes=new List<Node>();
-		public Dictionary<Node,List<Node>> nodeTrees=new Dictionary<Node, List<Node>>();
+		public List<Node> GetRootNodes() {return rootNodes;}
+		public Dictionary<Node,List<Node>> GetNodeTrees() {return nodeTrees;}
+		List<Node> rootNodes=new List<Node>();
+		Dictionary<Node,List<Node>> nodeTrees=new Dictionary<Node, List<Node>>();
 		
 		public Texture[] GetNodeTextures () {return nodeIconTextures;}
 		List<Node> nodeCopyBuffer=new List<Node>();
@@ -107,7 +109,7 @@ namespace Topology {
 					}
 
 					//every 100 cycles return control to unity
-					if(j % 100 == 0)
+					if(j % 1000 == 0)
 						yield return true;
 				}
 			}
@@ -116,6 +118,7 @@ namespace Topology {
 			MapLinkNodes();
 			statusText.text = "";
 			LoadCameraPos();
+//			myInputManager.StartDrawnNodeList();
 			sceneLoaded=true;
 		}
 
@@ -174,19 +177,6 @@ namespace Topology {
 		
 		void CreateNewNode(Vector2 newNodePosition,string newNodeText, string newNodeId)
 		{
-			/*
-			Vector3 newNodePos=(Vector3)newNodePosition;//Camera.main.transform.forward*40;;//Camera.main.transform.position+Camera.main.transform.forward*40;
-			newNodePos.z=3000;
-			
-			Node nodeObject = Instantiate(nodePrefab, newNodePos, Quaternion.identity) as Node;
-			//nodeObject.nodeText.text = xmlNode.Attributes["name"].Value;
-			
-			nodeObject.id = newNodeId;
-			nodeObject.nodeText.text=newNodeText;
-//			nodeObject.myPos=newNodePos;
-			nodeObject.controller=this;
-			nodes.Add(nodeObject.id, nodeObject);
-			nodeCount++;*/
 			CreateNewNode (newNodePosition,newNodeText,newNodeId,0);
 		}
 		
@@ -208,39 +198,60 @@ namespace Topology {
 			nodeCount++;
 		}
 		
-		public void ToggleNodeHierarchy(Node child, Node parent)
+		public bool NodeExists(Node node)
 		{
-			if (nodeTrees[parent].Contains(child))
+			bool exists=false;
+			foreach(Node iterNode in nodes.Values)
 			{
-				RemoveNodeFromRoot(child);
-				RemoveChildFromAllTrees(child);
+				if (iterNode==node) {exists=true; break;}
 			}
-			else
-			{
-				RemoveNodeFromRoot(child);
-				RemoveChildFromAllTrees(child);
-				nodeTrees[parent].Add(child);
-			}
-			
+			return exists;
 		}
 		
-		void SetNodeAsChild(Node child, Node parent)
+		/*
+		public void ToggleNodeHierarchy(Node child, Node parent)
 		{
-			RemoveNodeFromRoot(child);
-			RemoveChildFromAllTrees(child);
-			nodeTrees[parent].Add (child);
+			if (child.parentNode==parent) {UnchildNode(child);}
+			else 
+			{
+				UnchildNode(child);
+				SetNodeAsChild(child,parent);
+			}		
+		}*/
+		
+		
+		public void SetNodeAsChild(Node child, Node parent)
+		{
+				//Make sure the new child is not his parent's parent or grandparent
+				Node upwardIteratorParent=parent;
+				bool childIsNotParentInTree=true;
+				while (upwardIteratorParent!=null)
+				{
+					if (upwardIteratorParent.parentNode==child) 
+					{
+						childIsNotParentInTree=false;
+						break;
+					} 
+					else {upwardIteratorParent=upwardIteratorParent.parentNode;}
+				}
+				
+				if (childIsNotParentInTree)
+				{
+					UnchildNode(child);
+					RemoveNodeFromRoot(child);
+					if (!nodeTrees.ContainsKey(parent)) {nodeTrees.Add(parent, new List<Node>());}
+					nodeTrees[parent].Add (child);
+					child.parentNode=parent;
+					parent.hasChildren=true;
+				}
 		}
 		
 		void DeleteNode(Node deletedNode)
 		{
-			RemoveNodeFromRoot(deletedNode);
 			RemoveParentedTree(deletedNode);
-			RemoveChildFromAllTrees(deletedNode);
-			nodes.Remove(deletedNode.id);
-			
-			
-			
-			
+			UnchildNode(deletedNode);
+			RemoveNodeFromRoot(deletedNode);
+			nodes.Remove(deletedNode.id);					
 			nodeCount--;
 			//Remove all connecting links
 			Link[] iterAr=new Link[links.Count];
@@ -269,30 +280,46 @@ namespace Topology {
 				foreach (Node childNode in nodeTrees[parent]) 
 				{
 					rootNodes.Add(childNode);
+					childNode.parentNode=null;
 				}
+				parent.hasChildren=false;
 				nodeTrees.Remove(parent);
 			}
 		}
 		
+		
 		//Remove node from each tree it is a child of
-		void RemoveChildFromAllTrees(Node child)
+		public void UnchildNode(Node child)
 		{
-			foreach (List<Node> tree in nodeTrees.Values) 
+			if (child.parentNode!=null)
 			{
-				if(tree.Contains(child)) {tree.Remove(child);}
+				nodeTrees[child.parentNode].Remove(child);
+				if (nodeTrees[child.parentNode].Count==0) 
+				{
+					nodeTrees.Remove(child.parentNode);
+					child.parentNode.hasChildren=false;
+				}
+				child.parentNode=null;
+				rootNodes.Add(child);
 			}
 		}
-		/*
-		Node TreeDictionaryGetKeyOfValue(Node value)
+		
+		public Node FindParentOfChild(Node child)
 		{
 			Node retNode=null;
-			foreach(Node key in nodeTrees.Keys)
+			List<Node> foundTree=null;
+			foreach (List<Node> tree in nodeTrees.Values)
 			{
-				if (nodeTrees[key]==value) 
-				{retNode=key; break;}
+				if (tree.Contains(child)) {foundTree=tree; break;}
 			}
-			return retNode;	
-		}*/
+			
+			foreach (Node keyNode in nodeTrees.Keys)
+			{
+				if (nodeTrees[keyNode]==foundTree) {retNode=keyNode; break;}
+			}
+			return retNode;
+		}
+		
 		
 		//For node copy-pasting
 		public void CopyNodes(List<Node> copiedNodes)
@@ -357,12 +384,24 @@ namespace Topology {
 			}
 		}
 		
-		/*
-		public void SetLinkTree()
+		// currently unused
+		public void ToggleLink(string newLinkSourceId, string newLinkTargetId)
 		{
-			
-		
-		}*/
+			//bool exists=false;
+			Link toggledLink=null;
+			foreach (Link link in links.Values)
+			{
+				if ((link.sourceId==newLinkSourceId && link.targetId==newLinkTargetId) 
+				    | (link.sourceId==newLinkTargetId && link.targetId==newLinkSourceId))
+				{
+					toggledLink=link;
+					//print ("Error: Link already Exists!");
+					break;
+				}
+			}
+			if (toggledLink==null) {CreateNewLink(newLinkSourceId,newLinkTargetId);}
+			else {DeleteLink(toggledLink,null);}
+		}
 		
 		public void CreateNewLink(string newLinkSourceId, string newLinkTargetId)
 		{
@@ -382,7 +421,7 @@ namespace Topology {
 			//Create link
 			{
 				
-				Link linkObject = new Link();
+				//Link linkObject = new Link();
 				//find free link id
 				int i=0;
 				while (links.ContainsKey("link_"+i.ToString())) {i++;}
@@ -400,6 +439,7 @@ namespace Topology {
 				//Map links
 				newLink.source = nodes[newLinkSourceId] as Node;
 				newLink.target = nodes[newLinkTargetId] as Node;
+				linkDrawManager.AddDrawnLink(newLink);
 			}
 		
 		}
@@ -441,6 +481,22 @@ namespace Topology {
 			}
 			
 			return linkObject;
+		}
+		
+		public void DeleteLinkBetweenNodes(Node end1, Node end2)
+		{
+			Link deletedLink=null;
+			foreach (Link link in links.Values)
+			{
+				if ((link.source==end1 && link.target==end2) 
+				    | (link.source==end2 && link.target==end1))
+				{
+					deletedLink=link;
+					//print ("Error: Link already Exists!");
+					break;
+				}
+			}
+			if (deletedLink!=null) {DeleteLink(deletedLink,null);}
 		}
 		
 		//Remove one link duplex
@@ -735,7 +791,12 @@ namespace Topology {
 		public void ClearScene()
 		{
 			StopAllCoroutines();
-			foreach (Node node in nodes.Values) {GameObject.Destroy(node.gameObject);}
+			Node[] cachedNodes=new Node[nodes.Values.Count];
+			nodes.Values.CopyTo(cachedNodes,0);
+			//List<Node> cachedNodes=(List<Node>)nodes.Values;
+			foreach (Node deletedNode in cachedNodes) {DeleteNode(deletedNode);}
+			//DeleteNodes(cachedNodes);
+			//foreach (Node node in cachedNodes) {DeleteN}//}
 			nodes.Clear();
 			links.Clear();
 			nodeCountText.text = "Вершин: 0";

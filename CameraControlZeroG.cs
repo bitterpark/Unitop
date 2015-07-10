@@ -101,7 +101,7 @@ public class CameraControlZeroG : MonoBehaviour {
 	void ManageBorderScroll()
 	{
 		float xTolerance=10f;
-		float yTolerance=5f;
+		float yTolerance=0f;
 		if ((Input.mousePosition.x)<xTolerance) {move.x-=realSpeed*Time.deltaTime;}
 		if ((Input.mousePosition.y)<yTolerance) {move.y-=realSpeed*Time.deltaTime;}
 		if ((Input.mousePosition.x)>Screen.width-xTolerance) {move.x+=realSpeed*Time.deltaTime;}
