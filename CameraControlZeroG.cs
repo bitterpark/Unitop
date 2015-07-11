@@ -13,7 +13,7 @@ public class CameraControlZeroG : MonoBehaviour {
 
 	private Vector3 move = new Vector3();
 	//cluster 1 is also startpoint
-	private Vector3 cluster1 = new Vector3(1960, 1791, 0);
+	//private Vector3 cluster1 = new Vector3(1960, 1791, 0);
 	/*
 	private Vector3 cluster2 = new Vector3(2042, 1579, 4254);
 	private Vector3 cluster3 = new Vector3(2692, 81, 2526);
@@ -49,14 +49,8 @@ public class CameraControlZeroG : MonoBehaviour {
 			move.y = -realSpeed * Time.deltaTime;
 		}
 		
-		//mmb camera pan
-		if (Input.GetMouseButton(2))
-		{
-			Screen.lockCursor=true;
-			move.x = Input.GetAxis("Mouse X") * realSpeed * Time.deltaTime;
-			move.y = Input.GetAxis("Mouse Y") * realSpeed * Time.deltaTime;
-		}
-		else {Screen.lockCursor=false;}
+		ManageMMBScroll();
+		//ManageLMBScroll();
 		
 		ManageBorderScroll();
 		//adjust speed with mouse wheel
@@ -97,11 +91,33 @@ public class CameraControlZeroG : MonoBehaviour {
 		}
 		else {transform.position+=perspCameraMove;}
 	}
+	//mmb camera pan
+	void ManageMMBScroll()
+	{
+		if (Input.GetMouseButton(2))
+		{
+			Screen.lockCursor=true;
+			move.x = Input.GetAxis("Mouse X") * realSpeed * Time.deltaTime;
+			move.y = Input.GetAxis("Mouse Y") * realSpeed * Time.deltaTime;
+		}
+		else {Screen.lockCursor=false;}
+	}
+	//Inverse pan
+	void ManageLMBScroll()
+	{
+		if (Input.GetMouseButton(0))
+		{
+			Screen.lockCursor=true;
+			move.x = -Input.GetAxis("Mouse X") * realSpeed * Time.deltaTime;
+			move.y = -Input.GetAxis("Mouse Y") * realSpeed * Time.deltaTime;
+		}
+		else {Screen.lockCursor=false;}
+	}
 	
 	void ManageBorderScroll()
 	{
 		float xTolerance=10f;
-		float yTolerance=0f;
+		float yTolerance=5f;
 		if ((Input.mousePosition.x)<xTolerance) {move.x-=realSpeed*Time.deltaTime;}
 		if ((Input.mousePosition.y)<yTolerance) {move.y-=realSpeed*Time.deltaTime;}
 		if ((Input.mousePosition.x)>Screen.width-xTolerance) {move.x+=realSpeed*Time.deltaTime;}

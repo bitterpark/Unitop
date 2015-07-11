@@ -638,7 +638,7 @@ public class InputManager : MonoBehaviour {
 	{
 		//if (Input.GetMouseButtonUp(0))
 		//{
-		dclickTimer=new TimerDetector(0.5f);
+		dclickTimer=new TimerDetector(0.2f);
 		yield return new WaitForFixedUpdate();
 		while (!dclickTimer.UpdateTimer())
 		{
@@ -973,8 +973,8 @@ public class InputManager : MonoBehaviour {
 							{
 								//Node parentsParent=controller.FindParentOfChild(upwardRecursivePos.parentNode);
 								//bool hasChildren=controller.GetNodeTrees().ContainsKey();
-								upwardRecursivePos=controller.FindParentOfChild(upwardRecursivePos.parentNode);//parentsParent;
 								parentOffset+=10f;
+								upwardRecursivePos=upwardRecursivePos.parentNode;//controller.FindParentOfChild(upwardRecursivePos.parentNode);//parentsParent;
 								if (upwardRecursivePos==null) break;
 							}
 							
@@ -990,9 +990,13 @@ public class InputManager : MonoBehaviour {
 							if (menuDrawnNodeList[i].hasChildren) 
 							{
 								Rect unfoldRect=new Rect(modifiedEntryRect);
-								unfoldRect.x-=15f;
-								unfoldRect.width=15f;
-								if (GUI.Button (unfoldRect,"+")) 
+								unfoldRect.x-=10f;
+								unfoldRect.width=20f;
+								//unfoldRect.height=20f;
+								string unfoldButtonSign="x";
+								if (menuDrawnNodeList[i].unfoldChildren) {unfoldButtonSign="-";}
+								else {unfoldButtonSign="+";}
+								if (GUI.Button (unfoldRect,unfoldButtonSign,droplistSkin.customStyles[1])) 
 								{
 									menuDrawnNodeList[i].unfoldChildren=!menuDrawnNodeList[i].unfoldChildren;
 									//print ("unfold set to:"+menuDrawnNodeList[i].unfoldChildren);
@@ -1028,7 +1032,6 @@ public class InputManager : MonoBehaviour {
 									ClickNode(menuDrawnNodeList[i],true);
 								}
 								nodeListLastClicked=menuDrawnNodeList[i];
-								
 							}
 							entryRect.y+=entryHeight+vPad;
 						//}

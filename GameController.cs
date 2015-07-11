@@ -1,4 +1,4 @@
-﻿
+
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
@@ -28,7 +28,7 @@ namespace Topology {
 		int nodeCount = 0;
 		int linkCount = 0;
 
-		public Texture[] nodeIconTextures;
+		public Texture2D[] nodeIconTextures;
 		
 		string sourceFile;
 		bool sceneLoaded=false;
@@ -44,10 +44,15 @@ namespace Topology {
 		List<Node> rootNodes=new List<Node>();
 		Dictionary<Node,List<Node>> nodeTrees=new Dictionary<Node, List<Node>>();
 		
-		public Texture[] GetNodeTextures () {return nodeIconTextures;}
+		public Texture2D[] GetNodeTextures () {return nodeIconTextures;}
 		List<Node> nodeCopyBuffer=new List<Node>();
 		
-		public void StartLayoutLoad() {StartCoroutine(LoadLayout());}
+		public Texture2D comparisonTex;
+		
+		public void StartLayoutLoad() 
+		{
+			StartCoroutine(LoadLayout());
+		}
 		
 		//Method for loading the GraphML layout file
 		IEnumerator LoadLayout()
@@ -730,34 +735,41 @@ namespace Topology {
 			string texturesPath="file://"+mainPath+"/Skin/WinXP.png";
 			WWW www=new WWW(texturesPath);
 			//www.texture;
-			nodeIconTextures=new Texture[5];
+			Texture2D[] rawTextures=new Texture2D[5];
 			
-			nodeIconTextures[0]=www.texture;
+			rawTextures[0]=www.texture;
 			
 			texturesPath="file://"+mainPath+"/Skin/Win7.png";
 			www=new WWW(texturesPath);
 			//www.texture;
-			nodeIconTextures[1]=www.texture;
+			rawTextures[1]=www.texture;
 			
 			texturesPath="file://"+mainPath+"/Skin/Win8.png";
 			www=new WWW(texturesPath);
 			//www.texture;
-			nodeIconTextures[2]=www.texture;
+			rawTextures[2]=www.texture;
 			
 			texturesPath="file://"+mainPath+"/Skin/WinServer2008.png";
 			www=new WWW(texturesPath);
 			//www.texture;
-			nodeIconTextures[3]=www.texture;
+			rawTextures[3]=www.texture;
 			
 			texturesPath="file://"+mainPath+"/Skin/WinServer2012.png";
 			www=new WWW(texturesPath);
 			//www.texture;
-			nodeIconTextures[4]=www.texture;
+			rawTextures[4]=www.texture;
 			
-			foreach (Texture tex in nodeIconTextures) 
+			nodeIconTextures=new Texture2D[rawTextures.Length];
+			int i=0;
+			foreach (Texture2D tex in rawTextures) 
 			{
-				tex.filterMode=FilterMode.Trilinear;
+				nodeIconTextures[i]=new Texture2D(tex.width,tex.height);
+				nodeIconTextures[i].SetPixels(tex.GetPixels());
+				nodeIconTextures[i].filterMode=FilterMode.Trilinear;
+				nodeIconTextures[i].Apply(true);
+				i++;
 			}
+			
 		}
 		
 		void Start () 
