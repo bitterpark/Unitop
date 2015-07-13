@@ -1,4 +1,4 @@
-
+﻿
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
@@ -90,16 +90,45 @@ namespace Topology {
 					//create nodes
 					if(xmlNode.Name == "node")
 					{
+						DownwardRecursiveNodeLoad(xmlNode);
+						/*
+						LoadNode(xmlNode);
+						
+						//Go through all children and children's children
+						XmlElement pointer=xmlNode;
+						while (pointer.HasChildNodes)
+						{
+							Node parent=LoadNode(pointer);
+							XmlNodeList childNodes=pointer.ChildNodes;
+							foreach (XmlElement child in childNodes)
+							{
+								Node newNode=LoadNode(child);
+								SetNodeAsChild(newNode,parent);
+							}
+						}*/
+						/*
+						if (xmlNode.HasChildNodes)
+						{
+							XmlNodeList childNodes=xmlNode.ChildNodes;
+							foreach ()
+						}*/
+						/*
 						float x = float.Parse(xmlNode.Attributes["x"].Value);
 						float y = float.Parse (xmlNode.Attributes["y"].Value);
 						float z = 3000;//float.Parse(xmlNode.Attributes["z"].Value);
 						
 						int iconIndex=0;
+						//set icon
 						if (xmlNode.HasAttribute("icon")) {iconIndex=int.Parse(xmlNode.Attributes["icon"].Value);}
+						//create root node
 						CreateNewNode (new Vector2(x,y),xmlNode.Attributes["name"].Value,xmlNode.Attributes["id"].Value,iconIndex);
-						//CreateNewNode(new Vector2(x,y),xmlNode.Attributes["name"].Value,xmlNode.Attributes["id"].Value);
+						//read children
+						if (xmlNode.HasChildNodes)
+						{
+							
+						}
 						statusText.text = "Загрузка топологии: Вершина " + nodeCount;//nodeObject.id;
-						nodeCountText.text = "Вершин: " + nodeCount;
+						nodeCountText.text = "Вершин: " + nodeCount;*/
 					}
 
 					//create links
@@ -126,7 +155,42 @@ namespace Topology {
 //			myInputManager.StartDrawnNodeList();
 			sceneLoaded=true;
 		}
-
+		
+		//Loads nodes from file and creates them in the scene
+		Node LoadNode(XmlElement xmlNode)
+		{
+			
+			//create nodes
+			float x = float.Parse(xmlNode.Attributes["x"].Value);
+			float y = float.Parse (xmlNode.Attributes["y"].Value);
+			float z = 3000;//float.Parse(xmlNode.Attributes["z"].Value);
+			
+			int iconIndex=0;
+			//set icon
+			if (xmlNode.HasAttribute("icon")) {iconIndex=int.Parse(xmlNode.Attributes["icon"].Value);}
+			//create root node
+			Node retNode=CreateNewNode (new Vector2(x,y),xmlNode.Attributes["name"].Value,xmlNode.Attributes["id"].Value,iconIndex);
+			statusText.text = "Загрузка топологии: Вершина " + nodeCount;//nodeObject.id;
+			nodeCountText.text = "Вершин: " + nodeCount;
+			return retNode;		
+		}
+		
+		//For loading node children and children of children
+		Node DownwardRecursiveNodeLoad(XmlElement xmlNode)
+		{
+			Node retNode=LoadNode(xmlNode);
+			if (xmlNode.HasChildNodes)
+			{
+				XmlNodeList childNodes=xmlNode.ChildNodes;
+				foreach (XmlElement child in childNodes)
+				{
+					Node newNode=DownwardRecursiveNodeLoad(child);//LoadNode(child);
+					SetNodeAsChild(newNode,retNode);
+				}
+			}
+			return retNode;
+		}
+		
 		//Method for mapping links to nodes
 		void MapLinkNodes()
 		{
@@ -185,7 +249,7 @@ namespace Topology {
 			CreateNewNode (newNodePosition,newNodeText,newNodeId,0);
 		}
 		
-		void CreateNewNode(Vector2 newNodePosition,string newNodeText, string newNodeId, int newNodeSpriteIndex)
+		Node CreateNewNode(Vector2 newNodePosition,string newNodeText, string newNodeId, int newNodeSpriteIndex)
 		{
 			Vector3 newNodePos=(Vector3)newNodePosition;//Camera.main.transform.forward*40;;//Camera.main.transform.position+Camera.main.transform.forward*40;
 			newNodePos.z=3000;
@@ -201,6 +265,7 @@ namespace Topology {
 			nodes.Add(nodeObject.id, nodeObject);
 			rootNodes.Add(nodeObject);
 			nodeCount++;
+			return nodeObject;
 		}
 		
 		public bool NodeExists(Node node)
@@ -576,7 +641,7 @@ namespace Topology {
 			ClearXmlLinks();
 			WriteLinksToXml();
 			ClearXmlNodes();
-			WriteNodesToXml();
+			WriteAllNodesToXml();
 			SaveCameraPosToXml();
 		}
 		
@@ -636,7 +701,7 @@ namespace Topology {
 			}
 		}
 		
-		void WriteNodesToXml()
+		void WriteAllNodesToXml()
 		{
 			string filepath = sourceFile;
 			XmlDocument xmlDoc = new XmlDocument();
@@ -649,6 +714,11 @@ namespace Topology {
 				
 				if (nodes.Count>0)
 				{
+					foreach (Node node in rootNodes)
+					{
+						DownwardRecursiveNodeWrite(elmRoot,node,xmlDoc);
+					}
+					/*
 					foreach (Node node in nodes.Values)
 					{
 						XmlElement savedNode=xmlDoc.CreateElement("node");
@@ -661,10 +731,38 @@ namespace Topology {
 						savedNode.SetAttribute("icon",node.GetSpriteIndex().ToString());
 						savedNode.SetAttribute("xmlns","http://graphml.graphdrawing.org/xmlns");
 						elmRoot.AppendChild(savedNode);
-					}
+					}*/
 				}
 				xmlDoc.Save(filepath); // save file.
 			}
+		}
+		
+		void DownwardRecursiveNodeWrite(XmlNode rootNode, Node writtenNode, XmlDocument xmlDoc)
+		{
+			XmlNode newRoot=WriteNodetoXml(rootNode,writtenNode,xmlDoc);
+			if (nodeTrees.ContainsKey(writtenNode))
+			{
+				foreach (Node child in nodeTrees[writtenNode])
+				{
+					DownwardRecursiveNodeWrite(newRoot,child,xmlDoc);
+				}
+			}
+			
+		}
+		
+		XmlNode WriteNodetoXml(XmlNode rootNode, Node writtenNode, XmlDocument xmlDoc)
+		{
+			XmlElement savedNode=xmlDoc.CreateElement("node");
+			savedNode.SetAttribute("id",writtenNode.id);
+			savedNode.SetAttribute("name",writtenNode.nodeText.text);
+			Vector3 savedNodePos=writtenNode.gameObject.transform.position;
+			savedNode.SetAttribute("x",savedNodePos.x.ToString());
+			savedNode.SetAttribute("y",savedNodePos.y.ToString());
+			savedNode.SetAttribute("z",savedNodePos.z.ToString());
+			savedNode.SetAttribute("icon",writtenNode.GetSpriteIndex().ToString());
+			savedNode.SetAttribute("xmlns","http://graphml.graphdrawing.org/xmlns");
+			rootNode.AppendChild(savedNode);
+			return (XmlNode)savedNode;
 		}
 		
 		void ClearXmlLinks()

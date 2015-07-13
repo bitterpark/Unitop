@@ -20,11 +20,10 @@ public class InputManager : MonoBehaviour {
 	public Rect contextMenuPosNodes=new Rect(5,125,290,150);
 	public Rect contextMenuPosLinks=new Rect(5,125,290,100);
 	
-	Rect nodeListRect=new Rect(Screen.width-180,0,180,Screen.height);
+	Rect nodeListRect=new Rect(Screen.width-190,0,190,Screen.height);
 	string nodeListSearchFilter="";
 	Node nodeListLastClicked=null;
 	TimerDetector nodeListDclickTimer=null;
-	//bool nodeListShown=false;
 	
 	int nodeListFirstElementIndex=0;
 	Rect saveButtonRect=new Rect(5,90,80,20);
@@ -729,7 +728,7 @@ public class InputManager : MonoBehaviour {
 			}
 			
 			//Main box and labels
-			GUI.Box(contextMenuPosNodes,"");
+			GUI.Box(contextMenuPosNodes,"",fbSkin.box);
 			//GUI.BeginGroup(contextMenuPosNodes);
 			GUI.Label (new Rect(leftColumnStartX,leftColumnStartY,elementSizeX,elementSizeY),"Выбор элемента:");
 			GUI.Label (new Rect(rightColumnStartX,rightColumnStartY,elementSizeX,elementSizeY),"Имя элемента:");
@@ -759,14 +758,14 @@ public class InputManager : MonoBehaviour {
 			//iconDroplistContent[3]=new GUIContent("2003",nodeTextures[3]);
 			//select icon droplist
 			selectIconDroplist.List(new Rect(leftColumnStartX+elementSizeX*0.5f,leftColumnStartY+elementSizeY*2+vPad*2,elementSizeX*1.5f,elementSizeY)
-			                        ,iconDroplistContent,"box",droplistSkin.customStyles[0]);
+			                        ,iconDroplistContent,"box",fbSkin.customStyles[1]);
 			//Set new icon for all selected nodes
 			foreach (Node node in selectedNodes) {node.SetSprite(selectIconDroplist.GetSelectedItemIndex());}
 			//currentNode.SetSprite(selectIconDroplist.GetSelectedItemIndex());
 			
 			//select obj menu (must be last item rendered)
 			selectItemDroplist.List(new Rect(leftColumnStartX,leftColumnStartY+elementSizeY,elementSizeX,elementSizeY)//elementSizeY+100)
-			                        ,droplistContent,"box",droplistSkin.customStyles[0]);
+			                        ,droplistContent,"box",fbSkin.customStyles[1]);
 			lastSelectedNode=selectedNodes[selectItemDroplist.GetSelectedItemIndex()];//lastSelectedLinkNode=selectedNodes[selectItemDroplist.GetSelectedItemIndex()];
 		}
 		
@@ -804,7 +803,7 @@ public class InputManager : MonoBehaviour {
 			droplistColorContent[4]=new GUIContent(colorTextures[4]);//"cyan");
 			//Draw color droplist
 			int droplistPick=selectColorDroplist.List(new Rect(rightColumnStartX,rightColumnStartY+elementSizeY,elementSizeX,elementSizeY)//elementSizeY)
-			 ,droplistColorContent,"box",droplistSkin.customStyles[0]); 
+			 ,droplistColorContent,"box",fbSkin.customStyles[1]); 
 			switch (droplistPick)
 			{
 				case 0:{coloredLink.color="black"; break;}
@@ -816,7 +815,7 @@ public class InputManager : MonoBehaviour {
 			
 			//select obj menu (must be after endgroup rendered)
 			selectItemDroplist.List(new Rect(leftColumnStartX,leftColumnStartY+elementSizeY,elementSizeX,elementSizeY)//elementSizeY)
-			                        ,droplistContent,"box",droplistSkin.customStyles[0]);
+			                        ,droplistContent,"box",fbSkin.customStyles[1]);
 			//lastSelectedLinkNode=selectedLinks[selectItemDroplist.GetSelectedItemIndex()];
 			lastSelectedLink=selectedLinks[selectItemDroplist.GetSelectedItemIndex()];
 		}
@@ -944,7 +943,7 @@ public class InputManager : MonoBehaviour {
 		//Search bar
 		nodeListSearchFilter=GUI.TextField(new Rect(searchFilterXStart,5,width-20,entryHeight),nodeListSearchFilter);
 		//Set starting position for the first item in the list
-		Rect entryRect=new Rect(Screen.width-width+20,topOffset,width-20,entryHeight);
+		Rect entryRect=new Rect(Screen.width-width+30,topOffset,width-20,entryHeight);
 			
 		//Find max amount of entries that will fit on the screen, or node count if it is lower
 		int maxEntries=Mathf.Min(Mathf.FloorToInt((Screen.height-topOffset)/(entryHeight+vPad)),menuDrawnNodeList.Count);
@@ -973,7 +972,7 @@ public class InputManager : MonoBehaviour {
 							{
 								//Node parentsParent=controller.FindParentOfChild(upwardRecursivePos.parentNode);
 								//bool hasChildren=controller.GetNodeTrees().ContainsKey();
-								parentOffset+=10f;
+								parentOffset+=20f;
 								upwardRecursivePos=upwardRecursivePos.parentNode;//controller.FindParentOfChild(upwardRecursivePos.parentNode);//parentsParent;
 								if (upwardRecursivePos==null) break;
 							}
@@ -984,19 +983,19 @@ public class InputManager : MonoBehaviour {
 							
 							//Mark out selected nodes with blue
 							if (selectedNodes.Contains(menuDrawnNodeList[i])) 
-							{GUI.Box(modifiedEntryRect,"",droplistSkin.customStyles[2]);}
+							{GUI.Box(modifiedEntryRect,"",fbSkin.customStyles[3]);}
 							
 							//Handle children unfold button
 							if (menuDrawnNodeList[i].hasChildren) 
 							{
 								Rect unfoldRect=new Rect(modifiedEntryRect);
-								unfoldRect.x-=10f;
+								unfoldRect.x-=20f;
 								unfoldRect.width=20f;
 								//unfoldRect.height=20f;
 								string unfoldButtonSign="x";
 								if (menuDrawnNodeList[i].unfoldChildren) {unfoldButtonSign="-";}
 								else {unfoldButtonSign="+";}
-								if (GUI.Button (unfoldRect,unfoldButtonSign,droplistSkin.customStyles[1])) 
+								if (GUI.Button (unfoldRect,unfoldButtonSign,fbSkin.customStyles[4])) 
 								{
 									menuDrawnNodeList[i].unfoldChildren=!menuDrawnNodeList[i].unfoldChildren;
 									//print ("unfold set to:"+menuDrawnNodeList[i].unfoldChildren);
@@ -1006,7 +1005,7 @@ public class InputManager : MonoBehaviour {
 							//Draw actual node entry
 							buttonContent.text=menuDrawnNodeList[i].nodeText.text;
 							buttonContent.image=menuDrawnNodeList[i].renderer.material.GetTexture(0);
-							if (GUI.Button(modifiedEntryRect,buttonContent,droplistSkin.customStyles[1])) 
+							if (GUI.Button(modifiedEntryRect,buttonContent,fbSkin.customStyles[2])) 
 							{
 								if (nodeListLastClicked==menuDrawnNodeList[i])
 								{
