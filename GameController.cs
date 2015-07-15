@@ -828,34 +828,60 @@ namespace Topology {
 		void LoadIconTextures()
 		{
 			//Object[] tempAr=Resources.LoadAll("");
+			Texture2D[] rawTextures=new Texture2D[10];
+			
 			string mainPath=Application.dataPath+"/../";
 			
 			string texturesPath="file://"+mainPath+"/Skin/WinXP.png";
 			WWW www=new WWW(texturesPath);
 			//www.texture;
-			Texture2D[] rawTextures=new Texture2D[5];
-			
 			rawTextures[0]=www.texture;
 			
-			texturesPath="file://"+mainPath+"/Skin/Win7.png";
+			
+			texturesPath="file://"+mainPath+"/Skin/WinVista.png";
 			www=new WWW(texturesPath);
 			//www.texture;
 			rawTextures[1]=www.texture;
 			
-			texturesPath="file://"+mainPath+"/Skin/Win8.png";
+			texturesPath="file://"+mainPath+"/Skin/Win7.png";
 			www=new WWW(texturesPath);
 			//www.texture;
 			rawTextures[2]=www.texture;
 			
-			texturesPath="file://"+mainPath+"/Skin/WinServer2008.png";
+			texturesPath="file://"+mainPath+"/Skin/Win8.png";
 			www=new WWW(texturesPath);
 			//www.texture;
 			rawTextures[3]=www.texture;
 			
-			texturesPath="file://"+mainPath+"/Skin/WinServer2012.png";
+			texturesPath="file://"+mainPath+"/Skin/WinServer 2000.png";
 			www=new WWW(texturesPath);
 			//www.texture;
 			rawTextures[4]=www.texture;
+			
+			texturesPath="file://"+mainPath+"/Skin/WinServer 2003.png";
+			www=new WWW(texturesPath);
+			//www.texture;
+			rawTextures[5]=www.texture;
+			
+			texturesPath="file://"+mainPath+"/Skin/WinServer 2008.png";
+			www=new WWW(texturesPath);
+			//www.texture;
+			rawTextures[6]=www.texture;
+			
+			texturesPath="file://"+mainPath+"/Skin/WinServer 2012.png";
+			www=new WWW(texturesPath);
+			//www.texture;
+			rawTextures[7]=www.texture;
+			
+			texturesPath="file://"+mainPath+"/Skin/Linux.png";
+			www=new WWW(texturesPath);
+			//www.texture;
+			rawTextures[8]=www.texture;
+			
+			texturesPath="file://"+mainPath+"/Skin/Mac OS.png";
+			www=new WWW(texturesPath);
+			//www.texture;
+			rawTextures[9]=www.texture;
 			
 			nodeIconTextures=new Texture2D[rawTextures.Length];
 			int i=0;

@@ -4,19 +4,22 @@ using UnityEngine;
 public class Popup{
 	
 	// Represents the selected index of the popup list, the default selected index is 0, or the first item
-	private int selectedItemIndex = 0;
+	int selectedItemIndex = 0;
 	
 	// Represents whether the popup selections are visible (active)
-	private bool isVisible = false;
+	bool isVisible = false;
 	
 	// Represents whether the popup button is clicked once to expand the popup selections
-	private bool isClicked = false;
+	bool isClicked = false;
 	
 	//To make sure deselect doesn't occur when list is selected
-	private Rect currentDimensions;
+	Rect currentDimensions;
+	
+	Vector2 scrollPos=Vector2.zero;
 	
 	// If multiple Popup objects exist, this static variable represents the active instance, or a Popup object whose selection is currently expanded
-	private static Popup current;
+	static Popup current;
+	
 	
 	// This function is ran inside of OnGUI()
 	// For usage, see http://wiki.unity3d.com/index.php/PopupList#Javascript_-_PopupListUsageExample.js
@@ -26,19 +29,40 @@ public class Popup{
 		if(isVisible) 
 		{
 			// Draw a Box
-			Rect listRect = new Rect( box.x, box.y, box.width, box.height * items.Length);
+			//float height=box.height*2;
+			//float width=box.width+15f;
+			Rect listRect = new Rect( 0, 0, box.width,box.height*items.Length);//width,height);// box.height * items.Length);
+			Rect scrollViewRect=new Rect(box.x,box.y,box.width+20f,(box.height*3)+5f);
+			scrollPos=GUI.BeginScrollView(scrollViewRect,scrollPos,new Rect(0,0,listRect.width,listRect.height));
+			//GUILayout.BeginArea(listRect);
+			//listRect.height=listRect.height*5;
 			//Set dimensions to fit the selectbox
-			currentDimensions=listRect;
+			currentDimensions=scrollViewRect;
 			//GUI.Box( listRect, "", boxStyle );
-			
+			//GUI.Beg
+			/*
+			scrollPos=GUILayout.BeginScrollView(scrollPos,false,true
+			                                    ,GUI.skin.horizontalScrollbar,GUI.skin.verticalScrollbar,GUI.skin.box
+			                                    );*/
 			// Draw a SelectionGrid and listen for user selection
-			selectedItemIndex = GUI.SelectionGrid( listRect, selectedItemIndex, items, 1, listStyle );
 			
+			int selectIndex= GUI.SelectionGrid( listRect, -1, items, 1, listStyle );
+			
+			GUI.EndScrollView();
+			/*
+			selectedItemIndex=GUILayout.SelectionGrid(selectedItemIndex,items,1,listStyle
+			, GUILayout.Width(box.width),GUILayout.Height(box.height* items.Length), GUILayout.MaxWidth(box.width));
+			GUILayout.EndScrollView();
+			GUILayout.EndArea();*/
 			// If the user makes a selection, make the popup list disappear and the button reappear
-			if(GUI.changed) {
-				current = null;
-				isClicked=false;
-				currentDimensions=box;
+			if (selectIndex!=-1)
+			{
+				//if(GUI.changed) {
+					selectedItemIndex=selectIndex;
+					current = null;
+					isClicked=false;
+					currentDimensions=box;
+				//}
 			}
 		}
 		
@@ -65,6 +89,7 @@ public class Popup{
 				if(!isClicked) {
 					current = this;
 					isClicked = true;
+					scrollPos=Vector2.zero;
 				}
 				// If the button was clicked before (it was the active instance), reset the isClicked boolean
 				else {
@@ -76,6 +101,7 @@ public class Popup{
 		// If the instance is the active instance, set its popup selections to be visible
 		if(current == this) {
 			isVisible = true;
+			//scrollPos=Vector2.zero;
 		}
 		
 		// These resets are here to do some cleanup work for OnGUI() updates

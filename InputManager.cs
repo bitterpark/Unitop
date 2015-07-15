@@ -19,6 +19,7 @@ public class InputManager : MonoBehaviour {
 	//GUIContainer contextMenu;
 	public Rect contextMenuPosNodes=new Rect(5,125,290,150);
 	public Rect contextMenuPosLinks=new Rect(5,125,290,100);
+	//Rect currentWindowPos=new Rect(0,0,0,0);
 	
 	Rect nodeListRect=new Rect(Screen.width-190,0,190,Screen.height);
 	string nodeListSearchFilter="";
@@ -26,6 +27,8 @@ public class InputManager : MonoBehaviour {
 	TimerDetector nodeListDclickTimer=null;
 	
 	int nodeListFirstElementIndex=0;
+	Vector2 nodeListScrollPos=Vector2.zero;
+	float nodeListProjectedWidth=190;
 	Rect saveButtonRect=new Rect(5,90,80,20);
 	Rect openButtonRect=new Rect(5,60,80,20);
 	Rect fileBrowserWindowRect=new Rect(100, 100, 600, 500);
@@ -113,7 +116,8 @@ public class InputManager : MonoBehaviour {
 		}
 		if (controller.SceneIsLoaded()) 
 		{
-			DrawNodeList();
+			//DrawNodeList();
+			DrawNodeListWindow();
 			if (GUI.Button(saveButtonRect,"Сохранить")) {controller.SaveAll();}
 		}
 		ManageTooltip();
@@ -697,7 +701,19 @@ public class InputManager : MonoBehaviour {
 		int ttMode=0;
 		if (selectedNodes.Count>0) {ttMode=1;}
 		if (selectedLinks.Count>0) {ttMode=2;}
-		if (ttMode!=0) {DrawTooltip(ttMode);}
+		if (ttMode!=0) {TooltipWindow(ttMode);}//DrawTooltip(ttMode);}//DrawTooltip(ttMode);}//TooltipWindow(ttMode);}//DrawTooltip(ttMode);}
+	}
+	
+	void TooltipWindow(int mode)
+	{
+		//if (mode==0)
+		//{GUI.Window(0,}
+		//else {}
+		if (mode==1) 
+		{
+			contextMenuPosNodes=GUI.Window (1,contextMenuPosNodes,DrawTooltip,"");
+		}
+		else {contextMenuPosLinks=GUI.Window (2,contextMenuPosLinks,DrawTooltip,"");}
 	}
 	
 	void DrawTooltip(int mode)
@@ -705,11 +721,12 @@ public class InputManager : MonoBehaviour {
 		float elementSizeX=110;
 		float elementSizeY=40;
 		//This only works as long as links and nodes context menus have the same startpoint (upper left point)
-		float leftColumnStartX=contextMenuPosLinks.x+20;//30;
-		float leftColumnStartY=contextMenuPosLinks.y+15;//115;
-		float rightColumnStartX=contextMenuPosLinks.x+160;//170;
-		float rightColumnStartY=contextMenuPosLinks.y+15;
-		float vPad=5;
+		float leftColumnStartX=25;//contextMenuPosLinks.x+20;//contextMenuPosLinks.x+20;
+		float leftColumnStartY=50;//contextMenuPosLinks.y+15;//contextMenuPosLinks.y+15;
+		float rightColumnStartX=140+leftColumnStartX;//contextMenuPosLinks.x+160;//contextMenuPosLinks.x+160;
+		float rightColumnStartY=leftColumnStartY;//contextMenuPosLinks.y+15;//contextMenuPosLinks.y+15;
+		float vPad=1;
+		
 		
 		//nodes tooltip
 		if (mode==1)
@@ -728,17 +745,22 @@ public class InputManager : MonoBehaviour {
 			}
 			
 			//Main box and labels
-			GUI.Box(contextMenuPosNodes,"",fbSkin.box);
-			//GUI.BeginGroup(contextMenuPosNodes);
-			GUI.Label (new Rect(leftColumnStartX,leftColumnStartY,elementSizeX,elementSizeY),"Выбор элемента:");
-			GUI.Label (new Rect(rightColumnStartX,rightColumnStartY,elementSizeX,elementSizeY),"Имя элемента:");
-			GUI.Label (new Rect(leftColumnStartX,leftColumnStartY+elementSizeY*2+vPad*2,elementSizeX,elementSizeY),"Иконка:");
+			//GUI.Box(contextMenuPosNodes,"",fbSkin.box);
+
+			GUI.Label (new Rect(leftColumnStartX,leftColumnStartY+elementSizeY+vPad*2,elementSizeX,elementSizeY),"Выбор элемента:");
+			GUI.Label (new Rect(leftColumnStartX,leftColumnStartY,elementSizeX,elementSizeY),"Имя элемента:");
+			GUI.Label (new Rect(rightColumnStartX,rightColumnStartY+elementSizeY+vPad*2,elementSizeX,elementSizeY),"Иконка:");
 			
-			//name edit field
+			//NAME EDIT FIELD
 			string nodeName=selectedNodes[selectItemDroplist.GetSelectedItemIndex()].nodeText.text;
-			nodeName=GUI.TextField(new Rect(rightColumnStartX,rightColumnStartY+elementSizeY+3,elementSizeX,elementSizeY),nodeName);
+			nodeName=GUI.TextField(new Rect(rightColumnStartX,rightColumnStartY,elementSizeX*1.3f,elementSizeY),nodeName);
 			selectedNodes[selectItemDroplist.GetSelectedItemIndex()].nodeText.text=nodeName;
 			//GUI.EndGroup();
+			
+			//SELECT OBJ MENU (must be last item rendered)
+			selectItemDroplist.List(new Rect(leftColumnStartX,leftColumnStartY+elementSizeY*1.5f+vPad*2,elementSizeX,elementSizeY)//elementSizeY+100)
+			                        ,droplistContent,"box",fbSkin.customStyles[1]);
+			lastSelectedNode=selectedNodes[selectItemDroplist.GetSelectedItemIndex()];//lastSelectedLinkNode=selectedNodes[selectItemDroplist.GetSelectedItemIndex()];
 			
 			//set current icon selection
 			Node currentNode=selectedNodes[selectItemDroplist.GetSelectedItemIndex()];
@@ -747,26 +769,26 @@ public class InputManager : MonoBehaviour {
 			Texture[] cachedNodeTextures=controller.GetNodeTextures();
 			GUIContent[] iconDroplistContent=new GUIContent[cachedNodeTextures.Length];//new GUIContent[4];
 			
-			iconDroplistContent[0]=new GUIContent("WinXP",cachedNodeTextures[0]);
-			iconDroplistContent[1]=new GUIContent("Windows 7",cachedNodeTextures[1]);
-			iconDroplistContent[2]=new GUIContent("Windows 8",cachedNodeTextures[2]);
-			iconDroplistContent[3]=new GUIContent("Server 2008",cachedNodeTextures[3]);
-			iconDroplistContent[4]=new GUIContent("Server 2012",cachedNodeTextures[4]);
-			//iconDroplistContent[0]=new GUIContent("WinXP",nodeTextures[0]);
-			//iconDroplistContent[1]=new GUIContent("Win07",nodeTextures[1]);
-			//iconDroplistContent[2]=new GUIContent("2008",nodeTextures[2]);
-			//iconDroplistContent[3]=new GUIContent("2003",nodeTextures[3]);
+			iconDroplistContent[0]=new GUIContent("Windows XP   ",cachedNodeTextures[0]);
+			iconDroplistContent[1]=new GUIContent("Windows Vista",cachedNodeTextures[1]);
+			iconDroplistContent[2]=new GUIContent("Windows 7    ",cachedNodeTextures[2]);
+			iconDroplistContent[3]=new GUIContent("Windows 8    ",cachedNodeTextures[3]);
+			iconDroplistContent[4]=new GUIContent("Server 2000  ",cachedNodeTextures[4]);
+			iconDroplistContent[5]=new GUIContent("Server 2003  ",cachedNodeTextures[5]);
+			iconDroplistContent[6]=new GUIContent("Server 2008  ",cachedNodeTextures[6]);
+			iconDroplistContent[7]=new GUIContent("Server 2012  ",cachedNodeTextures[7]);
+			iconDroplistContent[8]=new GUIContent("Linux        ",cachedNodeTextures[8]);
+			iconDroplistContent[9]=new GUIContent("Mac OS       ",cachedNodeTextures[9]);
+	
 			//select icon droplist
-			selectIconDroplist.List(new Rect(leftColumnStartX+elementSizeX*0.5f,leftColumnStartY+elementSizeY*2+vPad*2,elementSizeX*1.5f,elementSizeY)
+			selectIconDroplist.List(new Rect(rightColumnStartX,rightColumnStartY+elementSizeY*1.5f+vPad*2,elementSizeX*1.3f,elementSizeY)
 			                        ,iconDroplistContent,"box",fbSkin.customStyles[1]);
 			//Set new icon for all selected nodes
 			foreach (Node node in selectedNodes) {node.SetSprite(selectIconDroplist.GetSelectedItemIndex());}
+			//if (selectIconDroplist.GetSelectedItemIndex()!=0)print("selecteditem is:"+selectIconDroplist.GetSelectedItemIndex());
 			//currentNode.SetSprite(selectIconDroplist.GetSelectedItemIndex());
 			
-			//select obj menu (must be last item rendered)
-			selectItemDroplist.List(new Rect(leftColumnStartX,leftColumnStartY+elementSizeY,elementSizeX,elementSizeY)//elementSizeY+100)
-			                        ,droplistContent,"box",fbSkin.customStyles[1]);
-			lastSelectedNode=selectedNodes[selectItemDroplist.GetSelectedItemIndex()];//lastSelectedLinkNode=selectedNodes[selectItemDroplist.GetSelectedItemIndex()];
+			
 		}
 		
 		//links tooltip
@@ -785,8 +807,8 @@ public class InputManager : MonoBehaviour {
 			}	
 			
 			//main box and left hand labels
-			GUI.Box(contextMenuPosLinks,"");
-			//GUI.BeginGroup(contextMenuPosLinks);
+			//GUI.Box(contextMenuPosLinks,"");
+
 			GUI.Label (new Rect(leftColumnStartX,leftColumnStartY,elementSizeX,elementSizeY),"Выбор элемента:");
 			GUI.Label (new Rect(rightColumnStartX,rightColumnStartY,elementSizeX,elementSizeY),"Цвет элемента:");
 			//GUI.EndGroup();
@@ -802,7 +824,7 @@ public class InputManager : MonoBehaviour {
 			droplistColorContent[3]=new GUIContent(colorTextures[3]);//"yellow");
 			droplistColorContent[4]=new GUIContent(colorTextures[4]);//"cyan");
 			//Draw color droplist
-			int droplistPick=selectColorDroplist.List(new Rect(rightColumnStartX,rightColumnStartY+elementSizeY,elementSizeX,elementSizeY)//elementSizeY)
+			int droplistPick=selectColorDroplist.List(new Rect(rightColumnStartX,rightColumnStartY+elementSizeY*0.5f,elementSizeX*1.3f,elementSizeY)//elementSizeY)
 			 ,droplistColorContent,"box",fbSkin.customStyles[1]); 
 			switch (droplistPick)
 			{
@@ -814,11 +836,14 @@ public class InputManager : MonoBehaviour {
 			}
 			
 			//select obj menu (must be after endgroup rendered)
-			selectItemDroplist.List(new Rect(leftColumnStartX,leftColumnStartY+elementSizeY,elementSizeX,elementSizeY)//elementSizeY)
+			selectItemDroplist.List(new Rect(leftColumnStartX,leftColumnStartY+elementSizeY*0.5f,elementSizeX,elementSizeY)//elementSizeY)
 			                        ,droplistContent,"box",fbSkin.customStyles[1]);
 			//lastSelectedLinkNode=selectedLinks[selectItemDroplist.GetSelectedItemIndex()];
 			lastSelectedLink=selectedLinks[selectItemDroplist.GetSelectedItemIndex()];
 		}
+		
+		//Make window draggable
+		GUI.DragWindow();
 	}
 	
 	/*
@@ -880,11 +905,18 @@ public class InputManager : MonoBehaviour {
 	}
 	*/
 	
+	void DrawNodeListWindow()
+	{
+		GUI.Window(0,nodeListRect,DrawNodeList,"");
+	}
+	
 	List<Node> DownwardRecursiveDrawNodeChildren(Node parentNode)
 	{
 		List<Node> returnedNodes=new List<Node>();
 		if (parentNode.unfoldChildren)
 		{
+			//increase scroll area width by parent offset
+			nodeListProjectedWidth+=20f;
 			foreach (Node childNode in controller.GetNodeTrees()[parentNode])
 			{
 				returnedNodes.Add(childNode);
@@ -894,15 +926,18 @@ public class InputManager : MonoBehaviour {
 		return returnedNodes;
 	}
 	
-	void DrawNodeList()
+	void DrawNodeList(int sigInt)
 	{		
 		float entryHeight=30f;
 		float vPad=3f;
-		float width=nodeListRect.width;//150f;
-		float topOffset=40f;
+		//float width=nodeListRect.width;//150f;
+		float entryWidth=nodeListRect.width;
+		float topOffset=80f;
+		nodeListProjectedWidth=nodeListRect.width;
 		
-		float scrollBarXStart=nodeListRect.x+nodeListRect.width-20;
-		float searchFilterXStart=nodeListRect.x+10;
+		float scrollBarXStart=nodeListRect.width-20;//nodeListRect.x+nodeListRect.width-20;
+		float searchFilterXStart=20;//nodeListRect.x+10;
+		float searchFilterYStart=55;
 		
 		//List<int> tst=new List<int>();
 		//link a selection index to node dictionary
@@ -935,22 +970,24 @@ public class InputManager : MonoBehaviour {
 			}*/
 		}
 		
+		//SEARCH BAR
+		GUI.Label(new Rect(searchFilterXStart,searchFilterYStart-23,entryWidth-40,entryHeight),"Поиск");
+		nodeListSearchFilter=GUI.TextField(new Rect(searchFilterXStart,searchFilterYStart,entryWidth-40,entryHeight),nodeListSearchFilter);
 		
 		//backdrop
-		GUI.Box(new Rect(nodeListRect),"");
+		//int maxEntries=Mathf.Min(controller.GetRootNodes().Count,30);
+		//GUI.Box(new Rect(nodeListRect),"");
 		
-		
-		//Search bar
-		nodeListSearchFilter=GUI.TextField(new Rect(searchFilterXStart,5,width-20,entryHeight),nodeListSearchFilter);
-		//Set starting position for the first item in the list
-		Rect entryRect=new Rect(Screen.width-width+30,topOffset,width-20,entryHeight);
-			
 		//Find max amount of entries that will fit on the screen, or node count if it is lower
 		int maxEntries=Mathf.Min(Mathf.FloorToInt((Screen.height-topOffset)/(entryHeight+vPad)),menuDrawnNodeList.Count);
+						
+		//Set starting position for the first item in the list
+		Rect entryRect=new Rect(40,topOffset,entryWidth,entryHeight);//Screen.width-width+30,topOffset,width-20,entryHeight);
 		
 		//Find the max first entry index that will still allow the list to fill the entire screen
 		int firstEntryMaxIndex=menuDrawnNodeList.Count-maxEntries;
 		//Draw scrollbar if necessary
+		
 		if (firstEntryMaxIndex>0)
 		{
 			nodeListFirstElementIndex=Mathf.FloorToInt(GUI.VerticalScrollbar(new Rect(scrollBarXStart,5,10,Screen.height-10)
@@ -958,8 +995,14 @@ public class InputManager : MonoBehaviour {
 		}
 		else {nodeListFirstElementIndex=0;}
 		
+		//SCROLL AREA SETUP
+		Rect scrollDims=new Rect(15,15,nodeListRect.width-15-15,nodeListRect.height-30);
+		Rect scrollArea=new Rect(15,15,nodeListProjectedWidth,topOffset+(entryHeight+vPad)*(maxEntries-1));
+		nodeListScrollPos=GUI.BeginScrollView(scrollDims,nodeListScrollPos,scrollArea);
+		
 			//Draw all nodes as buttons
 			GUIContent buttonContent=new GUIContent();
+			//for (int i=nodeListFirstElementIndex; i<nodeListFirstElementIndex+maxEntries; i++)\
 			for (int i=nodeListFirstElementIndex; i<nodeListFirstElementIndex+maxEntries; i++) 
 			{
 				//print (i);
@@ -1037,6 +1080,7 @@ public class InputManager : MonoBehaviour {
 				}
 			}
 		//}
+		GUI.EndScrollView();
 	}
 	
 	
