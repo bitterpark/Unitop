@@ -120,7 +120,7 @@ public class CameraControlZeroG : MonoBehaviour {
 		float yTolerance=5f;
 		if ((Input.mousePosition.x)<xTolerance) {move.x-=realSpeed*Time.deltaTime;}
 		if ((Input.mousePosition.y)<yTolerance) {move.y-=realSpeed*Time.deltaTime;}
-		if ((Input.mousePosition.x)>Screen.width-xTolerance) {move.x+=realSpeed*Time.deltaTime;}
+		if ((Input.mousePosition.x)>Screen.width-xTolerance+5) {move.x+=realSpeed*Time.deltaTime;}
 		if ((Input.mousePosition.y)>Screen.height-yTolerance) {move.y+=realSpeed*Time.deltaTime;}
 	}
 

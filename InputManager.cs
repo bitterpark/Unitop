@@ -16,6 +16,7 @@ public class InputManager : MonoBehaviour {
 	
 	List<Link> selectedLinks=new List<Link>();
 	List<Node> selectedNodes=new List<Node>();
+	public List<Node> GetSelectedNodes() {return selectedNodes;}
 	//GUIContainer contextMenu;
 	public Rect contextMenuPosNodes=new Rect(5,125,290,150);
 	public Rect contextMenuPosLinks=new Rect(5,125,290,100);
@@ -26,7 +27,7 @@ public class InputManager : MonoBehaviour {
 	Node nodeListLastClicked=null;
 	TimerDetector nodeListDclickTimer=null;
 	
-	int nodeListFirstElementIndex=0;
+	float nodeListFirstElementIndex=0;
 	Vector2 nodeListScrollPos=Vector2.zero;
 	float nodeListProjectedWidth=190;
 	Rect saveButtonRect=new Rect(5,90,80,20);
@@ -782,7 +783,7 @@ public class InputManager : MonoBehaviour {
 	
 			//select icon droplist
 			selectIconDroplist.List(new Rect(rightColumnStartX,rightColumnStartY+elementSizeY*1.5f+vPad*2,elementSizeX*1.3f,elementSizeY)
-			                        ,iconDroplistContent,"box",fbSkin.customStyles[1]);
+			                        ,iconDroplistContent,"box",fbSkin.customStyles[5]);
 			//Set new icon for all selected nodes
 			foreach (Node node in selectedNodes) {node.SetSprite(selectIconDroplist.GetSelectedItemIndex());}
 			//if (selectIconDroplist.GetSelectedItemIndex()!=0)print("selecteditem is:"+selectIconDroplist.GetSelectedItemIndex());
@@ -919,7 +920,7 @@ public class InputManager : MonoBehaviour {
 			nodeListProjectedWidth+=20f;
 			foreach (Node childNode in controller.GetNodeTrees()[parentNode])
 			{
-				returnedNodes.Add(childNode);
+				if (nodeListSearchFilter=="" | childNode.nodeText.text.StartsWith(nodeListSearchFilter)) returnedNodes.Add(childNode);
 				returnedNodes.AddRange(DownwardRecursiveDrawNodeChildren(childNode));
 			}	
 		}
@@ -930,84 +931,78 @@ public class InputManager : MonoBehaviour {
 	{		
 		float entryHeight=30f;
 		float vPad=3f;
+		float parentOffsetDelta=20f;
 		//float width=nodeListRect.width;//150f;
-		float entryWidth=nodeListRect.width;
-		float topOffset=80f;
-		nodeListProjectedWidth=nodeListRect.width;
 		
-		float scrollBarXStart=nodeListRect.width-20;//nodeListRect.x+nodeListRect.width-20;
+		//list offset from top border and search area
+		float topOffset=80f;
+		//list offset from bottom border
+		float bottomOffset=30f;
+		float leftOffset=40f;
+		float rightOffset=10f;
+		float expandButtonWidth=20;
+		float entryWidth=nodeListRect.width-rightOffset-leftOffset;
+		float searchBarWidth=nodeListRect.width-40;
+		float verticalScrollbarWidth=10f;
+		nodeListProjectedWidth=entryWidth+expandButtonWidth;
+		
 		float searchFilterXStart=20;//nodeListRect.x+10;
 		float searchFilterYStart=55;
 		
-		//List<int> tst=new List<int>();
-		//link a selection index to node dictionary
-		//Node[] cachedNodes=new Node[controller.GetNodes().Count];
-		//controller.GetNodes().Values.CopyTo(cachedNodes,0);
+		//SEARCH BAR
+		GUI.Label(new Rect(searchFilterXStart,searchFilterYStart-23,entryWidth,entryHeight),"Поиск");
+		nodeListSearchFilter=GUI.TextField(new Rect(searchFilterXStart,searchFilterYStart,searchBarWidth,entryHeight),nodeListSearchFilter);
+		
 		List<Node> menuDrawnNodeList=new List<Node>();
 		
 		//Sync drawlist with current root list
 		foreach(Node node in controller.GetRootNodes())
 		{
-			menuDrawnNodeList.Add(node);
+			if (nodeListSearchFilter=="" | node.nodeText.text.StartsWith(nodeListSearchFilter)) menuDrawnNodeList.Add(node);
 			menuDrawnNodeList.AddRange(DownwardRecursiveDrawNodeChildren(node));
-			/*
-			Node downwardIteratorPointer=node;
-			while (downwardIteratorPointer.unfoldChildren)
-			{
-				foreach (Node childNode in controller.GetNodeTrees()[downwardIteratorPointer])
-				{
-					menuDrawnNodeList.Add(downwardIteratorPointer);
-					
-				}
-			}*/
-			/*
-			if (node.hasChildren && node.unfoldChildren)
-			{
-				foreach (Node childNode in controller.GetNodeTrees()[node])
-				{
-					menuDrawnNodeList.Add(childNode);
-				}
-			}*/
 		}
 		
-		//SEARCH BAR
-		GUI.Label(new Rect(searchFilterXStart,searchFilterYStart-23,entryWidth-40,entryHeight),"Поиск");
-		nodeListSearchFilter=GUI.TextField(new Rect(searchFilterXStart,searchFilterYStart,entryWidth-40,entryHeight),nodeListSearchFilter);
-		
-		//backdrop
-		//int maxEntries=Mathf.Min(controller.GetRootNodes().Count,30);
-		//GUI.Box(new Rect(nodeListRect),"");
+		//print ("Projected width:"+nodeListProjectedWidth);
+		//print ("Crammed into:"+entryWidth);
 		
 		//Find max amount of entries that will fit on the screen, or node count if it is lower
-		int maxEntries=Mathf.Min(Mathf.FloorToInt((Screen.height-topOffset)/(entryHeight+vPad)),menuDrawnNodeList.Count);
-						
-		//Set starting position for the first item in the list
-		Rect entryRect=new Rect(40,topOffset,entryWidth,entryHeight);//Screen.width-width+30,topOffset,width-20,entryHeight);
-		
+		int maxEntries=Mathf.Min(Mathf.FloorToInt((Screen.height-topOffset-bottomOffset)/(entryHeight+vPad)),menuDrawnNodeList.Count);							
 		//Find the max first entry index that will still allow the list to fill the entire screen
 		int firstEntryMaxIndex=menuDrawnNodeList.Count-maxEntries;
-		//Draw scrollbar if necessary
 		
+		//DRAW SCROLLBAR IF NECESSARY
+		float scrollBarXStart=nodeListRect.width-30;
 		if (firstEntryMaxIndex>0)
 		{
-			nodeListFirstElementIndex=Mathf.FloorToInt(GUI.VerticalScrollbar(new Rect(scrollBarXStart,5,10,Screen.height-10)
-			,nodeListFirstElementIndex,0.5f,0,firstEntryMaxIndex));
+			//print ("maxvalu:"+firstEntryMaxIndex);
+			nodeListFirstElementIndex=GUI.VerticalScrollbar(new Rect(scrollBarXStart,topOffset,verticalScrollbarWidth,Screen.height-bottomOffset-topOffset-40)
+			,nodeListFirstElementIndex,0.4f,0,firstEntryMaxIndex);
 		}
 		else {nodeListFirstElementIndex=0;}
 		
-		//SCROLL AREA SETUP
-		Rect scrollDims=new Rect(15,15,nodeListRect.width-15-15,nodeListRect.height-30);
-		Rect scrollArea=new Rect(15,15,nodeListProjectedWidth,topOffset+(entryHeight+vPad)*(maxEntries-1));
-		nodeListScrollPos=GUI.BeginScrollView(scrollDims,nodeListScrollPos,scrollArea);
+		//(HORIZONTAL) SCROLL AREA SETUP
+		//leftOffset-expandButtonWidth
+		Rect scrollDims=new Rect(15,topOffset,entryWidth,nodeListRect.height-bottomOffset-topOffset+10);
+		Rect scrollArea=new Rect(15,topOffset,nodeListProjectedWidth,topOffset+(entryHeight+vPad)*(maxEntries-3));
+		nodeListScrollPos=GUI.BeginScrollView(scrollDims,nodeListScrollPos,scrollArea,true,false);
 		
-			//Draw all nodes as buttons
+		//Set starting position for the first item in the list
+		Rect entryRect=new Rect(leftOffset,topOffset,entryWidth,entryHeight);//Screen.width-width+30,topOffset,width-20,entryHeight);
+		
+			//DRAW ALL NODES AS BUTTONS
 			GUIContent buttonContent=new GUIContent();
+			/*
+			print ("Max fits on screen:"+maxEntries);
+			print ("Total elements drawn:"+menuDrawnNodeList.Count);
+			print ("First index is:"+Mathf.RoundToInt(nodeListFirstElementIndex));
+			print ("Scrollpos is:"+nodeListFirstElementIndex);*/
 			//for (int i=nodeListFirstElementIndex; i<nodeListFirstElementIndex+maxEntries; i++)\
-			for (int i=nodeListFirstElementIndex; i<nodeListFirstElementIndex+maxEntries; i++) 
+			for (int i=Mathf.RoundToInt(nodeListFirstElementIndex); i<Mathf.RoundToInt(nodeListFirstElementIndex)+maxEntries; i++) 
 			{
 				//print (i);
-				if (nodeListSearchFilter=="" | menuDrawnNodeList[i].nodeText.text.StartsWith(nodeListSearchFilter))
-				{
+				//if (nodeListSearchFilter=="" | menuDrawnNodeList[i].nodeText.text.StartsWith(nodeListSearchFilter))
+				//{
+							
 							//Determine visual parent offset count
 							float parentOffset=0;
 							Node upwardRecursivePos=menuDrawnNodeList[i];
@@ -1015,7 +1010,7 @@ public class InputManager : MonoBehaviour {
 							{
 								//Node parentsParent=controller.FindParentOfChild(upwardRecursivePos.parentNode);
 								//bool hasChildren=controller.GetNodeTrees().ContainsKey();
-								parentOffset+=20f;
+								parentOffset+=parentOffsetDelta;
 								upwardRecursivePos=upwardRecursivePos.parentNode;//controller.FindParentOfChild(upwardRecursivePos.parentNode);//parentsParent;
 								if (upwardRecursivePos==null) break;
 							}
@@ -1033,7 +1028,7 @@ public class InputManager : MonoBehaviour {
 							{
 								Rect unfoldRect=new Rect(modifiedEntryRect);
 								unfoldRect.x-=20f;
-								unfoldRect.width=20f;
+								unfoldRect.width=expandButtonWidth;
 								//unfoldRect.height=20f;
 								string unfoldButtonSign="x";
 								if (menuDrawnNodeList[i].unfoldChildren) {unfoldButtonSign="-";}
@@ -1077,9 +1072,10 @@ public class InputManager : MonoBehaviour {
 							}
 							entryRect.y+=entryHeight+vPad;
 						//}
-				}
+				//}
 			}
 		//}
+		//print ("Projected with is:");
 		GUI.EndScrollView();
 	}
 	
