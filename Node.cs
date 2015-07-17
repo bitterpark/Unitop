@@ -49,31 +49,19 @@ namespace Topology {
 		void Start()
 		{
 			SetSprite(currentSprite);
-			//renderer.sharedMaterial.SetTexture(0,currentSprite);
-			//gameObject.isStatic=true;
-		}
-		
-		void Update () {
-			//node text always facing camera
-			//transform.LookAt (Camera.main.transform);
-			//nodeText.transform.LookAt (Camera.main.transform);
-			//print ("fucknuts");
 		}
 		
 		
 		void OnMouseDown()
 		{
-			//Camera.main.gameObject.GetComponent<CameraControlZeroG>().controller
-			//dragged=true;
-			
-//			controller.StartDragNode();
-			//controller.ClickNode(this,true);
-			if (InputManager.mainInputManager.GetSelectedNodes().Contains(this)) {controller.myInputManager.ClickedNodeAction(this,false,true);}
-			else {controller.myInputManager.ClickedNodeAction(this,false,false);}
-			beginDragMousePos=Input.mousePosition;
-			//ClickedNodeAction(this,true);
-			//print ("drag routine started!");
-			//StartCoroutine(DragRoutine());
+			//Make sure node can't be dragged through GUI
+			if (!InputManager.mainInputManager.ClickedOnGUI())
+			{
+				if (InputManager.mainInputManager.GetSelectedNodes().Contains(this)) 
+				{controller.myInputManager.ClickedNodeAction(this,false,true);}
+				else {controller.myInputManager.ClickedNodeAction(this,false,false);}
+				beginDragMousePos=Input.mousePosition;
+			}
 		}
 		
 		void OnMouseDrag()
@@ -82,28 +70,10 @@ namespace Topology {
 			
 			if (!dragged)
 			{
-				/*
-				if (myTimer==null) {myTimer=new TimerDetector(0.1f);}
-				else 
+				//Make sure the drag was initiated and init click didn't land on GUI
+				if ((Input.mousePosition-beginDragMousePos).magnitude>25 && beginDragMousePos!=Vector3.zero 
+				&& !InputManager.mainInputManager.ClickedOnGUI())
 				{
-					if (myTimer.UpdateTimer()) 
-					{
-						dragged=true;
-						controller.NodeDragStart();
-						myTimer=null;
-					}
-				}*/
-				
-				//Vector3 mouseProjection=(Camera.main.ScreenToWorldPoint(Input.mousePosition));
-				//Vector3 myPosProjection=Camera.main.WorldToScreenPoint(transform.position);
-				//myPosProjection.z=0;
-				
-				//mouseProjection.z=3000;
-				//float projectedDragTolerance=50f*Screen.height/(Camera.main.orthographicSize*2);
-				if ((Input.mousePosition-beginDragMousePos).magnitude>25)//projectedDragTolerance) 
-				{
-					//print ("Magn: "+(Input.mousePosition-myPosProjection).magnitude);
-					//controller.NodeDragStart();
 					controller.myInputManager.NodeDragStart();
 					dragged=true;
 				}
@@ -139,7 +109,11 @@ namespace Topology {
 		{
 			//if (dragged) {}
 			//dragged=false;
-			if (dragged) {controller.myInputManager.NodeDragComplete();}
+			if (dragged) 
+			{
+				controller.myInputManager.NodeDragComplete();
+				beginDragMousePos=Vector3.zero;
+			}
 			controller.myInputManager.ClickedNodeAction(this,false,dragged);
 			dragged=false;
 			myTimer=null;
@@ -147,8 +121,6 @@ namespace Topology {
 		
 		public void SetSprite(int spriteNum)
 		{
-			//gameObject.GetComponent<SpriteRenderer>().sprite=sprites[spriteNum];
-			//renderer.material.SetTexture(0,textures[spriteNum]);
 			if (spriteNum<controller.nodeIconTextures.Length && spriteNum>=0)
 			{
 				renderer.material.SetTexture(0,controller.nodeIconTextures[spriteNum]);

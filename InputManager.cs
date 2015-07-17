@@ -10,46 +10,26 @@ public class InputManager : MonoBehaviour {
 	
 	public static InputManager mainInputManager;
 	
-	Link lastSelectedLink=null;
-	Node lastSelectedNode=null;
+	
 	TimerDetector dclickTimer=null;
 	
 	List<Link> selectedLinks=new List<Link>();
 	List<Node> selectedNodes=new List<Node>();
 	public List<Node> GetSelectedNodes() {return selectedNodes;}
-	//GUIContainer contextMenu;
-	public Rect contextMenuPosNodes=new Rect(5,125,290,150);
-	public Rect contextMenuPosLinks=new Rect(5,125,290,100);
-	//Rect currentWindowPos=new Rect(0,0,0,0);
+	public List<Link> GetSelectedLinks() {return selectedLinks;}
 	
-	Rect nodeListRect=new Rect(Screen.width-190,0,190,Screen.height);
-	string nodeListSearchFilter="";
-	Node nodeListLastClicked=null;
-	TimerDetector nodeListDclickTimer=null;
 	
-	float nodeListFirstElementIndex=0;
-	Vector2 nodeListScrollPos=Vector2.zero;
-	float nodeListProjectedWidth=190;
-	Rect saveButtonRect=new Rect(5,90,80,20);
-	Rect openButtonRect=new Rect(5,60,80,20);
+	public Texture[] colorTextures;
+	
+	
+	NodeList myNodeList;
+	ContextMenuManager myContextMenu;
+	
+	Rect openButtonRect=new Rect(5,5,80,20);
+	Rect saveButtonRect=new Rect(5,35,80,20);
 	Rect fileBrowserWindowRect=new Rect(100, 100, 600, 500);
 	
-	int tooltipMode
-	{
-		get {return _tooltipMode;}
-		set 
-		{
-			if (value!=_tooltipMode) 
-			{
-				//lastSelectedLinkNode=null;
-				if (value==0) {lastSelectedLink=null;}
-				if (value==1) {lastSelectedNode=null;}
-			}
-			_tooltipMode=value;
-		}
-		
-	}
-	int _tooltipMode=0;
+	
 	
 	enum MouseClickMode {SingleSelect, MultiSelect, ControlSelect, CreateLinkMode, CreateHierarchyLinkMode};
 	//ctrl, shift,alt select, link create and hierarchy link toggle
@@ -58,14 +38,9 @@ public class InputManager : MonoBehaviour {
 	//something was selected this frame, so no deselect
 	bool selectionMade=false;
 	
-	Popup selectItemDroplist=new Popup();
-	Popup selectColorDroplist=new Popup();
-	Popup selectIconDroplist=new Popup();
-	//public Texture[] nodeTextures;
-	public Texture[] colorTextures;
-	bool renderList=false;
+	
 	public GUISkin fbSkin;
-	public GUISkin droplistSkin;
+	//public GUISkin droplistSkin;
 	public Texture2D file,folder;
 	FileBrowser fb;
 	
@@ -76,6 +51,8 @@ public class InputManager : MonoBehaviour {
 		//Rect nodeListRect=new Rect(Screen.width-160,0,160,Screen.height);
 		mainInputManager=this;
 		controller=gameObject.GetComponent<GameController>();
+		myNodeList=gameObject.GetComponent<NodeList>();
+		myContextMenu=new ContextMenuManager(fbSkin,colorTextures);
 	}
 	
 	//fires before physics clicks and Update
@@ -118,10 +95,11 @@ public class InputManager : MonoBehaviour {
 		if (controller.SceneIsLoaded()) 
 		{
 			//DrawNodeList();
-			DrawNodeListWindow();
+			myNodeList.DrawNodeListWindow();
 			if (GUI.Button(saveButtonRect,"Сохранить")) {controller.SaveAll();}
 		}
-		ManageTooltip();
+		//ManageTooltip();
+		myContextMenu.ManageTooltip();
 	}
 	
 	protected void OnGUIMain() {
@@ -191,7 +169,8 @@ public class InputManager : MonoBehaviour {
 		{
 			selectionMade=true;
 			DeselectAllLinks();
-			tooltipMode=0;
+			//tooltipMode=0;
+			myContextMenu.SetTooltipMode(0);
 			// single select mode
 			if (currentClickMode==MouseClickMode.SingleSelect)
 			{	
@@ -453,7 +432,8 @@ public class InputManager : MonoBehaviour {
 		selectionMade=true;
 		DeselectAllNodes();
 		//drawTooltip=true;
-		tooltipMode=1;
+		//tooltipMode=1;
+		myContextMenu.SetTooltipMode(1);
 		switch (currentClickMode)
 		{
 			//Single select
@@ -620,19 +600,19 @@ public class InputManager : MonoBehaviour {
 		return clickApplicable;
 	}
 	
-	bool ClickedOnGUI()
+	public bool ClickedOnGUI()
 	{
 		bool clickedOnGUI=false;
 		Vector2 mousePosInGUICoords = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
 		if ((fb==null | !fileBrowserWindowRect.Contains(mousePosInGUICoords))
 		    && !openButtonRect.Contains(mousePosInGUICoords)
 		    && !saveButtonRect.Contains(mousePosInGUICoords)
-		    && !contextMenuPosNodes.Contains(mousePosInGUICoords) 
-		    && !contextMenuPosLinks.Contains(mousePosInGUICoords)
-		    && !selectItemDroplist.GetCurrentDimensions().Contains(mousePosInGUICoords) 
-		    && !selectColorDroplist.GetCurrentDimensions().Contains(mousePosInGUICoords)
-		    && !selectIconDroplist.GetCurrentDimensions().Contains(mousePosInGUICoords)
-		    && !nodeListRect.Contains(mousePosInGUICoords))
+		    && !myContextMenu.GetContextMenuPosNodes().Contains(mousePosInGUICoords) 
+		    && !myContextMenu.GetContextMenuPosLinks().Contains(mousePosInGUICoords)//contextMenuPosLinks.Contains(mousePosInGUICoords)
+		    && !myContextMenu.selectItemDroplist.GetCurrentDimensions().Contains(mousePosInGUICoords) 
+		    && !myContextMenu.selectColorDroplist.GetCurrentDimensions().Contains(mousePosInGUICoords)
+		    && !myContextMenu.selectIconDroplist.GetCurrentDimensions().Contains(mousePosInGUICoords)
+		    && !myNodeList.GetNodeListRect().Contains(mousePosInGUICoords))//nodeListRect.Contains(mousePosInGUICoords))
 		{clickedOnGUI=false;} else {clickedOnGUI=true;}
 		return clickedOnGUI;
 	}
@@ -659,7 +639,13 @@ public class InputManager : MonoBehaviour {
 		dclickTimer=null;
 		yield break;
 	}
+/*	
+	IEnumerator DclickNodeCreateTimer()
+	{
 	
+	
+	}
+	*/
 	void ManageObjectDeletion()
 	{
 		if (Input.GetKeyDown (KeyCode.Delete))
@@ -693,404 +679,6 @@ public class InputManager : MonoBehaviour {
 			}
 		}
 		#endif
-	}
-	
-	//////GUI DRAW FUNCTIONS/////////////////////////////////////////////
-	
-	void ManageTooltip()
-	{
-		int ttMode=0;
-		if (selectedNodes.Count>0) {ttMode=1;}
-		if (selectedLinks.Count>0) {ttMode=2;}
-		if (ttMode!=0) {TooltipWindow(ttMode);}//DrawTooltip(ttMode);}//DrawTooltip(ttMode);}//TooltipWindow(ttMode);}//DrawTooltip(ttMode);}
-	}
-	
-	void TooltipWindow(int mode)
-	{
-		//if (mode==0)
-		//{GUI.Window(0,}
-		//else {}
-		if (mode==1) 
-		{
-			contextMenuPosNodes=GUI.Window (1,contextMenuPosNodes,DrawTooltip,"");
-		}
-		else {contextMenuPosLinks=GUI.Window (2,contextMenuPosLinks,DrawTooltip,"");}
-	}
-	
-	void DrawTooltip(int mode)
-	{
-		float elementSizeX=110;
-		float elementSizeY=40;
-		//This only works as long as links and nodes context menus have the same startpoint (upper left point)
-		float leftColumnStartX=25;//contextMenuPosLinks.x+20;//contextMenuPosLinks.x+20;
-		float leftColumnStartY=50;//contextMenuPosLinks.y+15;//contextMenuPosLinks.y+15;
-		float rightColumnStartX=140+leftColumnStartX;//contextMenuPosLinks.x+160;//contextMenuPosLinks.x+160;
-		float rightColumnStartY=leftColumnStartY;//contextMenuPosLinks.y+15;//contextMenuPosLinks.y+15;
-		float vPad=1;
-		
-		
-		//nodes tooltip
-		if (mode==1)
-		{
-			//check if last select is still in the list
-			if (selectedNodes.Contains(lastSelectedNode))//(Node)lastSelectedLinkNode))
-			{
-				selectItemDroplist.SetSelectedItemIndex(selectedNodes.IndexOf(lastSelectedNode));//((Node)lastSelectedLinkNode));
-			} else {selectItemDroplist.SetSelectedItemIndex(0);}
-			
-			//Generate droplist content
-			GUIContent[] droplistContent=new GUIContent[selectedNodes.Count];
-			for (int i=0; i<selectedNodes.Count; i++)
-			{
-				droplistContent[i]=new GUIContent(selectedNodes[i].id);
-			}
-			
-			//Main box and labels
-			//GUI.Box(contextMenuPosNodes,"",fbSkin.box);
-
-			GUI.Label (new Rect(leftColumnStartX,leftColumnStartY+elementSizeY+vPad*2,elementSizeX,elementSizeY),"Выбор элемента:");
-			GUI.Label (new Rect(leftColumnStartX,leftColumnStartY,elementSizeX,elementSizeY),"Имя элемента:");
-			GUI.Label (new Rect(rightColumnStartX,rightColumnStartY+elementSizeY+vPad*2,elementSizeX,elementSizeY),"Иконка:");
-			
-			//NAME EDIT FIELD
-			string nodeName=selectedNodes[selectItemDroplist.GetSelectedItemIndex()].nodeText.text;
-			nodeName=GUI.TextField(new Rect(rightColumnStartX,rightColumnStartY,elementSizeX*1.3f,elementSizeY),nodeName);
-			selectedNodes[selectItemDroplist.GetSelectedItemIndex()].nodeText.text=nodeName;
-			//GUI.EndGroup();
-			
-			//SELECT OBJ MENU (must be last item rendered)
-			selectItemDroplist.List(new Rect(leftColumnStartX,leftColumnStartY+elementSizeY*1.5f+vPad*2,elementSizeX,elementSizeY)//elementSizeY+100)
-			                        ,droplistContent,"box",fbSkin.customStyles[1]);
-			lastSelectedNode=selectedNodes[selectItemDroplist.GetSelectedItemIndex()];//lastSelectedLinkNode=selectedNodes[selectItemDroplist.GetSelectedItemIndex()];
-			
-			//set current icon selection
-			Node currentNode=selectedNodes[selectItemDroplist.GetSelectedItemIndex()];
-			selectIconDroplist.SetSelectedItemIndex(currentNode.GetSpriteIndex());
-			//generate icon droplist content
-			Texture[] cachedNodeTextures=controller.GetNodeTextures();
-			GUIContent[] iconDroplistContent=new GUIContent[cachedNodeTextures.Length];//new GUIContent[4];
-			
-			iconDroplistContent[0]=new GUIContent("Windows XP   ",cachedNodeTextures[0]);
-			iconDroplistContent[1]=new GUIContent("Windows Vista",cachedNodeTextures[1]);
-			iconDroplistContent[2]=new GUIContent("Windows 7    ",cachedNodeTextures[2]);
-			iconDroplistContent[3]=new GUIContent("Windows 8    ",cachedNodeTextures[3]);
-			iconDroplistContent[4]=new GUIContent("Server 2000  ",cachedNodeTextures[4]);
-			iconDroplistContent[5]=new GUIContent("Server 2003  ",cachedNodeTextures[5]);
-			iconDroplistContent[6]=new GUIContent("Server 2008  ",cachedNodeTextures[6]);
-			iconDroplistContent[7]=new GUIContent("Server 2012  ",cachedNodeTextures[7]);
-			iconDroplistContent[8]=new GUIContent("Linux        ",cachedNodeTextures[8]);
-			iconDroplistContent[9]=new GUIContent("Mac OS       ",cachedNodeTextures[9]);
-	
-			//select icon droplist
-			selectIconDroplist.List(new Rect(rightColumnStartX,rightColumnStartY+elementSizeY*1.5f+vPad*2,elementSizeX*1.3f,elementSizeY)
-			                        ,iconDroplistContent,"box",fbSkin.customStyles[5]);
-			//Set new icon for all selected nodes
-			foreach (Node node in selectedNodes) {node.SetSprite(selectIconDroplist.GetSelectedItemIndex());}
-			//if (selectIconDroplist.GetSelectedItemIndex()!=0)print("selecteditem is:"+selectIconDroplist.GetSelectedItemIndex());
-			//currentNode.SetSprite(selectIconDroplist.GetSelectedItemIndex());
-			
-			
-		}
-		
-		//links tooltip
-		if (mode==2) 
-		{
-			//check if last select is still in the list
-			if (selectedLinks.Contains(lastSelectedLink))//(Link)lastSelectedLinkNode))
-			{
-				selectItemDroplist.SetSelectedItemIndex(selectedLinks.IndexOf(lastSelectedLink));//(Link)lastSelectedLinkNode));
-			} else {selectItemDroplist.SetSelectedItemIndex(0);}
-			//Generate droplist content
-			GUIContent[] droplistContent=new GUIContent[selectedLinks.Count];
-			for (int i=0; i<selectedLinks.Count; i++)
-			{
-				droplistContent[i]=new GUIContent(selectedLinks[i].id);
-			}	
-			
-			//main box and left hand labels
-			//GUI.Box(contextMenuPosLinks,"");
-
-			GUI.Label (new Rect(leftColumnStartX,leftColumnStartY,elementSizeX,elementSizeY),"Выбор элемента:");
-			GUI.Label (new Rect(rightColumnStartX,rightColumnStartY,elementSizeX,elementSizeY),"Цвет элемента:");
-			//GUI.EndGroup();
-			
-			//Set current color select
-			Link coloredLink=selectedLinks[selectItemDroplist.GetSelectedItemIndex()];
-			selectColorDroplist.SetSelectedItemIndex(coloredLink.GetColorIndex());
-			//Generate droplist content
-			GUIContent[] droplistColorContent=new GUIContent[5];
-			droplistColorContent[0]=new GUIContent(colorTextures[0]);//"black");
-			droplistColorContent[1]=new GUIContent(colorTextures[1]);//"red");
-			droplistColorContent[2]=new GUIContent(colorTextures[2]);//"green");
-			droplistColorContent[3]=new GUIContent(colorTextures[3]);//"yellow");
-			droplistColorContent[4]=new GUIContent(colorTextures[4]);//"cyan");
-			//Draw color droplist
-			int droplistPick=selectColorDroplist.List(new Rect(rightColumnStartX,rightColumnStartY+elementSizeY*0.5f,elementSizeX*1.3f,elementSizeY)//elementSizeY)
-			 ,droplistColorContent,"box",fbSkin.customStyles[1]); 
-			switch (droplistPick)
-			{
-				case 0:{coloredLink.color="black"; break;}
-				case 1:{coloredLink.color="red"; break;}
-				case 2:{coloredLink.color="green"; break;}
-				case 3:{coloredLink.color="yellow"; break;}
-				case 4:{coloredLink.color="cyan"; break;}
-			}
-			
-			//select obj menu (must be after endgroup rendered)
-			selectItemDroplist.List(new Rect(leftColumnStartX,leftColumnStartY+elementSizeY*0.5f,elementSizeX,elementSizeY)//elementSizeY)
-			                        ,droplistContent,"box",fbSkin.customStyles[1]);
-			//lastSelectedLinkNode=selectedLinks[selectItemDroplist.GetSelectedItemIndex()];
-			lastSelectedLink=selectedLinks[selectItemDroplist.GetSelectedItemIndex()];
-		}
-		
-		//Make window draggable
-		GUI.DragWindow();
-	}
-	
-	/*
-	struct DrawnNode
-	{
-		public Node drawnNode;
-		public Node parentNode;
-		public bool hasChildren;
-		public bool unfoldChildren;
-		
-		public DrawnNode(Node newDrawnNode, Node newNodeParent, bool nodeHasChildren)
-		{
-			drawnNode=newDrawnNode;
-			parentNode=newNodeParent;
-			hasChildren=nodeHasChildren;
-			unfoldChildren=false;
-		}
-		
-		public DrawnNode(Node newDrawnNode, Node newNodeParent)
-		{
-			drawnNode=newDrawnNode;
-			parentNode=newNodeParent;
-			hasChildren=false;
-			unfoldChildren=false;
-		}
-		
-	}*/
-	
-	/*
-	public void StartDrawnNodeList()
-	{
-		//DrawnNode addedNode;
-		foreach(Node node in controller.GetRootNodes())
-		{
-			//addedNode=new DrawnNode();
-			//addedNode.drawnNode=node;
-			//addedNode.parentNode=null;
-			//if (controller.GetNodeTrees().ContainsKey(node)) {addedNode.hasChildren=true;}
-			//nodeListDrawnNodes.Add(addedNode);
-			drawnNodeList.Add(node);	
-		}
-		//print (drawnNodeList.Count);
-	}*/
-	
-	/*
-	void drawnNodeListContainsNode(Node node)
-	{
-		bool nodeFound=false;
-		//if (nodeListDrawnNodes.Contains(node)) {}
-		foreach(DrawnNode listNode in nodeListDrawnNodes)
-		{
-			if (listNode.drawnNode==node) 
-			{
-				nodeFound=true;
-				break;
-			}
-		}
-		return nodeFound;
-	}
-	*/
-	
-	void DrawNodeListWindow()
-	{
-		GUI.Window(0,nodeListRect,DrawNodeList,"");
-	}
-	
-	List<Node> DownwardRecursiveDrawNodeChildren(Node parentNode)
-	{
-		List<Node> returnedNodes=new List<Node>();
-		if (parentNode.unfoldChildren)
-		{
-			//increase scroll area width by parent offset
-			nodeListProjectedWidth+=20f;
-			foreach (Node childNode in controller.GetNodeTrees()[parentNode])
-			{
-				if (nodeListSearchFilter=="" | childNode.nodeText.text.StartsWith(nodeListSearchFilter)) returnedNodes.Add(childNode);
-				returnedNodes.AddRange(DownwardRecursiveDrawNodeChildren(childNode));
-			}	
-		}
-		return returnedNodes;
-	}
-	
-	void DrawNodeList(int sigInt)
-	{		
-		float entryHeight=30f;
-		float vPad=3f;
-		float parentOffsetDelta=20f;
-		//float width=nodeListRect.width;//150f;
-		
-		//list offset from top border and search area
-		float topOffset=80f;
-		//list offset from bottom border
-		float bottomOffset=30f;
-		float leftOffset=40f;
-		float rightOffset=10f;
-		float expandButtonWidth=20;
-		float entryWidth=nodeListRect.width-rightOffset-leftOffset;
-		float searchBarWidth=nodeListRect.width-40;
-		float verticalScrollbarWidth=10f;
-		nodeListProjectedWidth=entryWidth+expandButtonWidth;
-		
-		float searchFilterXStart=20;//nodeListRect.x+10;
-		float searchFilterYStart=55;
-		
-		//SEARCH BAR
-		GUI.Label(new Rect(searchFilterXStart,searchFilterYStart-23,entryWidth,entryHeight),"Поиск");
-		nodeListSearchFilter=GUI.TextField(new Rect(searchFilterXStart,searchFilterYStart,searchBarWidth,entryHeight),nodeListSearchFilter);
-		
-		List<Node> menuDrawnNodeList=new List<Node>();
-		
-		//Sync drawlist with current root list
-		foreach(Node node in controller.GetRootNodes())
-		{
-			if (nodeListSearchFilter=="" | node.nodeText.text.StartsWith(nodeListSearchFilter)) menuDrawnNodeList.Add(node);
-			menuDrawnNodeList.AddRange(DownwardRecursiveDrawNodeChildren(node));
-		}
-		
-		//print ("Projected width:"+nodeListProjectedWidth);
-		//print ("Crammed into:"+entryWidth);
-		
-		//Find max amount of entries that will fit on the screen, or node count if it is lower
-		int maxEntries=Mathf.Min(Mathf.FloorToInt((Screen.height-topOffset-bottomOffset)/(entryHeight+vPad)),menuDrawnNodeList.Count);							
-		//Find the max first entry index that will still allow the list to fill the entire screen
-		int firstEntryMaxIndex=menuDrawnNodeList.Count-maxEntries;
-		
-		//DRAW SCROLLBAR IF NECESSARY
-		float scrollBarXStart=nodeListRect.width-30;
-		if (firstEntryMaxIndex>0)
-		{
-			//print ("maxvalu:"+firstEntryMaxIndex);
-			nodeListFirstElementIndex=GUI.VerticalScrollbar(new Rect(scrollBarXStart,topOffset,verticalScrollbarWidth,Screen.height-bottomOffset-topOffset-40)
-			,nodeListFirstElementIndex,0.4f,0,firstEntryMaxIndex);
-		}
-		else {nodeListFirstElementIndex=0;}
-		
-		//(HORIZONTAL) SCROLL AREA SETUP
-		//leftOffset-expandButtonWidth
-		Rect scrollDims=new Rect(15,topOffset,entryWidth,nodeListRect.height-bottomOffset-topOffset+10);
-		Rect scrollArea=new Rect(15,topOffset,nodeListProjectedWidth,topOffset+(entryHeight+vPad)*(maxEntries-3));
-		nodeListScrollPos=GUI.BeginScrollView(scrollDims,nodeListScrollPos,scrollArea,true,false);
-		
-		//Set starting position for the first item in the list
-		Rect entryRect=new Rect(leftOffset,topOffset,entryWidth,entryHeight);//Screen.width-width+30,topOffset,width-20,entryHeight);
-		
-			//DRAW ALL NODES AS BUTTONS
-			GUIContent buttonContent=new GUIContent();
-			/*
-			print ("Max fits on screen:"+maxEntries);
-			print ("Total elements drawn:"+menuDrawnNodeList.Count);
-			print ("First index is:"+Mathf.RoundToInt(nodeListFirstElementIndex));
-			print ("Scrollpos is:"+nodeListFirstElementIndex);*/
-			//for (int i=nodeListFirstElementIndex; i<nodeListFirstElementIndex+maxEntries; i++)\
-			for (int i=Mathf.RoundToInt(nodeListFirstElementIndex); i<Mathf.RoundToInt(nodeListFirstElementIndex)+maxEntries; i++) 
-			{
-				//print (i);
-				//if (nodeListSearchFilter=="" | menuDrawnNodeList[i].nodeText.text.StartsWith(nodeListSearchFilter))
-				//{
-							
-							//Determine visual parent offset count
-							float parentOffset=0;
-							Node upwardRecursivePos=menuDrawnNodeList[i];
-							while(upwardRecursivePos.parentNode!=null) 
-							{
-								//Node parentsParent=controller.FindParentOfChild(upwardRecursivePos.parentNode);
-								//bool hasChildren=controller.GetNodeTrees().ContainsKey();
-								parentOffset+=parentOffsetDelta;
-								upwardRecursivePos=upwardRecursivePos.parentNode;//controller.FindParentOfChild(upwardRecursivePos.parentNode);//parentsParent;
-								if (upwardRecursivePos==null) break;
-							}
-							
-							//Offset from parent node
-							Rect modifiedEntryRect=entryRect;
-							modifiedEntryRect.x+=parentOffset;
-							
-							//Mark out selected nodes with blue
-							if (selectedNodes.Contains(menuDrawnNodeList[i])) 
-							{GUI.Box(modifiedEntryRect,"",fbSkin.customStyles[3]);}
-							
-							//Handle children unfold button
-							if (menuDrawnNodeList[i].hasChildren) 
-							{
-								Rect unfoldRect=new Rect(modifiedEntryRect);
-								unfoldRect.x-=20f;
-								unfoldRect.width=expandButtonWidth;
-								//unfoldRect.height=20f;
-								string unfoldButtonSign="x";
-								if (menuDrawnNodeList[i].unfoldChildren) {unfoldButtonSign="-";}
-								else {unfoldButtonSign="+";}
-								if (GUI.Button (unfoldRect,unfoldButtonSign,fbSkin.customStyles[4])) 
-								{
-									menuDrawnNodeList[i].unfoldChildren=!menuDrawnNodeList[i].unfoldChildren;
-									//print ("unfold set to:"+menuDrawnNodeList[i].unfoldChildren);
-								}
-							}
-							
-							//Draw actual node entry
-							buttonContent.text=menuDrawnNodeList[i].nodeText.text;
-							buttonContent.image=menuDrawnNodeList[i].renderer.material.GetTexture(0);
-							if (GUI.Button(modifiedEntryRect,buttonContent,fbSkin.customStyles[2])) 
-							{
-								if (nodeListLastClicked==menuDrawnNodeList[i])
-								{
-									if (nodeListDclickTimer!=null) 
-									{
-										
-										StopCoroutine("NodeListDclickTimerManager");
-										print ("coroutine stopped");
-										nodeListDclickTimer=null;
-										Camera.main.transform.position=(Vector2)menuDrawnNodeList[i].transform.position;		
-									}
-									else
-									{
-										ClickNode(menuDrawnNodeList[i],true);
-										StartCoroutine("NodeListDclickTimerManager");
-									}
-								}
-								else
-								{
-									StopCoroutine("NodeListDclickTimerManager");
-									StartCoroutine("NodeListDclickTimerManager");
-									//print ("coroutine started on new");
-									ClickNode(menuDrawnNodeList[i],true);
-								}
-								nodeListLastClicked=menuDrawnNodeList[i];
-							}
-							entryRect.y+=entryHeight+vPad;
-						//}
-				//}
-			}
-		//}
-		//print ("Projected with is:");
-		GUI.EndScrollView();
-	}
-	
-	
-	IEnumerator NodeListDclickTimerManager()
-	{
-		//print ("coroutine started");
-		nodeListDclickTimer=new TimerDetector(0.3f);
-		while (!nodeListDclickTimer.UpdateTimer())
-		{
-			yield return new WaitForFixedUpdate();
-		}
-		nodeListDclickTimer=null;
-		yield break;
-	
 	}
 	
 }

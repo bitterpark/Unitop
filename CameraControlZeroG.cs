@@ -72,13 +72,18 @@ public class CameraControlZeroG : MonoBehaviour {
 		Vector3 perspCameraMove=Vector3.zero;
 		if (Input.GetAxis("Mouse ScrollWheel")>0) 
 		{
-			perspCameraMove+=new Vector3(0,0,100); 
+			perspCameraMove+=new Vector3(0,0,100);
+			
+			//Screen.lockCursor=true;
+			//Screen.lockCursor=false;
 			orthCameraSize-=zoomSpd;
-			zoomLvl-=1;
+			if (zoomLvl>0) {Camera.main.transform.position+=(Camera.main.ScreenToWorldPoint(Input.mousePosition)-Camera.main.transform.position)*0.2f;}
+			zoomLvl-=1;	
 		}
 		if (Input.GetAxis("Mouse ScrollWheel")<0) 
 		{
 			perspCameraMove+=new Vector3(0,0,-100);
+			//Camera.main.transform.position=Camera.main.ScreenToWorldPoint(Input.mousePosition);
 			orthCameraSize+=zoomSpd;
 			zoomLvl+=1;
 		}
@@ -88,6 +93,7 @@ public class CameraControlZeroG : MonoBehaviour {
 			if (zoomLvl<0) {zoomLvl=0;}
 			realSpeed=startSpeed+startSpeed*zoomLvl;
 			Camera.main.orthographicSize=orthCameraSize;
+			
 		}
 		else {transform.position+=perspCameraMove;}
 	}
@@ -102,6 +108,7 @@ public class CameraControlZeroG : MonoBehaviour {
 		}
 		else {Screen.lockCursor=false;}
 	}
+	/*
 	//Inverse pan
 	void ManageLMBScroll()
 	{
@@ -112,7 +119,7 @@ public class CameraControlZeroG : MonoBehaviour {
 			move.y = -Input.GetAxis("Mouse Y") * realSpeed * Time.deltaTime;
 		}
 		else {Screen.lockCursor=false;}
-	}
+	}*/
 	
 	void ManageBorderScroll()
 	{

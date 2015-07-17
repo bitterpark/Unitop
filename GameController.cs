@@ -47,7 +47,7 @@ namespace Topology {
 		public Texture2D[] GetNodeTextures () {return nodeIconTextures;}
 		List<Node> nodeCopyBuffer=new List<Node>();
 		
-		public Texture2D comparisonTex;
+		public static GameController mainController;
 		
 		public void StartLayoutLoad() 
 		{
@@ -899,6 +899,7 @@ namespace Topology {
 		void Start () 
 		{
 			
+			mainController=this;
 			LoadIconTextures();
 			//initial stats
 			linkDrawManager=gameObject.GetComponent<LinkDrawManager>();
