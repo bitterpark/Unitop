@@ -1,6 +1,4 @@
-﻿// Popup list with multi-instance support created by Xiaohang Miao. (xmiao2@ncsu.edu)
-
-using UnityEngine;
+﻿using UnityEngine;
 public class Popup{
 	
 	// Represents the selected index of the popup list, the default selected index is 0, or the first item
@@ -28,17 +26,13 @@ public class Popup{
 		// If the instance's popup selection is visible
 		if(isVisible) 
 		{
-			// Draw a Box
-			//float height=box.height*2;
-			//float width=box.width+15f;
 			Rect listRect = new Rect( 0, 0, box.width,box.height*items.Length);//width,height);// box.height * items.Length);
-			Rect scrollViewRect=new Rect(box.x,box.y,box.width+20f,(box.height*3)+5f);
-			scrollPos=GUI.BeginScrollView(scrollViewRect,scrollPos,new Rect(0,0,listRect.width,listRect.height));
-			//GUILayout.BeginArea(listRect);
-			//listRect.height=listRect.height*5;
+			Rect scrollViewRect=new Rect(box.x,box.y,box.width+20f,(box.height*10));
+			scrollPos=GUI.BeginScrollView(scrollViewRect,scrollPos,listRect);
 			//Set dimensions to fit the selectbox
 			currentDimensions=scrollViewRect;
-			//GUI.Box( listRect, "", boxStyle );
+			//Rect boxRect=new Rect(0,0,box.width,(box.height*Mathf.Min(10,items.Length)));
+			//GUI.Box( boxRect, "", boxStyle );
 			//GUI.Beg
 			/*
 			scrollPos=GUILayout.BeginScrollView(scrollPos,false,true

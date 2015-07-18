@@ -1,5 +1,4 @@
-﻿
-using UnityEngine;
+﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
 using Topology;
@@ -12,14 +11,7 @@ public class CameraControlZeroG : MonoBehaviour {
 	public GUIText movementSpeed;
 
 	private Vector3 move = new Vector3();
-	//cluster 1 is also startpoint
-	//private Vector3 cluster1 = new Vector3(1960, 1791, 0);
-	/*
-	private Vector3 cluster2 = new Vector3(2042, 1579, 4254);
-	private Vector3 cluster3 = new Vector3(2692, 81, 2526);
-	private Vector3 cluster4 = new Vector3(531, 2317, 3776);
-	private Vector3 cluster5 = new Vector3(-587, 2043, 2194);
-	*/
+	
 	public GameObject controller;
 	public float zoomSpd=96;
 	public float maxZoom=768;
@@ -70,20 +62,35 @@ public class CameraControlZeroG : MonoBehaviour {
 	{
 		float orthCameraSize=Camera.main.orthographicSize;
 		Vector3 perspCameraMove=Vector3.zero;
+		bool zoomIn=false;
 		if (Input.GetAxis("Mouse ScrollWheel")>0) 
 		{
 			perspCameraMove+=new Vector3(0,0,100);
 			
 			//Screen.lockCursor=true;
 			//Screen.lockCursor=false;
+			Vector3 cursorWorldPoint=Camera.main.ScreenToWorldPoint(Input.mousePosition);
 			orthCameraSize-=zoomSpd;
-			if (zoomLvl>0) {Camera.main.transform.position+=(Camera.main.ScreenToWorldPoint(Input.mousePosition)-Camera.main.transform.position)*0.2f;}
+			/*
+			if (zoomLvl>0) 
+			{
+				//keep cursor position consistent
+				
+				
+				
+				Vector3 cursorWorldDelta=cursorWorldPoint-Camera.main.ScreenToWorldPoint(Input.mousePosition);
+				Camera.main.transform.position+=cursorWorldDelta;
+				
+				//StartCoroutine("PsideZoomManager",cursorWorldPoint);
+				
+			}*/
 			zoomLvl-=1;	
 		}
 		if (Input.GetAxis("Mouse ScrollWheel")<0) 
 		{
 			perspCameraMove+=new Vector3(0,0,-100);
 			//Camera.main.transform.position=Camera.main.ScreenToWorldPoint(Input.mousePosition);
+			
 			orthCameraSize+=zoomSpd;
 			zoomLvl+=1;
 		}
@@ -92,11 +99,27 @@ public class CameraControlZeroG : MonoBehaviour {
 			if (orthCameraSize<maxZoom) {orthCameraSize=maxZoom;}
 			if (zoomLvl<0) {zoomLvl=0;}
 			realSpeed=startSpeed+startSpeed*zoomLvl;
+			Vector3 cursorWorldPoint=Camera.main.ScreenToWorldPoint(Input.mousePosition);
 			Camera.main.orthographicSize=orthCameraSize;
+			if (zoomIn=true)
+			{
+				Vector3 cursorWorldDelta=cursorWorldPoint-Camera.main.ScreenToWorldPoint(Input.mousePosition);
+				Camera.main.transform.position+=cursorWorldDelta;
+			}
+			//switchCam.camera.orthographicSize=orthCameraSize-
 			
 		}
 		else {transform.position+=perspCameraMove;}
 	}
+	
+	IEnumerator PsideZoomManager(Vector3 cursorWorld)
+	{
+		//yield return new WaitForEndOfFrame();
+		Vector3 cursorWorldDelta=cursorWorld-Camera.main.ScreenToWorldPoint(Input.mousePosition);
+		Camera.main.transform.position+=cursorWorldDelta;
+		yield break;
+	}
+	
 	//mmb camera pan
 	void ManageMMBScroll()
 	{

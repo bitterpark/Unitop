@@ -107,12 +107,6 @@ public class NodeList: MonoBehaviour
 		
 		//DRAW ALL NODES AS BUTTONS
 		GUIContent buttonContent=new GUIContent();
-		/*
-			print ("Max fits on screen:"+maxEntries);
-			print ("Total elements drawn:"+menuDrawnNodeList.Count);
-			print ("First index is:"+Mathf.RoundToInt(nodeListFirstElementIndex));
-			print ("Scrollpos is:"+nodeListFirstElementIndex);*/
-		//for (int i=nodeListFirstElementIndex; i<nodeListFirstElementIndex+maxEntries; i++)\
 		for (int i=Mathf.RoundToInt(nodeListFirstElementIndex); i<Mathf.RoundToInt(nodeListFirstElementIndex)+maxEntries; i++) 
 		{	
 			//Determine visual parent offset count
@@ -146,7 +140,6 @@ public class NodeList: MonoBehaviour
 				if (GUI.Button (unfoldRect,unfoldButtonSign,mySkin.customStyles[4])) 
 				{
 					menuDrawnNodeList[i].unfoldChildren=!menuDrawnNodeList[i].unfoldChildren;
-					//print ("unfold set to:"+menuDrawnNodeList[i].unfoldChildren);
 				}
 			}
 			
@@ -180,11 +173,7 @@ public class NodeList: MonoBehaviour
 				nodeListLastClicked=menuDrawnNodeList[i];
 			}
 			entryRect.y+=entryHeight+vPad;
-			//}
-			//}
 		}
-		//}
-		//print ("Projected with is:");
 		GUI.EndScrollView();
 	}
 	

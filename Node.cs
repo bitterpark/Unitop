@@ -66,30 +66,42 @@ namespace Topology {
 		
 		void OnMouseDrag()
 		{
-			//Wait for mouse hold for 0.2 sec
-			
-			if (!dragged)
+			if (!InputManager.mainInputManager.ClickedOnGUI())
 			{
-				//Make sure the drag was initiated and init click didn't land on GUI
-				if ((Input.mousePosition-beginDragMousePos).magnitude>25 && beginDragMousePos!=Vector3.zero 
-				&& !InputManager.mainInputManager.ClickedOnGUI())
+				if (!dragged)
 				{
-					controller.myInputManager.NodeDragStart();
-					dragged=true;
+					//Make sure the drag was initiated and init click didn't land on GUI
+					if ((Input.mousePosition-beginDragMousePos).magnitude>25 && beginDragMousePos!=Vector3.zero)
+					{
+						controller.myInputManager.NodeDragStart();
+						dragged=true;
+					}
 				}
-			}
-			else
+				else
+				{
+					//if mouse was held, activate drag mode
+					Vector3 delta=Vector3.zero;
+					delta=transform.position;
+					float z=0;
+					z=3000;//Camera.main.WorldToScreenPoint(transform.position).z;
+					transform.position=Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x,Input.mousePosition.y,z));
+					delta=transform.position-delta;
+					//Call controller to align links and dragalong nodes
+					controller.myInputManager.DragNode(this,delta);//controller.DragNode(this,delta);
+				}
+			} else {Release ();}
+		}
+		
+		void Release()
+		{
+			if (dragged) 
 			{
-				//if mouse was held, activate drag mode
-				Vector3 delta=Vector3.zero;
-				delta=transform.position;
-				float z=0;
-				z=3000;//Camera.main.WorldToScreenPoint(transform.position).z;
-				transform.position=Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x,Input.mousePosition.y,z));
-				delta=transform.position-delta;
-				//Call controller to align links and dragalong nodes
-				controller.myInputManager.DragNode(this,delta);//controller.DragNode(this,delta);
+				controller.myInputManager.NodeDragComplete();
+				beginDragMousePos=Vector3.zero;
 			}
+			controller.myInputManager.ClickedNodeAction(this,false,dragged);
+			dragged=false;
+			myTimer=null;
 		}
 		
 		void OnDestroy() 
@@ -107,16 +119,7 @@ namespace Topology {
 		
 		void OnMouseUp()
 		{
-			//if (dragged) {}
-			//dragged=false;
-			if (dragged) 
-			{
-				controller.myInputManager.NodeDragComplete();
-				beginDragMousePos=Vector3.zero;
-			}
-			controller.myInputManager.ClickedNodeAction(this,false,dragged);
-			dragged=false;
-			myTimer=null;
+			Release();
 		}
 		
 		public void SetSprite(int spriteNum)

@@ -25,8 +25,8 @@ public class InputManager : MonoBehaviour {
 	NodeList myNodeList;
 	ContextMenuManager myContextMenu;
 	
-	Rect openButtonRect=new Rect(5,5,80,20);
-	Rect saveButtonRect=new Rect(5,35,80,20);
+	Rect openButtonRect=new Rect(5,5,80,30);
+	Rect saveButtonRect=new Rect(85,5,80,30);
 	Rect fileBrowserWindowRect=new Rect(100, 100, 600, 500);
 	
 	
@@ -38,6 +38,7 @@ public class InputManager : MonoBehaviour {
 	//something was selected this frame, so no deselect
 	bool selectionMade=false;
 	
+	public static void DebugPrint(string prStr) {print (prStr);}
 	
 	public GUISkin fbSkin;
 	//public GUISkin droplistSkin;
@@ -607,13 +608,14 @@ public class InputManager : MonoBehaviour {
 		if ((fb==null | !fileBrowserWindowRect.Contains(mousePosInGUICoords))
 		    && !openButtonRect.Contains(mousePosInGUICoords)
 		    && !saveButtonRect.Contains(mousePosInGUICoords)
-		    && !myContextMenu.GetContextMenuPosNodes().Contains(mousePosInGUICoords) 
-		    && !myContextMenu.GetContextMenuPosLinks().Contains(mousePosInGUICoords)//contextMenuPosLinks.Contains(mousePosInGUICoords)
-		    && !myContextMenu.selectItemDroplist.GetCurrentDimensions().Contains(mousePosInGUICoords) 
-		    && !myContextMenu.selectColorDroplist.GetCurrentDimensions().Contains(mousePosInGUICoords)
-		    && !myContextMenu.selectIconDroplist.GetCurrentDimensions().Contains(mousePosInGUICoords)
+		    && (!myContextMenu.isDrawn 
+		    	|(!myContextMenu.GetContextMenuPosNodes().Contains(mousePosInGUICoords) 
+		    	&& !myContextMenu.GetContextMenuPosLinks().Contains(mousePosInGUICoords)//contextMenuPosLinks.Contains(mousePosInGUICoords)
+		    	&& !myContextMenu.selectItemDroplist.GetCurrentDimensions().Contains(mousePosInGUICoords) 
+		    	&& !myContextMenu.selectColorDroplist.GetCurrentDimensions().Contains(mousePosInGUICoords)
+		    	&& !myContextMenu.selectIconDroplist.GetCurrentDimensions().Contains(mousePosInGUICoords)))
 		    && !myNodeList.GetNodeListRect().Contains(mousePosInGUICoords))//nodeListRect.Contains(mousePosInGUICoords))
-		{clickedOnGUI=false;} else {clickedOnGUI=true;}
+		{clickedOnGUI=false; /*print ("click not on gui!");*/} else {clickedOnGUI=true; /*print ("click on gui!");*/}
 		return clickedOnGUI;
 	}
 	
