@@ -5,7 +5,7 @@ using Topology;
 
 public class NodeList: MonoBehaviour
 {
-	Rect nodeListRect=new Rect(Screen.width-190,0,190,Screen.height);
+	Rect nodeListRect=new Rect(Screen.width-250,0,250,Screen.height);
 	public Rect GetNodeListRect() {return nodeListRect;}
 	string nodeListSearchFilter="";
 	Node nodeListLastClicked=null;
@@ -36,7 +36,7 @@ public class NodeList: MonoBehaviour
 			nodeListProjectedWidth+=20f;
 			foreach (Node childNode in GameController.mainController.GetNodeTrees()[parentNode])
 			{
-				if (nodeListSearchFilter=="" | childNode.nodeText.text.StartsWith(nodeListSearchFilter)) returnedNodes.Add(childNode);
+				if (nodeListSearchFilter=="" | childNode.text.StartsWith(nodeListSearchFilter)) returnedNodes.Add(childNode);
 				returnedNodes.AddRange(DownwardRecursiveDrawNodeChildren(childNode));
 			}	
 		}
@@ -54,16 +54,16 @@ public class NodeList: MonoBehaviour
 		float topOffset=80f;
 		//list offset from bottom border
 		float bottomOffset=30f;
-		float leftOffset=40f;
-		float rightOffset=10f;
+		float leftOffset=30f;
+		float rightOffset=40f;
 		float expandButtonWidth=20;
 		float entryWidth=nodeListRect.width-rightOffset-leftOffset;
-		float searchBarWidth=nodeListRect.width-40;
 		float verticalScrollbarWidth=10f;
 		nodeListProjectedWidth=entryWidth+expandButtonWidth;
 		
+		float searchBarWidth=nodeListRect.width-70;
 		float searchFilterXStart=20;//nodeListRect.x+10;
-		float searchFilterYStart=55;
+		float searchFilterYStart=50;
 		
 		//SEARCH BAR
 		GUI.Label(new Rect(searchFilterXStart,searchFilterYStart-23,entryWidth,entryHeight),"Поиск");
@@ -74,7 +74,7 @@ public class NodeList: MonoBehaviour
 		//Sync drawlist with current root list
 		foreach(Node node in GameController.mainController.GetRootNodes())
 		{
-			if (nodeListSearchFilter=="" | node.nodeText.text.StartsWith(nodeListSearchFilter)) menuDrawnNodeList.Add(node);
+			if (nodeListSearchFilter=="" | node.text.StartsWith(nodeListSearchFilter)) menuDrawnNodeList.Add(node);
 			menuDrawnNodeList.AddRange(DownwardRecursiveDrawNodeChildren(node));
 		}
 		
@@ -98,8 +98,8 @@ public class NodeList: MonoBehaviour
 		
 		//(HORIZONTAL) SCROLL AREA SETUP
 		//leftOffset-expandButtonWidth
-		Rect scrollDims=new Rect(15,topOffset,entryWidth,nodeListRect.height-bottomOffset-topOffset+10);
-		Rect scrollArea=new Rect(15,topOffset,nodeListProjectedWidth,topOffset+(entryHeight+vPad)*(maxEntries-3));
+		Rect scrollDims=new Rect(leftOffset-expandButtonWidth,topOffset,entryWidth+parentOffsetDelta,nodeListRect.height-bottomOffset-topOffset+10);
+		Rect scrollArea=new Rect(leftOffset-expandButtonWidth,topOffset,nodeListProjectedWidth,topOffset+(entryHeight+vPad)*(maxEntries-3));
 		nodeListScrollPos=GUI.BeginScrollView(scrollDims,nodeListScrollPos,scrollArea,true,false);
 		
 		//Set starting position for the first item in the list
@@ -125,7 +125,12 @@ public class NodeList: MonoBehaviour
 			
 			//Mark out selected nodes with blue
 			if (InputManager.mainInputManager.GetSelectedNodes().Contains(menuDrawnNodeList[i])) 
-			{GUI.Box(modifiedEntryRect,"",mySkin.customStyles[3]);}
+			{
+				//Rect selectionBoxRect=new Rect(modifiedEntryRect);
+				//selectionBoxRect.x=nodeListRect.x;
+				//selectionBoxRect.width=entryWidth;
+				GUI.Box(modifiedEntryRect,"",mySkin.customStyles[3]);
+			}
 			
 			//Handle children unfold button
 			if (menuDrawnNodeList[i].hasChildren) 
@@ -144,7 +149,7 @@ public class NodeList: MonoBehaviour
 			}
 			
 			//Draw actual node entry
-			buttonContent.text=menuDrawnNodeList[i].nodeText.text;
+			buttonContent.text=menuDrawnNodeList[i].text;
 			buttonContent.image=menuDrawnNodeList[i].renderer.material.GetTexture(0);
 			if (GUI.Button(modifiedEntryRect,buttonContent,mySkin.customStyles[2])) 
 			{

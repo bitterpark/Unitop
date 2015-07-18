@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using Topology;
 public class Popup{
 	
 	// Represents the selected index of the popup list, the default selected index is 0, or the first item
@@ -15,6 +16,8 @@ public class Popup{
 	
 	Vector2 scrollPos=Vector2.zero;
 	
+	bool selectionMade=false;
+	
 	// If multiple Popup objects exist, this static variable represents the active instance, or a Popup object whose selection is currently expanded
 	static Popup current;
 	
@@ -23,6 +26,7 @@ public class Popup{
 	// For usage, see http://wiki.unity3d.com/index.php/PopupList#Javascript_-_PopupListUsageExample.js
 	public int List(Rect box, GUIContent[] items, GUIStyle boxStyle, GUIStyle listStyle) {
 		
+		selectionMade=false;
 		// If the instance's popup selection is visible
 		if(isVisible) 
 		{
@@ -56,8 +60,11 @@ public class Popup{
 					current = null;
 					isClicked=false;
 					currentDimensions=box;
+					//Must be set to true for one frame
+					selectionMade=true;
 				//}
 			}
+			//InputManager.DebugPrint("selection is:"+selectionMade.ToString());
 		}
 		
 		// Get the control ID
@@ -66,7 +73,7 @@ public class Popup{
 		// Listen for controls
 		switch( Event.current.GetTypeForControl(controlID) )
 		{
-			// If mouse button is clicked, set all Popup selections to be retracted
+		// If mouse button is clicked, set all Popup selections to be retracted
 		case EventType.mouseUp:
 		{
 			current = null;
@@ -113,6 +120,9 @@ public class Popup{
 	{
 		return selectedItemIndex;
 	}
+	
+	//Must return seleciton once with the current Context Menu setup
+	public bool SelectionWasMade() {return selectionMade;}
 	
 	public Rect GetCurrentDimensions()
 	{

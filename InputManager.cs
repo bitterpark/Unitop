@@ -236,9 +236,6 @@ public class InputManager : MonoBehaviour {
 								controller.UnchildNode(selectedNode);
 								controller.DeleteLinkBetweenNodes(selectedNode,clickedNode);
 							}
-							//controller.ToggleLink(selectedNode.id,clickedNode.id);
-							//controller.CreateNewLink(selectedNode.id,clickedNode.id);
-							//controller.ToggleNodeHierarchy(selectedNode,clickedNode);
 						}		
 					}
 				}

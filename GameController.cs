@@ -91,44 +91,6 @@ namespace Topology {
 					if(xmlNode.Name == "node")
 					{
 						DownwardRecursiveNodeLoad(xmlNode);
-						/*
-						LoadNode(xmlNode);
-						
-						//Go through all children and children's children
-						XmlElement pointer=xmlNode;
-						while (pointer.HasChildNodes)
-						{
-							Node parent=LoadNode(pointer);
-							XmlNodeList childNodes=pointer.ChildNodes;
-							foreach (XmlElement child in childNodes)
-							{
-								Node newNode=LoadNode(child);
-								SetNodeAsChild(newNode,parent);
-							}
-						}*/
-						/*
-						if (xmlNode.HasChildNodes)
-						{
-							XmlNodeList childNodes=xmlNode.ChildNodes;
-							foreach ()
-						}*/
-						/*
-						float x = float.Parse(xmlNode.Attributes["x"].Value);
-						float y = float.Parse (xmlNode.Attributes["y"].Value);
-						float z = 3000;//float.Parse(xmlNode.Attributes["z"].Value);
-						
-						int iconIndex=0;
-						//set icon
-						if (xmlNode.HasAttribute("icon")) {iconIndex=int.Parse(xmlNode.Attributes["icon"].Value);}
-						//create root node
-						CreateNewNode (new Vector2(x,y),xmlNode.Attributes["name"].Value,xmlNode.Attributes["id"].Value,iconIndex);
-						//read children
-						if (xmlNode.HasChildNodes)
-						{
-							
-						}
-						statusText.text = "Загрузка топологии: Вершина " + nodeCount;//nodeObject.id;
-						nodeCountText.text = "Вершин: " + nodeCount;*/
 					}
 
 					//create links
@@ -255,10 +217,9 @@ namespace Topology {
 			newNodePos.z=3000;
 			
 			Node nodeObject = Instantiate(nodePrefab, newNodePos, Quaternion.identity) as Node;
-			//nodeObject.nodeText.text = xmlNode.Attributes["name"].Value;
 			
 			nodeObject.id = newNodeId;
-			nodeObject.nodeText.text=newNodeText;
+			nodeObject.text=newNodeText;//+"\nballs";
 			//			nodeObject.myPos=newNodePos;
 			nodeObject.controller=this;
 			nodeObject.SetSprite(newNodeSpriteIndex);
@@ -443,7 +404,7 @@ namespace Topology {
 					{
 						deltaFromCenter=(Vector2)copiedNode.transform.position-centerPoint;
 						Vector2 pastedNodePos=(Vector2)Camera.main.ScreenToWorldPoint(Input.mousePosition)+deltaFromCenter;
-						CreateNewNode (pastedNodePos,copiedNode.nodeText.text);
+						CreateNewNode (pastedNodePos,copiedNode.text);
 					}
 				}
 				else if (nodeCopyBuffer.Count==1)
@@ -718,20 +679,6 @@ namespace Topology {
 					{
 						DownwardRecursiveNodeWrite(elmRoot,node,xmlDoc);
 					}
-					/*
-					foreach (Node node in nodes.Values)
-					{
-						XmlElement savedNode=xmlDoc.CreateElement("node");
-						savedNode.SetAttribute("id",node.id);
-						savedNode.SetAttribute("name",node.nodeText.text);
-						Vector3 savedNodePos=node.gameObject.transform.position;
-						savedNode.SetAttribute("x",savedNodePos.x.ToString());
-						savedNode.SetAttribute("y",savedNodePos.y.ToString());
-						savedNode.SetAttribute("z",savedNodePos.z.ToString());
-						savedNode.SetAttribute("icon",node.GetSpriteIndex().ToString());
-						savedNode.SetAttribute("xmlns","http://graphml.graphdrawing.org/xmlns");
-						elmRoot.AppendChild(savedNode);
-					}*/
 				}
 				xmlDoc.Save(filepath); // save file.
 			}
@@ -754,7 +701,7 @@ namespace Topology {
 		{
 			XmlElement savedNode=xmlDoc.CreateElement("node");
 			savedNode.SetAttribute("id",writtenNode.id);
-			savedNode.SetAttribute("name",writtenNode.nodeText.text);
+			savedNode.SetAttribute("name",writtenNode.text);
 			Vector3 savedNodePos=writtenNode.gameObject.transform.position;
 			savedNode.SetAttribute("x",savedNodePos.x.ToString());
 			savedNode.SetAttribute("y",savedNodePos.y.ToString());

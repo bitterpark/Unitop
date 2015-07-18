@@ -31,7 +31,6 @@ public class ContextMenuManager{
 	public Popup selectItemDroplist=new Popup();
 	public Popup selectColorDroplist=new Popup();
 	public Popup selectIconDroplist=new Popup();
-	//public Texture[] nodeTextures;
 	public Texture[] colorTextures;
 	public GUISkin currentSkin;
 	Link lastSelectedLink=null;
@@ -122,9 +121,9 @@ public class ContextMenuManager{
 			GUI.Label (new Rect(rightColumnStartX,rightColumnStartY+elementSizeY+vPad*2,elementSizeX,elementSizeY),"Иконка:");
 			
 			//NAME EDIT FIELD
-			string nodeName=InputManager.mainInputManager.GetSelectedNodes()[selectItemDroplist.GetSelectedItemIndex()].nodeText.text;
+			string nodeName=InputManager.mainInputManager.GetSelectedNodes()[selectItemDroplist.GetSelectedItemIndex()].text;
 			nodeName=GUI.TextField(new Rect(rightColumnStartX,rightColumnStartY,elementSizeX*1.3f,elementSizeY),nodeName);
-			InputManager.mainInputManager.GetSelectedNodes()[selectItemDroplist.GetSelectedItemIndex()].nodeText.text=nodeName;
+			InputManager.mainInputManager.GetSelectedNodes()[selectItemDroplist.GetSelectedItemIndex()].text=nodeName;
 			//GUI.EndGroup();
 			
 			//SELECT OBJ MENU (must be last item rendered)
@@ -154,7 +153,11 @@ public class ContextMenuManager{
 			selectIconDroplist.List(new Rect(rightColumnStartX,rightColumnStartY+elementSizeY*1.6f+vPad*2,elementSizeX*1.3f,elementSizeY)
 			                        ,iconDroplistContent,"box",currentSkin.customStyles[5]);
 			//Set new icon for all selected nodes
-			foreach (Node node in InputManager.mainInputManager.GetSelectedNodes()) {node.SetSprite(selectIconDroplist.GetSelectedItemIndex());}				
+			if (selectIconDroplist.SelectionWasMade())
+			{
+				//InputManager.DebugPrint("changing sprites!"); //print("changing sprites!");
+				foreach (Node node in InputManager.mainInputManager.GetSelectedNodes()) {node.SetSprite(selectIconDroplist.GetSelectedItemIndex());}
+			}				
 		}
 		
 		//links tooltip

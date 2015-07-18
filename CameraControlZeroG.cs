@@ -66,24 +66,8 @@ public class CameraControlZeroG : MonoBehaviour {
 		if (Input.GetAxis("Mouse ScrollWheel")>0) 
 		{
 			perspCameraMove+=new Vector3(0,0,100);
-			
-			//Screen.lockCursor=true;
-			//Screen.lockCursor=false;
 			Vector3 cursorWorldPoint=Camera.main.ScreenToWorldPoint(Input.mousePosition);
 			orthCameraSize-=zoomSpd;
-			/*
-			if (zoomLvl>0) 
-			{
-				//keep cursor position consistent
-				
-				
-				
-				Vector3 cursorWorldDelta=cursorWorldPoint-Camera.main.ScreenToWorldPoint(Input.mousePosition);
-				Camera.main.transform.position+=cursorWorldDelta;
-				
-				//StartCoroutine("PsideZoomManager",cursorWorldPoint);
-				
-			}*/
 			zoomLvl-=1;	
 		}
 		if (Input.GetAxis("Mouse ScrollWheel")<0) 

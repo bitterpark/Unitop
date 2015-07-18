@@ -9,6 +9,13 @@ namespace Topology {
 
 		public string id;
 		public TextMesh nodeText;
+		public string text
+		{
+			get {return _text;}
+			set {_text=value; nodeText.text=osText+"\n"+_text;}
+		}
+		string _text="";
+		string osText="";
 		public GameController controller;
 		Vector3 beginDragMousePos=Vector3.zero;
 		//public Vector3 myPos;
@@ -41,7 +48,29 @@ namespace Topology {
 		public Node parentNode=null;
 		
 		public Texture[] textures;
-		int currentSprite=0;
+		int currentSprite
+		{
+			get {return _currentSprite;}
+			set 
+			{
+				_currentSprite=value;
+				switch (_currentSprite)
+				{
+					case 0:{osText="XP";break;}
+					case 1:{osText="Vista";break;}
+					case 2:{osText="Win7";break;}
+					case 3:{osText="Win8";break;}
+					case 4:{osText="2000";break;}
+					case 5:{osText="2003";break;}
+					case 6:{osText="2008";break;}
+					case 7:{osText="2012";break;}
+					case 8:{osText="Linux";break;}
+					case 9:{osText="MacOS";break;}	
+				}
+				text=text;
+			}
+		}
+		int _currentSprite=0;
 		
 		bool dragged=false;
 		TimerDetector myTimer=null;
@@ -135,6 +164,7 @@ namespace Topology {
 				currentSprite=0;
 			}
 		}
+		
 		
 		public int GetSpriteIndex()
 		{return currentSprite;}
