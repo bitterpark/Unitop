@@ -225,6 +225,9 @@ public class FileBrowser {
 		for (int i = 0; i < m_filesWithImages.Length; ++i) {
 			m_filesWithImages[i] = new GUIContent(m_files[i], FileImage);
 		}
+		//ADDED THIS TO PREVENT FILES BEING DISPLAYED
+		m_nonMatchingFiles=new string[0];
+		//END OF ADDED CONTENT
 		m_nonMatchingFilesWithImages = new GUIContent[m_nonMatchingFiles.Length];
 		for (int i = 0; i < m_nonMatchingFilesWithImages.Length; ++i) {
 			m_nonMatchingFilesWithImages[i] = new GUIContent(m_nonMatchingFiles[i], FileImage);

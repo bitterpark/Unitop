@@ -58,14 +58,14 @@ namespace Topology {
 				{
 					case 0:{osText="XP";break;}
 					case 1:{osText="Vista";break;}
-					case 2:{osText="Win7";break;}
-					case 3:{osText="Win8";break;}
+					case 2:{osText="7";break;}
+					case 3:{osText="8";break;}
 					case 4:{osText="2000";break;}
 					case 5:{osText="2003";break;}
 					case 6:{osText="2008";break;}
 					case 7:{osText="2012";break;}
 					case 8:{osText="Linux";break;}
-					case 9:{osText="MacOS";break;}	
+					case 9:{osText="Mac";break;}	
 				}
 				text=text;
 			}

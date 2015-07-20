@@ -29,7 +29,7 @@ public class InputManager : MonoBehaviour {
 	Rect saveButtonRect=new Rect(85,5,80,30);
 	Rect fileBrowserWindowRect=new Rect(100, 100, 600, 500);
 	
-	
+	bool supressContextMenu=false;
 	
 	enum MouseClickMode {SingleSelect, MultiSelect, ControlSelect, CreateLinkMode, CreateHierarchyLinkMode};
 	//ctrl, shift,alt select, link create and hierarchy link toggle
@@ -100,7 +100,7 @@ public class InputManager : MonoBehaviour {
 			if (GUI.Button(saveButtonRect,"Сохранить")) {controller.SaveAll();}
 		}
 		//ManageTooltip();
-		myContextMenu.ManageTooltip();
+		myContextMenu.ManageTooltip(supressContextMenu);
 	}
 	
 	protected void OnGUIMain() {
@@ -111,7 +111,7 @@ public class InputManager : MonoBehaviour {
 		//GUILayout.Label(sourceFile ?? "none selected");
 		if (GUI.Button(openButtonRect,"Открыть..."))
 		{//GUILayout.ExpandWidth(false))) {
-			fb = new FileBrowser(fileBrowserWindowRect,"Выберите xml файл",FileSelectedCallback);
+			fb = new FileBrowser(fileBrowserWindowRect,"Выберите xml-файл",FileSelectedCallback);
 			
 			fb.SelectionPattern = "*.xml";
 			fb.DirectoryImage=folder;
@@ -286,6 +286,7 @@ public class InputManager : MonoBehaviour {
 		//swapLinks.ToArray(swapOverAr);
 		swapOverAr=swapLinks.ToArray();
 		controller.linkDrawManager.SwapDrawnLinks(swapOverAr);
+		supressContextMenu=true;
 	}
 	
 	//Put connecting link drawing back into the main renderer
@@ -312,6 +313,7 @@ public class InputManager : MonoBehaviour {
 		Link[] swapOverAr=new Link[unswapLinks.Count];
 		swapOverAr=unswapLinks.ToArray();
 		controller.linkDrawManager.UnswapDrawnLinks(swapOverAr);
+		supressContextMenu=false;
 	}
 	
 	void ManageAllNodeSelect()
@@ -338,6 +340,27 @@ public class InputManager : MonoBehaviour {
 			} 
 		}
 		#endif
+	}
+	
+	void ManageSaveHotkey()
+	{
+		if (controller.SceneIsLoaded())
+		{
+			#if UNITY_EDITOR
+			if (Input.GetKeyDown (KeyCode.V))
+			{
+				controller.SaveAll();
+			}
+			#else
+			if (Input.GetKey(KeyCode.LeftControl))
+			{
+				if (Input.GetKeyDown (KeyCode.S))
+				{
+					controller.SaveAll();
+				} 
+			}
+			#endif
+		}
 	}
 	
 	void CopySelectedNodes()

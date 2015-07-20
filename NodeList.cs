@@ -15,13 +15,7 @@ public class NodeList: MonoBehaviour
 	Vector2 nodeListScrollPos=Vector2.zero;
 	float nodeListProjectedWidth=190;
 	public GUISkin mySkin;
-	
-	/*
-	public NodeList(GUISkin usedSkin)
-	{
-		mySkin=usedSkin;
-	}*/
-	
+
 	public void DrawNodeListWindow()
 	{
 		GUI.Window(0,nodeListRect,DrawNodeList,"Карта Нод");
@@ -100,7 +94,7 @@ public class NodeList: MonoBehaviour
 		//leftOffset-expandButtonWidth
 		Rect scrollDims=new Rect(leftOffset-expandButtonWidth,topOffset,entryWidth+parentOffsetDelta,nodeListRect.height-bottomOffset-topOffset+10);
 		Rect scrollArea=new Rect(leftOffset-expandButtonWidth,topOffset,nodeListProjectedWidth,topOffset+(entryHeight+vPad)*(maxEntries-3));
-		nodeListScrollPos=GUI.BeginScrollView(scrollDims,nodeListScrollPos,scrollArea,true,false);
+		nodeListScrollPos=GUI.BeginScrollView(scrollDims,nodeListScrollPos,scrollArea,false,false);
 		
 		//Set starting position for the first item in the list
 		Rect entryRect=new Rect(leftOffset,topOffset,entryWidth,entryHeight);//Screen.width-width+30,topOffset,width-20,entryHeight);
