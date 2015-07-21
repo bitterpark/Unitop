@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections;
-//used mainly for doubleclicks
+
 public class TimerDetector 
 {
 

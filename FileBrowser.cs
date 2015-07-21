@@ -234,7 +234,10 @@ public class FileBrowser {
 		}
 	}
 	
-	public void OnGUI() {
+	
+	public void OnGUI(float currentx, float currenty) {
+		m_screenRect.x=currentx;
+		m_screenRect.y=currenty;
 		GUILayout.BeginArea(
 			m_screenRect,
 			m_name,

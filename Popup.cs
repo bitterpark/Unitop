@@ -24,7 +24,12 @@ public class Popup{
 	
 	// This function is ran inside of OnGUI()
 	// For usage, see http://wiki.unity3d.com/index.php/PopupList#Javascript_-_PopupListUsageExample.js
-	public int List(Rect box, GUIContent[] items, GUIStyle boxStyle, GUIStyle listStyle) {
+	public int List(Rect box, GUIContent[] items, GUIStyle boxStyle, GUIStyle listStyle)
+	{
+		return List (box,items,boxStyle,listStyle,"button");
+	}
+	
+	public int List(Rect box, GUIContent[] items, GUIStyle boxStyle, GUIStyle listStyle, GUIStyle buttonStyle) {
 		
 		selectionMade=false;
 		// If the instance's popup selection is visible
@@ -47,11 +52,6 @@ public class Popup{
 			int selectIndex= GUI.SelectionGrid( listRect, -1, items, 1, listStyle );
 			
 			GUI.EndScrollView();
-			/*
-			selectedItemIndex=GUILayout.SelectionGrid(selectedItemIndex,items,1,listStyle
-			, GUILayout.Width(box.width),GUILayout.Height(box.height* items.Length), GUILayout.MaxWidth(box.width));
-			GUILayout.EndScrollView();
-			GUILayout.EndArea();*/
 			// If the user makes a selection, make the popup list disappear and the button reappear
 			if (selectIndex!=-1)
 			{
@@ -84,7 +84,7 @@ public class Popup{
 		// Draw a button. If the button is clicked
 		if (!isClicked)
 		{
-			if(GUI.Button(new Rect(box.x,box.y,box.width,box.height),items[selectedItemIndex])) {
+			if(GUI.Button(new Rect(box.x,box.y,box.width,box.height),items[selectedItemIndex],buttonStyle)) {
 				
 				// If the button was not clicked before, set the current instance to be the active instance
 				if(!isClicked) {

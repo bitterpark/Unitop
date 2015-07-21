@@ -1,11 +1,14 @@
 ﻿using UnityEngine;
 using System.Collections;
+using System.Collections.Generic;
 using Topology;
 
 public class ContextMenuManager{
 	
 	Rect contextMenuPosNodes=new Rect(5,125,310,70);
 	Rect contextMenuPosLinks=new Rect(5,125,350,100);
+	float contextMenuNodesWidthSingle=310; //Must be equal to contextMenuPosNodes start width
+	float contextMenuNodesWidthMulti=155;
 	public Rect GetContextMenuPosNodes() {return contextMenuPosNodes;}
 	public Rect GetContextMenuPosLinks() {return contextMenuPosLinks;}
 	public bool isDrawn=false;
@@ -19,7 +22,7 @@ public class ContextMenuManager{
 			{
 				//lastSelectedLinkNode=null;
 				if (value==0) {lastSelectedLink=null;}
-				if (value==1) {lastSelectedNode=null;}
+				if (value==1) {}//lastSelectedNode=null;}
 			}
 			_tooltipMode=value;
 		}
@@ -34,14 +37,30 @@ public class ContextMenuManager{
 	public Texture[] colorTextures;
 	public GUISkin currentSkin;
 	Link lastSelectedLink=null;
-	Node lastSelectedNode=null;
+	//Node lastSelectedNode=null;
 	
 	public ContextMenuManager(GUISkin mySkin, Texture[] linkColorTextures)
 	{
 		currentSkin=mySkin;
 		colorTextures=linkColorTextures;
+		InputManager.mainInputManager.SelectedNodesChanged+=AnchorToLastSelectedNode;
 	}
 	
+	void AnchorToLastSelectedNode()
+	{
+		if (InputManager.mainInputManager.GetSelectedNodes().Count>0)
+		{
+			//For new small window system
+			Node lastSelectedNode=InputManager.mainInputManager.GetSelectedNodes()[InputManager.mainInputManager.GetSelectedNodes().Count-1];
+			Vector3 screenPos=Camera.main.WorldToScreenPoint(lastSelectedNode.transform.position);
+			contextMenuPosNodes.x=screenPos.x;
+			//Tranform from screen space to UI space
+			contextMenuPosNodes.y=Screen.height-screenPos.y;
+			float menuOffsetFromNode=100f;
+			if (contextMenuPosNodes.x-(contextMenuPosNodes.width+menuOffsetFromNode)>0) {contextMenuPosNodes.x-=contextMenuPosNodes.width+menuOffsetFromNode;}
+			else {contextMenuPosNodes.x+=menuOffsetFromNode;}
+		}
+	}
 	
 	public void ManageTooltip(bool isSupressed)
 	{
@@ -59,11 +78,11 @@ public class ContextMenuManager{
 	{
 		if (mode==1) 
 		{
-			/*
+			
 			Rect nodeWindowRect=new Rect( contextMenuPosNodes.x,contextMenuPosNodes.y,contextMenuPosNodes.width,20);
 			nodeWindowRect=GUI.Window (1,nodeWindowRect,DragWindowFunc,"",GUIStyle.none);
 			contextMenuPosNodes.x=nodeWindowRect.x;
-			contextMenuPosNodes.y=nodeWindowRect.y;*/
+			contextMenuPosNodes.y=nodeWindowRect.y;
 			//InputManager.ShitPrint(contextMenuPosNodes.ToString());
 			DrawTooltip(mode);
 		}
@@ -96,17 +115,7 @@ public class ContextMenuManager{
 		//nodes tooltip
 		if (mode==1)
 		{
-			//For new small window system
-			lastSelectedNode=InputManager.mainInputManager.GetSelectedNodes()[InputManager.mainInputManager.GetSelectedNodes().Count-1];
-			Vector3 screenPos=Camera.main.WorldToScreenPoint(lastSelectedNode.transform.position);
-			contextMenuPosNodes.x=screenPos.x;
-			//Tranform from screen space to UI space
-			contextMenuPosNodes.y=Screen.height-screenPos.y;
-			float menuOffsetFromNode=100f;
-			//contextMenuPosNodes.x-=contextMenuPosNodes.width+menuOffsetFromNode;
-			//if (contextMenuPosNodes.x<0) {contextMenuPosNodes.x=0;}
-			if (contextMenuPosNodes.x-(contextMenuPosNodes.width+menuOffsetFromNode)>0) {contextMenuPosNodes.x-=contextMenuPosNodes.width+menuOffsetFromNode;}
-			else {contextMenuPosNodes.x+=menuOffsetFromNode;}
+			List<Node> selected=InputManager.mainInputManager.GetSelectedNodes();
 			
 			//print("context:"+contextMenuPosNodes);
 			
@@ -114,18 +123,23 @@ public class ContextMenuManager{
 			leftColumnStartY+=contextMenuPosNodes.y;
 			rightColumnStartX+=leftColumnStartX;
 			rightColumnStartY=leftColumnStartY;
+			if (selected.Count==1)
+			{
+				contextMenuPosNodes.width=contextMenuNodesWidthSingle;
+			} else {contextMenuPosNodes.width=contextMenuNodesWidthMulti;}
 			GUI.Box(contextMenuPosNodes,"Контекстное меню",new GUIStyle("window"));
 			//check if last select is still in the list
+			/*
 			if (InputManager.mainInputManager.GetSelectedNodes().Contains(lastSelectedNode))//(Node)lastSelectedLinkNode))
 			{
 				selectItemDroplist.SetSelectedItemIndex(InputManager.mainInputManager.GetSelectedNodes().IndexOf(lastSelectedNode));//((Node)lastSelectedLinkNode));
 			} else {selectItemDroplist.SetSelectedItemIndex(0);}
-			
+			*/
 			//Generate droplist content
-			GUIContent[] droplistContent=new GUIContent[InputManager.mainInputManager.GetSelectedNodes().Count];
-			for (int i=0; i<InputManager.mainInputManager.GetSelectedNodes().Count; i++)
+			GUIContent[] droplistContent=new GUIContent[selected.Count];
+			for (int i=0; i<selected.Count; i++)
 			{
-				droplistContent[i]=new GUIContent(InputManager.mainInputManager.GetSelectedNodes()[i].id);
+				droplistContent[i]=new GUIContent(selected[i].id);
 			}
 			
 			//Main box and labels
@@ -138,20 +152,21 @@ public class ContextMenuManager{
 			*/
 			
 			//NAME EDIT FIELD
-			string nodeName=InputManager.mainInputManager.GetSelectedNodes()[selectItemDroplist.GetSelectedItemIndex()].text;
-			nodeName=GUI.TextField(new Rect(rightColumnStartX,rightColumnStartY+3,elementSizeX*1.3f,elementSizeY),nodeName);
-			InputManager.mainInputManager.GetSelectedNodes()[selectItemDroplist.GetSelectedItemIndex()].text=nodeName;
-			//GUI.EndGroup();
-			
+			if (selected.Count==1)
+			{
+				string nodeName=selected[selectItemDroplist.GetSelectedItemIndex()].text;
+				nodeName=GUI.TextField(new Rect(rightColumnStartX,rightColumnStartY+3,elementSizeX*1.3f,elementSizeY),nodeName);
+				selected[selectItemDroplist.GetSelectedItemIndex()].text=nodeName;
+			}		
 			//SELECT OBJ MENU (must be last item rendered)
 			/*
 			selectItemDroplist.List(new Rect(leftColumnStartX,leftColumnStartY+elementSizeY*1.6f+vPad*2,elementSizeX,elementSizeY)//elementSizeY+100)
 			                        ,droplistContent,"box",currentSkin.customStyles[1]);
-			lastSelectedNode=InputManager.mainInputManager.GetSelectedNodes()[selectItemDroplist.GetSelectedItemIndex()];
+			lastSelectedNode=selected[selectItemDroplist.GetSelectedItemIndex()];
 			*/
 			
 			//set current icon selection
-			Node currentNode=InputManager.mainInputManager.GetSelectedNodes()[selectItemDroplist.GetSelectedItemIndex()];
+			Node currentNode=selected[selectItemDroplist.GetSelectedItemIndex()];
 			selectIconDroplist.SetSelectedItemIndex(currentNode.GetSpriteIndex());
 			//generate icon droplist content
 			Texture[] cachedNodeTextures=GameController.mainController.GetNodeTextures();
@@ -170,12 +185,12 @@ public class ContextMenuManager{
 			
 			//select icon droplist
 			selectIconDroplist.List(new Rect(leftColumnStartX,leftColumnStartY,elementSizeX*1.3f,elementSizeY)
-			                        ,iconDroplistContent,"box",currentSkin.customStyles[5]);
+			                        ,iconDroplistContent,"box",currentSkin.customStyles[5],currentSkin.customStyles[6]);
 			//Set new icon for all selected nodes
 			if (selectIconDroplist.SelectionWasMade())
 			{
 				//InputManager.DebugPrint("changing sprites!"); //print("changing sprites!");
-				foreach (Node node in InputManager.mainInputManager.GetSelectedNodes()) {node.SetSprite(selectIconDroplist.GetSelectedItemIndex());}
+				foreach (Node node in selected) {node.SetSprite(selectIconDroplist.GetSelectedItemIndex());}
 			}				
 		}
 		

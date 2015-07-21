@@ -10,6 +10,8 @@ public class InputManager : MonoBehaviour {
 	
 	public static InputManager mainInputManager;
 	
+	public enum CursorLoc {OverGUI,OverScene};
+	public CursorLoc currentCursorLoc=CursorLoc.OverScene;
 	
 	TimerDetector dclickTimer=null;
 	
@@ -17,10 +19,22 @@ public class InputManager : MonoBehaviour {
 	List<Node> selectedNodes=new List<Node>();
 	public List<Node> GetSelectedNodes() {return selectedNodes;}
 	public List<Link> GetSelectedLinks() {return selectedLinks;}
+	void AddSelectedNodes(Node addedNode) 
+	{
+		selectedNodes.Add (addedNode);
+		SelectedNodesChanged();
+	}
+	void RemoveSelectedNodes(Node removedNode) 
+	{
+		selectedNodes.Remove (removedNode);
+		SelectedNodesChanged();
+	}
 	
 	
 	public Texture[] colorTextures;
 	
+	public delegate void NodeSelectChangeDelegate();
+	public event NodeSelectChangeDelegate SelectedNodesChanged;
 	
 	NodeList myNodeList;
 	ContextMenuManager myContextMenu;
@@ -28,6 +42,7 @@ public class InputManager : MonoBehaviour {
 	Rect openButtonRect=new Rect(5,5,80,30);
 	Rect saveButtonRect=new Rect(85,5,80,30);
 	Rect fileBrowserWindowRect=new Rect(100, 100, 600, 500);
+	Rect fileBrowserCurrentPos;
 	
 	bool supressContextMenu=false;
 	
@@ -59,6 +74,7 @@ public class InputManager : MonoBehaviour {
 	//fires before physics clicks and Update
 	void FixedUpdate()
 	{
+		//Must be in fixedUpdate
 		HandleClickMode();
 	}	
 	
@@ -67,8 +83,8 @@ public class InputManager : MonoBehaviour {
 	{
 		
 		//manage input
-		ManageAllNodeSelect();
-		
+		HandleCursorLoc();
+		ManageAllNodeSelect();	
 		ManageLinkSelection();
 		
 		ManageClickDeselect();
@@ -87,7 +103,9 @@ public class InputManager : MonoBehaviour {
 		GUI.skin=fbSkin;
 		if (fb != null) 
 		{
-			fb.OnGUI();
+			
+			fileBrowserCurrentPos=GUI.Window(4,fileBrowserCurrentPos,DragFbWindowFunc,"",GUIStyle.none);
+			fb.OnGUI(fileBrowserCurrentPos.x,fileBrowserCurrentPos.y);
 		} 
 		else 
 		{
@@ -116,6 +134,8 @@ public class InputManager : MonoBehaviour {
 			fb.SelectionPattern = "*.xml";
 			fb.DirectoryImage=folder;
 			fb.FileImage=file;
+			fileBrowserCurrentPos=fileBrowserWindowRect;
+			fileBrowserCurrentPos.height=20f;
 			
 		}
 		GUILayout.EndHorizontal();
@@ -138,6 +158,17 @@ public class InputManager : MonoBehaviour {
 		fb=null;
 	}
 	
+	void DragFbWindowFunc(int emptySig) 
+	{
+		//Make window draggable
+		GUI.DragWindow();
+	}
+	
+	void HandleCursorLoc()
+	{
+		if (ClickedOnGUI()) {currentCursorLoc=CursorLoc.OverGUI;}
+		else {currentCursorLoc=CursorLoc.OverScene;}
+	}
 
 	
 	void HandleClickMode()
@@ -176,17 +207,16 @@ public class InputManager : MonoBehaviour {
 			if (currentClickMode==MouseClickMode.SingleSelect)
 			{	
 				DeselectAllNodes();
-				selectedNodes.Add(clickedNode);//HashtableAppendNum(selectedNodes,clickedNode);//selectedNodes.Add(clickedNode);
+				AddSelectedNodes(clickedNode);
 				clickedNode.selected=true;
 			}
 		
 			//shift select mode
 			if (currentClickMode==MouseClickMode.MultiSelect)
 			{ 
-				//selectedNodes.Add(clickedNode);
 				if (!selectedNodes.Contains(clickedNode))
 				{
-					selectedNodes.Add(clickedNode);//HashtableAppendNum(selectedNodes,clickedNode);
+					AddSelectedNodes(clickedNode);//HashtableAppendNum(selectedNodes,clickedNode);
 					clickedNode.selected=true;
 				}
 			}
@@ -196,12 +226,12 @@ public class InputManager : MonoBehaviour {
 			{
 				if (selectedNodes.Contains(clickedNode))//selectedNodes.Contains(clickedNode)) 
 				{
-					selectedNodes.Remove(clickedNode);//selectedNodes.Remove(HashtableFindKeyOfValue(clickedNode));
+					RemoveSelectedNodes(clickedNode);
 					clickedNode.selected=false;
 				}
 				else
 				{
-					selectedNodes.Add(clickedNode);//HashtableAppendNum(selectedNodes,clickedNode);//selectedNodes.Add(clickedNode);
+					AddSelectedNodes(clickedNode);
 					clickedNode.selected=true;
 				}
 			}
@@ -588,7 +618,7 @@ public class InputManager : MonoBehaviour {
 				} 
 				else 
 				{
-					if (selectedNodes.Contains(node)) {node.selected=false; selectedNodes.Remove(node);}
+					if (selectedNodes.Contains(node)) {node.selected=false; RemoveSelectedNodes(node);}
 				}
 			}
 			

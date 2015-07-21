@@ -18,7 +18,7 @@ public class NodeList: MonoBehaviour
 
 	public void DrawNodeListWindow()
 	{
-		GUI.Window(0,nodeListRect,DrawNodeList,"Карта Нод");
+		GUI.Window(0,nodeListRect,DrawNodeList,"Карта нод");
 	}
 	
 	List<Node> DownwardRecursiveDrawNodeChildren(Node parentNode)
@@ -84,9 +84,29 @@ public class NodeList: MonoBehaviour
 		float scrollBarXStart=nodeListRect.width-30;
 		if (firstEntryMaxIndex>0)
 		{
-			//print ("maxvalu:"+firstEntryMaxIndex);
+			
+			if (InputManager.mainInputManager.currentCursorLoc==InputManager.CursorLoc.OverGUI)
+			{
+				Vector2 mousePosInGUICoords = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
+				if (nodeListRect.Contains(mousePosInGUICoords))
+				{
+					float scrollbarValueDelta=0.5f;
+					if (Input.GetAxis("Mouse ScrollWheel")>0)
+					{
+						nodeListFirstElementIndex-=scrollbarValueDelta;
+					}
+					if (Input.GetAxis("Mouse ScrollWheel")<0)
+					{
+						nodeListFirstElementIndex+=scrollbarValueDelta;
+					}
+					nodeListFirstElementIndex=Mathf.Clamp(nodeListFirstElementIndex,0,firstEntryMaxIndex);
+				}
+			}
+			
+			
 			nodeListFirstElementIndex=GUI.VerticalScrollbar(new Rect(scrollBarXStart,topOffset,verticalScrollbarWidth,Screen.height-bottomOffset-topOffset-40)
-			                                                ,nodeListFirstElementIndex,0.4f,0,firstEntryMaxIndex);
+			,nodeListFirstElementIndex,0.4f,0,firstEntryMaxIndex);
+			//print ("result index is:"+nodeListFirstElementIndex);
 		}
 		else {nodeListFirstElementIndex=0;}
 		
@@ -189,5 +209,19 @@ public class NodeList: MonoBehaviour
 		yield break;
 		
 	}
-
+	
+	/*
+	void Update()
+	{
+		
+	
+	}
+	
+	void ManageVerticalMousewheelScroll()
+	{
+		if (Input.GetAxis("Mouse ScrollWheel")>0)
+		{
+		
+		}
+	}*/
 }

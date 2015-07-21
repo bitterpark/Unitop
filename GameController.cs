@@ -206,6 +206,17 @@ namespace Topology {
 		
 		}
 		
+		void CreateNewNode(Vector2 newNodePosition,string newNodeText,int newNodeSpriteIndex)
+		{
+			int i=0;
+			while (nodes.ContainsKey("node_"+i.ToString()))
+			{
+				i++;
+			}
+			string generatedId="node_"+i.ToString();
+			CreateNewNode(newNodePosition,newNodeText,generatedId,newNodeSpriteIndex);
+		}
+		
 		void CreateNewNode(Vector2 newNodePosition,string newNodeText, string newNodeId)
 		{
 			CreateNewNode (newNodePosition,newNodeText,newNodeId,0);
@@ -404,13 +415,14 @@ namespace Topology {
 					{
 						deltaFromCenter=(Vector2)copiedNode.transform.position-centerPoint;
 						Vector2 pastedNodePos=(Vector2)Camera.main.ScreenToWorldPoint(Input.mousePosition)+deltaFromCenter;
-						CreateNewNode (pastedNodePos,copiedNode.text);
+						CreateNewNode (pastedNodePos,copiedNode.text,copiedNode.GetSpriteIndex());
 					}
 				}
 				else if (nodeCopyBuffer.Count==1)
 				{
+					Node singleCopiedNode=nodeCopyBuffer[0];
 					Vector3 pastedNodePos=Camera.main.ScreenToWorldPoint(Input.mousePosition);
-					CreateNewNode (pastedNodePos);
+					CreateNewNode (pastedNodePos,singleCopiedNode.text,singleCopiedNode.GetSpriteIndex());
 				}
 			}
 		}
@@ -617,6 +629,8 @@ namespace Topology {
 			elmRoot.SetAttribute("camerax",Camera.main.transform.position.x.ToString());
 			if (!elmRoot.HasAttribute("cameray")) {elmRoot.SetAttributeNode("cameray","");}
 			elmRoot.SetAttribute("cameray",Camera.main.transform.position.y.ToString());
+			if (!elmRoot.HasAttribute("cameraZoomlvl")) {elmRoot.SetAttributeNode("cameraZoomlvl","");}
+			elmRoot.SetAttribute("cameraZoomlvl",CameraControlZeroG.mainCameraControl.GetZoomLvl().ToString());
 			//if (elmRoot)
 			xmlDoc.Save(filepath);
 		}
@@ -633,6 +647,8 @@ namespace Topology {
 			else {cameraPos.x=2000;}
 			if (elmRoot.HasAttribute("cameray")) {cameraPos.y=float.Parse(elmRoot.GetAttribute("cameray"));}
 			else {cameraPos.y=2000;}
+			if (elmRoot.HasAttribute ("cameraZoomlvl")) {CameraControlZeroG.mainCameraControl.SetZoomLvl(int.Parse(elmRoot.GetAttribute("cameraZoomlvl")));}
+			else {CameraControlZeroG.mainCameraControl.SetZoomLvl(0);}
 			
 			Camera.main.transform.position=cameraPos;	
 		}
