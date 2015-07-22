@@ -32,6 +32,7 @@ namespace Topology {
 		
 		}
 		bool _selected;
+		bool clickActionDone=false;
 		public bool hasChildren
 		{
 			get {return _hasChildren;}
@@ -86,9 +87,10 @@ namespace Topology {
 			//Make sure node can't be dragged through GUI
 			if (!InputManager.mainInputManager.ClickedOnGUI())
 			{
-				if (InputManager.mainInputManager.GetSelectedNodes().Contains(this)) 
-				{controller.myInputManager.ClickedNodeAction(this,false,true);}
-				else {controller.myInputManager.ClickedNodeAction(this,false,false);}
+				clickActionDone=InputManager.mainInputManager.ClickNode(this,false);
+				//if (InputManager.mainInputManager.GetSelectedNodes().Contains(this)) {}
+				//else {controller.myInputManager.ClickedNodeAction(this,false,false); clickActionDone=true;} 
+				//controller.myInputManager.ClickedNodeAction(this,false,true);}	
 				beginDragMousePos=Input.mousePosition;
 			}
 		}
@@ -128,7 +130,8 @@ namespace Topology {
 				controller.myInputManager.NodeDragComplete();
 				beginDragMousePos=Vector3.zero;
 			}
-			controller.myInputManager.ClickedNodeAction(this,false,dragged);
+			if (!clickActionDone) {controller.myInputManager.ClickedNodeAction(this,false,dragged);}
+			clickActionDone=false;
 			dragged=false;
 			myTimer=null;
 		}

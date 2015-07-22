@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using Topology;
+using System.Collections.Generic;
 public class Popup{
 	
 	// Represents the selected index of the popup list, the default selected index is 0, or the first item
@@ -24,18 +25,28 @@ public class Popup{
 	
 	// This function is ran inside of OnGUI()
 	// For usage, see http://wiki.unity3d.com/index.php/PopupList#Javascript_-_PopupListUsageExample.js
-	public int List(Rect box, GUIContent[] items, GUIStyle boxStyle, GUIStyle listStyle)
+	public int List(Rect box, List<GUIContent> items, GUIStyle boxStyle, GUIStyle listStyle)
 	{
 		return List (box,items,boxStyle,listStyle,"button");
 	}
 	
-	public int List(Rect box, GUIContent[] items, GUIStyle boxStyle, GUIStyle listStyle, GUIStyle buttonStyle) {
+	public int List(Rect box, List<GUIContent> items, GUIStyle boxStyle, GUIStyle listStyle, GUIStyle buttonStyle) {
 		
 		selectionMade=false;
+		//Make sure currently selected item is displayed first
+		List<GUIContent> itemsAsDisplayed=new List<GUIContent>();
+		foreach (GUIContent content in items)
+		{
+			itemsAsDisplayed.Add(content);
+		}
+		GUIContent currentSelected=items[selectedItemIndex];
+		itemsAsDisplayed.RemoveAt(selectedItemIndex);
+		itemsAsDisplayed.Insert(0,currentSelected);
+		
 		// If the instance's popup selection is visible
 		if(isVisible) 
 		{
-			Rect listRect = new Rect( 0, 0, box.width,box.height*items.Length);//width,height);// box.height * items.Length);
+			Rect listRect = new Rect( 0, 0, box.width,box.height*itemsAsDisplayed.Count);//width,height);// box.height * items.Length);
 			Rect scrollViewRect=new Rect(box.x,box.y,box.width+20f,(box.height*10));
 			scrollPos=GUI.BeginScrollView(scrollViewRect,scrollPos,listRect);
 			//Set dimensions to fit the selectbox
@@ -49,19 +60,22 @@ public class Popup{
 			                                    );*/
 			// Draw a SelectionGrid and listen for user selection
 			
-			int selectIndex= GUI.SelectionGrid( listRect, -1, items, 1, listStyle );
+			int selectIndex= GUI.SelectionGrid( listRect, -1, itemsAsDisplayed.ToArray(), 1, listStyle );
 			
 			GUI.EndScrollView();
 			// If the user makes a selection, make the popup list disappear and the button reappear
 			if (selectIndex!=-1)
 			{
-				//if(GUI.changed) {
-					selectedItemIndex=selectIndex;
-					current = null;
-					isClicked=false;
-					currentDimensions=box;
-					//Must be set to true for one frame
-					selectionMade=true;
+				//Find actual index of item
+				int realSelectedIndex=items.IndexOf(itemsAsDisplayed[selectIndex]);
+					
+					
+				selectedItemIndex=realSelectedIndex;
+				current = null;
+				isClicked=false;
+				currentDimensions=box;
+				//Must be set to true for one frame
+				selectionMade=true;
 				//}
 			}
 			//InputManager.DebugPrint("selection is:"+selectionMade.ToString());
@@ -84,7 +98,7 @@ public class Popup{
 		// Draw a button. If the button is clicked
 		if (!isClicked)
 		{
-			if(GUI.Button(new Rect(box.x,box.y,box.width,box.height),items[selectedItemIndex],buttonStyle)) {
+			if(GUI.Button(new Rect(box.x,box.y,box.width,box.height),itemsAsDisplayed[0],buttonStyle)){//selectedItemIndex],buttonStyle)) {
 				
 				// If the button was not clicked before, set the current instance to be the active instance
 				if(!isClicked) {

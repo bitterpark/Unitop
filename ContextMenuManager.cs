@@ -9,6 +9,7 @@ public class ContextMenuManager{
 	Rect contextMenuPosLinks=new Rect(5,125,350,100);
 	float contextMenuNodesWidthSingle=310; //Must be equal to contextMenuPosNodes start width
 	float contextMenuNodesWidthMulti=155;
+	Vector3 preZoomWorldPosition;//=Vector3.zero;
 	public Rect GetContextMenuPosNodes() {return contextMenuPosNodes;}
 	public Rect GetContextMenuPosLinks() {return contextMenuPosLinks;}
 	public bool isDrawn=false;
@@ -37,13 +38,18 @@ public class ContextMenuManager{
 	public Texture[] colorTextures;
 	public GUISkin currentSkin;
 	Link lastSelectedLink=null;
-	//Node lastSelectedNode=null;
 	
 	public ContextMenuManager(GUISkin mySkin, Texture[] linkColorTextures)
 	{
 		currentSkin=mySkin;
 		colorTextures=linkColorTextures;
 		InputManager.mainInputManager.SelectedNodesChanged+=AnchorToLastSelectedNode;
+		//GameController.mainController.mainCameraControl.PreZoomChanged+=PreZoomSetup;
+		//GameController.mainController.mainCameraControl.ZoomChanged+=AdjustToZoom;
+		Camera.main.GetComponent<CameraControlZeroG>().PreZoomChanged+=PreZoomSetup;
+		Camera.main.GetComponent<CameraControlZeroG>().ZoomChanged+=AdjustToZoom;
+		//CameraControlZeroG.mainCameraControl.ZoomChanged+=AdjustToZoom;
+		//CameraControlZeroG.mainCameraControl.PreZoomChanged+=PreZoomSetup;
 	}
 	
 	void AnchorToLastSelectedNode()
@@ -56,10 +62,35 @@ public class ContextMenuManager{
 			contextMenuPosNodes.x=screenPos.x;
 			//Tranform from screen space to UI space
 			contextMenuPosNodes.y=Screen.height-screenPos.y;
-			float menuOffsetFromNode=100f;
-			if (contextMenuPosNodes.x-(contextMenuPosNodes.width+menuOffsetFromNode)>0) {contextMenuPosNodes.x-=contextMenuPosNodes.width+menuOffsetFromNode;}
-			else {contextMenuPosNodes.x+=menuOffsetFromNode;}
+			contextMenuPosNodes.y-=contextMenuPosNodes.height*0.2f;
+			float menuOffsetFromNode=50f;
+			float maxAllowedXCoord=Screen.width-InputManager.mainInputManager.myNodeList.GetNodeListRect().width;
+			if (InputManager.mainInputManager.GetSelectedNodes().Count==1) {maxAllowedXCoord-=contextMenuNodesWidthSingle;}
+			else {maxAllowedXCoord-=contextMenuNodesWidthMulti;}
+			if (contextMenuPosNodes.x+menuOffsetFromNode<=maxAllowedXCoord) {contextMenuPosNodes.x+=menuOffsetFromNode;}
+			else {contextMenuPosNodes.x=maxAllowedXCoord;}
+			//if (contextMenuPosNodes.x-(contextMenuPosNodes.width+menuOffsetFromNode)>0) {contextMenuPosNodes.x-=contextMenuPosNodes.width+menuOffsetFromNode;}
+			//else {contextMenuPosNodes.x+=menuOffsetFromNode;}
 		}
+	}
+	
+	void PreZoomSetup()
+	{
+		Vector2 myGUICoordsToScreen=new Vector2(contextMenuPosNodes.x,Screen.height-contextMenuPosNodes.y);
+		preZoomWorldPosition=Camera.main.ScreenToWorldPoint(myGUICoordsToScreen);
+	}
+	
+	void AdjustToZoom()
+	{
+		Vector2 myNewScreenCoords=Camera.main.WorldToScreenPoint(preZoomWorldPosition);
+		contextMenuPosNodes.x=myNewScreenCoords.x;
+		contextMenuPosNodes.y=Screen.height-myNewScreenCoords.y;
+		//Vector2 myAdjustedGUICoords=new Vector2 ();
+		//transform guicoords y to screenspace y, then transform all to world
+		//Vector2 myGUICoordsToScreen=new Vector2(contextMenuPosNodes.x,Screen.height-contextMenuPosNodes.y);
+		//Vector3 myWorldPoint=Camera.main.ScreenToWorldPoint(myGUICoordsToScreen);
+		//Vector3 cursorWorldDelta=preZoomWorldPosition-myWorldPoint;
+		//Camera.main.transform.position+=cursorWorldDelta;
 	}
 	
 	public void ManageTooltip(bool isSupressed)
@@ -83,12 +114,14 @@ public class ContextMenuManager{
 			nodeWindowRect=GUI.Window (1,nodeWindowRect,DragWindowFunc,"",GUIStyle.none);
 			contextMenuPosNodes.x=nodeWindowRect.x;
 			contextMenuPosNodes.y=nodeWindowRect.y;
-			//InputManager.ShitPrint(contextMenuPosNodes.ToString());
 			DrawTooltip(mode);
 		}
 		else 
 		{
-			contextMenuPosLinks=GUI.Window (2,contextMenuPosLinks,DragWindowFunc,"",GUIStyle.none);
+			Rect linkWindowRect=new Rect( contextMenuPosLinks.x,contextMenuPosLinks.y,contextMenuPosNodes.width,20);
+			linkWindowRect=GUI.Window (2,linkWindowRect,DragWindowFunc,"",GUIStyle.none);
+			contextMenuPosLinks.x=linkWindowRect.x;
+			contextMenuPosLinks.y=linkWindowRect.y;
 			DrawTooltip(mode);
 		}
 	}
@@ -170,8 +203,19 @@ public class ContextMenuManager{
 			selectIconDroplist.SetSelectedItemIndex(currentNode.GetSpriteIndex());
 			//generate icon droplist content
 			Texture[] cachedNodeTextures=GameController.mainController.GetNodeTextures();
-			GUIContent[] iconDroplistContent=new GUIContent[cachedNodeTextures.Length];//new GUIContent[4];
-			
+			//GUIContent[] iconDroplistContent=new GUIContent[cachedNodeTextures.Length];//new GUIContent[4];
+			List<GUIContent> iconDroplistContent=new List<GUIContent>();
+			iconDroplistContent.Add (new GUIContent("Windows XP   ",cachedNodeTextures[0]));
+			iconDroplistContent.Add (new GUIContent("Windows Vista",cachedNodeTextures[1]));
+			iconDroplistContent.Add (new GUIContent("Windows 7    ",cachedNodeTextures[2]));
+			iconDroplistContent.Add (new GUIContent("Windows 8    ",cachedNodeTextures[3]));
+			iconDroplistContent.Add (new GUIContent("Server 2000  ",cachedNodeTextures[4]));
+			iconDroplistContent.Add (new GUIContent("Server 2003  ",cachedNodeTextures[5]));
+			iconDroplistContent.Add (new GUIContent("Server 2008  ",cachedNodeTextures[6]));
+			iconDroplistContent.Add (new GUIContent("Server 2012  ",cachedNodeTextures[7]));
+			iconDroplistContent.Add (new GUIContent("Linux        ",cachedNodeTextures[8]));
+			iconDroplistContent.Add (new GUIContent("Mac OS       ",cachedNodeTextures[9]));
+			/*
 			iconDroplistContent[0]=new GUIContent("Windows XP   ",cachedNodeTextures[0]);
 			iconDroplistContent[1]=new GUIContent("Windows Vista",cachedNodeTextures[1]);
 			iconDroplistContent[2]=new GUIContent("Windows 7    ",cachedNodeTextures[2]);
@@ -182,7 +226,13 @@ public class ContextMenuManager{
 			iconDroplistContent[7]=new GUIContent("Server 2012  ",cachedNodeTextures[7]);
 			iconDroplistContent[8]=new GUIContent("Linux        ",cachedNodeTextures[8]);
 			iconDroplistContent[9]=new GUIContent("Mac OS       ",cachedNodeTextures[9]);
+			*/
 			
+			/*
+			GUIContent currentSelected=iconDroplistContent[selectIconDroplist.GetSelectedItemIndex()];
+			iconDroplistContent.RemoveAt(selectIconDroplist.GetSelectedItemIndex());
+			iconDroplistContent.Insert(0,currentSelected);
+			*/
 			//select icon droplist
 			selectIconDroplist.List(new Rect(leftColumnStartX,leftColumnStartY,elementSizeX*1.3f,elementSizeY)
 			                        ,iconDroplistContent,"box",currentSkin.customStyles[5],currentSkin.customStyles[6]);
@@ -208,10 +258,12 @@ public class ContextMenuManager{
 				selectItemDroplist.SetSelectedItemIndex(InputManager.mainInputManager.GetSelectedLinks().IndexOf(lastSelectedLink));//(Link)lastSelectedLinkNode));
 			} else {selectItemDroplist.SetSelectedItemIndex(0);}
 			//Generate droplist content
-			GUIContent[] droplistContent=new GUIContent[InputManager.mainInputManager.GetSelectedLinks().Count];
+			//GUIContent[] droplistContent=new GUIContent[InputManager.mainInputManager.GetSelectedLinks().Count];
+			List<GUIContent> droplistContent=new List<GUIContent>();
 			for (int i=0; i<InputManager.mainInputManager.GetSelectedLinks().Count; i++)
 			{
-				droplistContent[i]=new GUIContent(InputManager.mainInputManager.GetSelectedLinks()[i].id);
+				//droplistContent[i]=new GUIContent(InputManager.mainInputManager.GetSelectedLinks()[i].id);
+				droplistContent.Add (new GUIContent(InputManager.mainInputManager.GetSelectedLinks()[i].id));
 			}	
 			
 			//main box and left hand labels
@@ -225,12 +277,19 @@ public class ContextMenuManager{
 			Link coloredLink=InputManager.mainInputManager.GetSelectedLinks()[selectItemDroplist.GetSelectedItemIndex()];
 			selectColorDroplist.SetSelectedItemIndex(coloredLink.GetColorIndex());
 			//Generate droplist content
-			GUIContent[] droplistColorContent=new GUIContent[5];
-			droplistColorContent[0]=new GUIContent(colorTextures[0]);//"black");
-			droplistColorContent[1]=new GUIContent(colorTextures[1]);//"red");
-			droplistColorContent[2]=new GUIContent(colorTextures[2]);//"green");
-			droplistColorContent[3]=new GUIContent(colorTextures[3]);//"yellow");
-			droplistColorContent[4]=new GUIContent(colorTextures[4]);//"cyan");
+			//GUIContent[] droplistColorContent=new GUIContent[5];
+			List <GUIContent> droplistColorContent=new List<GUIContent>();
+			droplistColorContent.Add(new GUIContent(colorTextures[0]));//"black");
+			droplistColorContent.Add(new GUIContent(colorTextures[1]));//"red");
+			droplistColorContent.Add(new GUIContent(colorTextures[2]));//"green");
+			droplistColorContent.Add(new GUIContent(colorTextures[3]));//"yellow");
+			droplistColorContent.Add(new GUIContent(colorTextures[4]));//"cyan");
+			
+			/*
+			GUIContent currentSelected=droplistColorContent[selectColorDroplist.GetSelectedItemIndex()];
+			droplistColorContent.RemoveAt(selectColorDroplist.GetSelectedItemIndex());
+			droplistColorContent.Insert(0,currentSelected);
+			*/
 			//Draw color droplist
 			int droplistPick=selectColorDroplist.List(new Rect(rightColumnStartX,rightColumnStartY+elementSizeY*0.6f,elementSizeX*1.3f,elementSizeY)//elementSizeY)
 			                                          ,droplistColorContent,"box",currentSkin.customStyles[1]); 

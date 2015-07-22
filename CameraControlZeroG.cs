@@ -15,7 +15,6 @@ public class CameraControlZeroG : MonoBehaviour {
 	public GameObject controller;
 	public float zoomSpd=96;
 	public float maxZoom=768;
-	//int zoomLvl=0;
 	int zoomLvl=0;
 	public int GetZoomLvl() {return zoomLvl;}
 	public void SetZoomLvl(int newZoom) {zoomLvl=newZoom; ManageCameraZoom();}
@@ -23,6 +22,11 @@ public class CameraControlZeroG : MonoBehaviour {
 	int selectMode=0;
 	
 	public static CameraControlZeroG mainCameraControl;
+	
+	public delegate void ZoomDelegate();
+	public event ZoomDelegate ZoomChanged;
+	public delegate void PreZoomDelegate();
+	public event PreZoomDelegate PreZoomChanged;
 	
 	void Start(){
 		mainCameraControl=this;
@@ -90,12 +94,14 @@ public class CameraControlZeroG : MonoBehaviour {
 			if (zoomLvl<0) {zoomLvl=0;}
 			realSpeed=startSpeed+startSpeed*zoomLvl;
 			Vector3 cursorWorldPoint=Camera.main.ScreenToWorldPoint(Input.mousePosition);
+			if (PreZoomChanged!=null) PreZoomChanged();
 			Camera.main.orthographicSize=orthCameraSize=maxZoom+zoomSpd*zoomLvl;
 			if (zoomIn==true)
 			{
 				Vector3 cursorWorldDelta=cursorWorldPoint-Camera.main.ScreenToWorldPoint(Input.mousePosition);
 				Camera.main.transform.position+=cursorWorldDelta;
 			}
+			if (ZoomChanged!=null)ZoomChanged();
 		}
 	}
 	

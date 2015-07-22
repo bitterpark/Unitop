@@ -178,7 +178,7 @@ public class NodeList: MonoBehaviour
 					}
 					else
 					{
-						InputManager.mainInputManager.ClickNode(menuDrawnNodeList[i],true);
+						InputManager.mainInputManager.ClickedNodeAction(menuDrawnNodeList[i],true);//.ClickNode(menuDrawnNodeList[i],true);
 						StartCoroutine("NodeListDclickTimerManager");
 					}
 				}
@@ -187,7 +187,7 @@ public class NodeList: MonoBehaviour
 					StopCoroutine("NodeListDclickTimerManager");
 					StartCoroutine("NodeListDclickTimerManager");
 					//print ("coroutine started on new");
-					InputManager.mainInputManager.ClickNode(menuDrawnNodeList[i],true);
+					InputManager.mainInputManager.ClickedNodeAction(menuDrawnNodeList[i],true);//.ClickNode(menuDrawnNodeList[i],true);
 				}
 				nodeListLastClicked=menuDrawnNodeList[i];
 			}

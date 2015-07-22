@@ -36,11 +36,14 @@ public class InputManager : MonoBehaviour {
 	public delegate void NodeSelectChangeDelegate();
 	public event NodeSelectChangeDelegate SelectedNodesChanged;
 	
-	NodeList myNodeList;
+	public NodeList myNodeList;
+	//public float GetNodeListWidth() {return myNodeList.}
 	ContextMenuManager myContextMenu;
 	
 	Rect openButtonRect=new Rect(5,5,80,30);
 	Rect saveButtonRect=new Rect(85,5,80,30);
+	Rect helpButtonRect=new Rect(165,5,80,30);
+	Rect quitButtonRect=new Rect(245,5,80,30);
 	Rect fileBrowserWindowRect=new Rect(100, 100, 600, 500);
 	Rect fileBrowserCurrentPos;
 	
@@ -117,6 +120,19 @@ public class InputManager : MonoBehaviour {
 			myNodeList.DrawNodeListWindow();
 			if (GUI.Button(saveButtonRect,"Сохранить")) {controller.SaveAll();}
 		}
+		if (GUI.Button(helpButtonRect,"Помощь")) 
+		{
+			string helpPath=Application.dataPath+"/../Readme.txt";
+			/*
+			#if UNITY_EDITOR
+			helpPath=Application.dataPath+"/Data/Readme.txt";
+			#else
+			helpPath=Application.dataPath+"/../Readme.txt";
+			#endif
+			*/
+			Application.OpenURL(helpPath);
+		}
+		if (GUI.Button(quitButtonRect,"Выход")) {Application.Quit();}
 		//ManageTooltip();
 		myContextMenu.ManageTooltip(supressContextMenu);
 	}
@@ -184,9 +200,16 @@ public class InputManager : MonoBehaviour {
 	//Nodes
 	
 	
-	public void ClickNode(Node clickedNode, bool nonClick)
+	public bool ClickNode(Node clickedNode, bool nonClick)
 	{
-		ClickedNodeAction(clickedNode,nonClick);
+		selectionMade=true;
+		bool clickActionDone=false;
+		if (!selectedNodes.Contains(clickedNode)) 
+		{
+			ClickedNodeAction(clickedNode,nonClick);
+			clickActionDone=true;
+		}
+		return clickActionDone;
 	}
 	
 	public void ClickedNodeAction(Node clickedNode, bool nonClick, bool dragged)
@@ -256,6 +279,7 @@ public class InputManager : MonoBehaviour {
 					{
 						if (selectedNode.id!=clickedNode.id)
 						{
+							//print ("hier toggled");
 							if (selectedNode.parentNode!=clickedNode)
 							{
 								controller.SetNodeAsChild(selectedNode,clickedNode);
@@ -658,6 +682,8 @@ public class InputManager : MonoBehaviour {
 		if ((fb==null | !fileBrowserWindowRect.Contains(mousePosInGUICoords))
 		    && !openButtonRect.Contains(mousePosInGUICoords)
 		    && !saveButtonRect.Contains(mousePosInGUICoords)
+		    && !helpButtonRect.Contains(mousePosInGUICoords)
+		    && !quitButtonRect.Contains(mousePosInGUICoords)
 		    && (!myContextMenu.isDrawn 
 		    	|(!myContextMenu.GetContextMenuPosNodes().Contains(mousePosInGUICoords) 
 		    	&& !myContextMenu.GetContextMenuPosLinks().Contains(mousePosInGUICoords)//contextMenuPosLinks.Contains(mousePosInGUICoords)
