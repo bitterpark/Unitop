@@ -42,8 +42,9 @@ public class InputManager : MonoBehaviour {
 	
 	Rect openButtonRect=new Rect(5,5,80,30);
 	Rect saveButtonRect=new Rect(85,5,80,30);
-	Rect helpButtonRect=new Rect(165,5,80,30);
-	Rect quitButtonRect=new Rect(245,5,80,30);
+	Rect dbButtonRect=new Rect(165,5,80,30);
+	Rect helpButtonRect=new Rect(245,5,80,30);
+	Rect quitButtonRect=new Rect(325,5,80,30);
 	Rect fileBrowserWindowRect=new Rect(100, 100, 600, 500);
 	Rect fileBrowserCurrentPos;
 	
@@ -116,10 +117,24 @@ public class InputManager : MonoBehaviour {
 		}
 		if (controller.SceneIsLoaded()) 
 		{
-			//DrawNodeList();
 			myNodeList.DrawNodeListWindow();
-			if (GUI.Button(saveButtonRect,"Сохранить")) {controller.SaveAll();}
+			if (controller.HasSourceFile())
+			{
+				if (GUI.Button(saveButtonRect,"Сохранить")) {controller.SaveAll();}
+			}
 		}
+		
+		if (GUI.Button (dbButtonRect,"БД"))
+		{
+			if (controller.SceneIsLoaded()) 
+			{
+				selectedLinks.Clear();
+				selectedNodes.Clear();
+				controller.ClearScene();
+			}
+			controller.StartDBLoad();
+		}
+		
 		if (GUI.Button(helpButtonRect,"Помощь")) 
 		{
 			string helpPath=Application.dataPath+"/../Readme.txt";
@@ -132,6 +147,8 @@ public class InputManager : MonoBehaviour {
 			*/
 			Application.OpenURL(helpPath);
 		}
+		
+		
 		if (GUI.Button(quitButtonRect,"Выход")) {Application.Quit();}
 		//ManageTooltip();
 		myContextMenu.ManageTooltip(supressContextMenu);
@@ -683,6 +700,7 @@ public class InputManager : MonoBehaviour {
 		    && !openButtonRect.Contains(mousePosInGUICoords)
 		    && !saveButtonRect.Contains(mousePosInGUICoords)
 		    && !helpButtonRect.Contains(mousePosInGUICoords)
+		    && !dbButtonRect.Contains(mousePosInGUICoords)
 		    && !quitButtonRect.Contains(mousePosInGUICoords)
 		    && (!myContextMenu.isDrawn 
 		    	|(!myContextMenu.GetContextMenuPosNodes().Contains(mousePosInGUICoords) 

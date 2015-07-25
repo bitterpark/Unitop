@@ -5,8 +5,7 @@ using System.Collections.Generic;
 using System.Xml;
 using System.IO;
 using Vectrosity;
-
-
+using Npgsql;
 
 namespace Topology {
 
@@ -35,6 +34,12 @@ namespace Topology {
 		
 		
 		public void SetSourceFile(string filePath) {sourceFile=filePath;}
+		public bool HasSourceFile() 
+		{
+			bool hasFile=false;
+			if (sourceFile!=null) {hasFile=true;}
+			return hasFile;
+		}
 		//public bool GetSourceFile() {return sourceFile;}	
 		
 		public Hashtable GetLinks() {return links;}
@@ -45,6 +50,9 @@ namespace Topology {
 		Dictionary<Node,List<Node>> nodeTrees=new Dictionary<Node, List<Node>>();
 		
 		public Texture2D[] GetNodeTextures () {return nodeIconTextures;}
+		
+		public enum OSTypes {WinXP,WinVista,Win7,Win8,Server2000,Server2003,Server2008,Server2012,Linux,MacOS};
+		
 		List<Node> nodeCopyBuffer=new List<Node>();
 		
 		public static GameController mainController;
@@ -52,6 +60,12 @@ namespace Topology {
 		public void StartLayoutLoad() 
 		{
 			StartCoroutine(LoadLayout());
+		}
+		
+		public void StartDBLoad() 
+		{
+			sourceFile=null;
+			LoadLayoutFromDB();
 		}
 		
 		//Method for loading the GraphML layout file
@@ -117,6 +131,7 @@ namespace Topology {
 //			myInputManager.StartDrawnNodeList();
 			sceneLoaded=true;
 		}
+		
 		
 		//Loads nodes from file and creates them in the scene
 		Node LoadNode(XmlElement xmlNode)
@@ -799,12 +814,16 @@ namespace Topology {
 			WWW www=new WWW(texturesPath);
 			//www.texture;
 			rawTextures[0]=www.texture;
-			
+			//print ("text0");
+			//print ("enum is:"+(int)OSTypes.WinXP);
 			
 			texturesPath="file://"+mainPath+"/Skin/WinVista.png";
 			www=new WWW(texturesPath);
 			//www.texture;
 			rawTextures[1]=www.texture;
+			//print ("text1");
+			//print ("enum is:"+(int)OSTypes.WinVista);
+			
 			
 			texturesPath="file://"+mainPath+"/Skin/Win7.png";
 			www=new WWW(texturesPath);
@@ -859,9 +878,76 @@ namespace Topology {
 			
 		}
 		
+		void LoadLayoutFromDB()
+		{
+			NpgsqlConnection dbConnection=new NpgsqlConnection("Server=37.220.6.166;Port=5432;User Id=msf3;Password=KtrFeVtk9Y7#L;Database=msf3;");
+			dbConnection.Open();
+			
+			NpgsqlCommand Command = new NpgsqlCommand("select cast(address as varchar(255)),os_name from hosts", dbConnection);
+			
+			NpgsqlDataReader result = Command.ExecuteReader();
+			
+			//Row index
+			int i=0;
+			//Col index
+			int j=0;
+			
+			int loadLimiter=300;
+			int loadCounter=0;
+			
+			while (result.Read() && loadCounter<loadLimiter)
+				
+			{	
+				string osName="Null";
+				if (!result.IsDBNull(result.GetOrdinal("os_name")))//.GetOrdinal("os_name"))!=null) 
+				{osName = result.GetString(result.GetOrdinal("os_name"));}
+				string address=result.GetString(result.GetOrdinal("address"));
+				
+				float startNodeRectanglex=-200;
+				float startNodeRectangley=200;
+				float nodeXOffset=784;
+				float nodeYOffset=528;
+				int rowCount=10;
+				
+				
+				//Reset row index
+				if (i==rowCount) 
+				{
+					i=0;
+					j++;
+				}
+				
+				Vector3 newNodePos=new Vector3(startNodeRectanglex+nodeXOffset*i,-(startNodeRectangley+nodeYOffset*j),3000);
+				
+				int osIndex=(int)OSTypes.WinXP;
+				if (osName.Contains("XP")) {osIndex=(int)OSTypes.WinXP;}
+				if (osName.Contains("7")) {osIndex=(int)OSTypes.Win7;}
+				if (osName.Contains("8")) 
+				{
+					if (osName.Contains("2008")) {osIndex=(int)OSTypes.Server2008;}
+					else {osIndex=(int)OSTypes.Win8;}
+				}
+				if (osName.Contains("2000")) {osIndex=(int)OSTypes.Server2000;}
+				if (osName.Contains("2003")) {osIndex=(int)OSTypes.Server2003;}
+				if (osName.Contains("2012")) {osIndex=(int)OSTypes.Server2012;}
+				if (osName.Contains("Linux")) {osIndex=(int)OSTypes.Linux;}
+				if (osName.Contains("IOS")) {osIndex=(int)OSTypes.MacOS;}
+				
+				CreateNewNode(newNodePos, address,osIndex);	
+				i++;
+				loadCounter++;
+			}
+			
+			
+			dbConnection.Close();
+			dbConnection=null;
+			
+			sceneLoaded=true;
+		}
+		
+		
 		void Start () 
 		{
-			
 			mainController=this;
 			LoadIconTextures();
 			//initial stats
@@ -880,11 +966,14 @@ namespace Topology {
 			#else
 			string defaultFilepath=Application.dataPath+"/../layout_small.xml";
 			#endif
+			
+			
 			if (File.Exists(defaultFilepath)) 
 			{
 				sourceFile=defaultFilepath;
 				StartLayoutLoad();
 			}
+			//LoadLayoutFromDB();
 			//if () {}
 		}
 		
