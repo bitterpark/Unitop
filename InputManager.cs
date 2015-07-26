@@ -18,7 +18,6 @@ public class InputManager : MonoBehaviour {
 	List<Link> selectedLinks=new List<Link>();
 	List<Node> selectedNodes=new List<Node>();
 	public List<Node> GetSelectedNodes() {return selectedNodes;}
-	public List<Link> GetSelectedLinks() {return selectedLinks;}
 	void AddSelectedNodes(Node addedNode) 
 	{
 		selectedNodes.Add (addedNode);
@@ -30,21 +29,35 @@ public class InputManager : MonoBehaviour {
 		SelectedNodesChanged();
 	}
 	
+	public List<Link> GetSelectedLinks() {return selectedLinks;}
+	void AddSelectedLinks(Link addedLink)
+	{
+		selectedLinks.Add (addedLink);
+		SelectedLinksChanged();
+	}
+	void RemoveSelectedLinks(Link removedLink)
+	{
+		selectedLinks.Remove (removedLink);
+		SelectedLinksChanged();
+	}
+	
 	
 	public Texture[] colorTextures;
 	
 	public delegate void NodeSelectChangeDelegate();
 	public event NodeSelectChangeDelegate SelectedNodesChanged;
+	public delegate void LinkSelectChangeDelegate();
+	public event LinkSelectChangeDelegate SelectedLinksChanged;
 	
 	public NodeList myNodeList;
 	//public float GetNodeListWidth() {return myNodeList.}
 	ContextMenuManager myContextMenu;
 	
-	Rect openButtonRect=new Rect(5,5,80,30);
-	Rect saveButtonRect=new Rect(85,5,80,30);
-	Rect dbButtonRect=new Rect(165,5,80,30);
-	Rect helpButtonRect=new Rect(245,5,80,30);
-	Rect quitButtonRect=new Rect(325,5,80,30);
+	Rect openButtonRect=new Rect(5,5,100,30);
+	Rect saveButtonRect=new Rect(105,5,100,30);
+	Rect dbButtonRect=new Rect(205,5,100,30);
+	Rect helpButtonRect=new Rect(305,5,100,30);
+	Rect quitButtonRect=new Rect(405,5,100,30);
 	Rect fileBrowserWindowRect=new Rect(100, 100, 600, 500);
 	Rect fileBrowserCurrentPos;
 	
@@ -124,7 +137,7 @@ public class InputManager : MonoBehaviour {
 			}
 		}
 		
-		if (GUI.Button (dbButtonRect,"БД"))
+		if (GUI.Button (dbButtonRect,"Синхронизация"))
 		{
 			if (controller.SceneIsLoaded()) 
 			{
@@ -532,12 +545,12 @@ public class InputManager : MonoBehaviour {
 		case MouseClickMode.SingleSelect:
 		{
 			DeselectAllLinks();
-			selectedLinks.Add (actionLink);//HashtableAppendNum(selectedLinks,actionLink);//selectedLinks.Add (actionLink);
+			AddSelectedLinks (actionLink);//HashtableAppendNum(selectedLinks,actionLink);//AddSelectedLinks (actionLink);
 			actionLink.selected=true;
 			//Make sure sibling is kept selected
 			if (sibling!=null)
 			{	
-				selectedLinks.Add (sibling);//HashtableAppendNum(selectedLinks,actionLink);//selectedLinks.Add (sibling);
+				AddSelectedLinks (sibling);//HashtableAppendNum(selectedLinks,actionLink);//AddSelectedLinks (sibling);
 				sibling.selected=true;
 			}
 			break;
@@ -545,11 +558,11 @@ public class InputManager : MonoBehaviour {
 			//multiselect
 		case MouseClickMode.MultiSelect:
 		{
-			selectedLinks.Add (actionLink);//HashtableAppendNum(selectedLinks,actionLink);//selectedLinks.Add (actionLink);
+			AddSelectedLinks (actionLink);//HashtableAppendNum(selectedLinks,actionLink);//AddSelectedLinks (actionLink);
 			actionLink.selected=true;
 			if (sibling!=null)
 			{
-				selectedLinks.Add (sibling);//HashtableAppendNum(selectedLinks,sibling);//selectedLinks.Add (sibling);
+				AddSelectedLinks (sibling);//HashtableAppendNum(selectedLinks,sibling);//AddSelectedLinks (sibling);
 				sibling.selected=true;
 			}
 			break;
@@ -559,23 +572,23 @@ public class InputManager : MonoBehaviour {
 		{
 			if (actionLink.selected)
 			{
-				selectedLinks.Remove (actionLink);//selectedLinks.Remove(HashtableFindKeyOfValue(actionLink));//selectedLinks.Remove(actionLink);
+				RemoveSelectedLinks (actionLink);//RemoveSelectedLinks(HashtableFindKeyOfValue(actionLink));//RemoveSelectedLinks(actionLink);
 				actionLink.selected=false;
 				//assume sibling has the same status as main
 				if (sibling!=null)
 				{
-					selectedLinks.Remove(sibling);//selectedLinks.Remove(HashtableFindKeyOfValue(sibling));//selectedLinks.Remove(sibling);
+					RemoveSelectedLinks(sibling);//RemoveSelectedLinks(HashtableFindKeyOfValue(sibling));//RemoveSelectedLinks(sibling);
 					sibling.selected=false;
 				}
 			}
 			else
 			{
-				selectedLinks.Add (actionLink);//HashtableAppendNum(actionLink);//selectedLinks.Add(actionLink);
+				AddSelectedLinks (actionLink);//HashtableAppendNum(actionLink);//AddSelectedLinks(actionLink);
 				actionLink.selected=true;
 				//assume sibling has the same status as main
 				if (sibling!=null)
 				{
-					selectedLinks.Add (sibling);//HashtableAppendNum(sibling);//selectedLinks.Add(sibling);
+					AddSelectedLinks (sibling);//HashtableAppendNum(sibling);//AddSelectedLinks(sibling);
 					sibling.selected=true;
 				}
 				

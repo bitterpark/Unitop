@@ -65,11 +65,25 @@ public class NodeList: MonoBehaviour
 		
 		List<Node> menuDrawnNodeList=new List<Node>();
 		
+		//Start drawlist with parent nodes
+		foreach(Node parentNode in GameController.mainController.GetNodeTrees().Keys)
+		{
+			if (GameController.mainController.GetRootNodes().Contains(parentNode))
+			{
+				if (nodeListSearchFilter=="" | parentNode.text.StartsWith(nodeListSearchFilter)) menuDrawnNodeList.Add(parentNode);
+				menuDrawnNodeList.AddRange(DownwardRecursiveDrawNodeChildren(parentNode));
+			}
+		}
+		
 		//Sync drawlist with current root list
 		foreach(Node node in GameController.mainController.GetRootNodes())
 		{
-			if (nodeListSearchFilter=="" | node.text.StartsWith(nodeListSearchFilter)) menuDrawnNodeList.Add(node);
-			menuDrawnNodeList.AddRange(DownwardRecursiveDrawNodeChildren(node));
+			if (!GameController.mainController.GetNodeTrees().ContainsKey(node))
+			{
+				if (nodeListSearchFilter=="" | node.text.StartsWith(nodeListSearchFilter)) 
+				menuDrawnNodeList.Add(node);
+				menuDrawnNodeList.AddRange(DownwardRecursiveDrawNodeChildren(node));
+			}
 		}
 		
 		//print ("Projected width:"+nodeListProjectedWidth);

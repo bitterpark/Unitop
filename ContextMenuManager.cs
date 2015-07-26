@@ -6,10 +6,11 @@ using Topology;
 public class ContextMenuManager{
 	
 	Rect contextMenuPosNodes=new Rect(5,125,310,70);
-	Rect contextMenuPosLinks=new Rect(5,125,350,100);
+	Rect contextMenuPosLinks=new Rect(5,125,155,70);
+	Vector3 linksMenuPreZoomWorldPosition;
 	float contextMenuNodesWidthSingle=310; //Must be equal to contextMenuPosNodes start width
 	float contextMenuNodesWidthMulti=155;
-	Vector3 preZoomWorldPosition;//=Vector3.zero;
+	Vector3 nodesMenuPreZoomWorldPosition;//=Vector3.zero;
 	public Rect GetContextMenuPosNodes() {return contextMenuPosNodes;}
 	public Rect GetContextMenuPosLinks() {return contextMenuPosLinks;}
 	public bool isDrawn=false;
@@ -44,6 +45,7 @@ public class ContextMenuManager{
 		currentSkin=mySkin;
 		colorTextures=linkColorTextures;
 		InputManager.mainInputManager.SelectedNodesChanged+=AnchorToLastSelectedNode;
+		InputManager.mainInputManager.SelectedLinksChanged+=AnchorToLastSelectedLink;
 		//GameController.mainController.mainCameraControl.PreZoomChanged+=PreZoomSetup;
 		//GameController.mainController.mainCameraControl.ZoomChanged+=AdjustToZoom;
 		Camera.main.GetComponent<CameraControlZeroG>().PreZoomChanged+=PreZoomSetup;
@@ -74,23 +76,45 @@ public class ContextMenuManager{
 		}
 	}
 	
+	void AnchorToLastSelectedLink()
+	{
+		if (InputManager.mainInputManager.GetSelectedLinks().Count>0)
+		{	
+			Link lastSelectedLink=InputManager.mainInputManager.GetSelectedLinks()[InputManager.mainInputManager.GetSelectedLinks().Count-1];
+			Vector3 screenPos=Camera.main.WorldToScreenPoint(lastSelectedLink.target.transform.position+(lastSelectedLink.source.transform.position-lastSelectedLink.target.transform.position)*0.5f);//.transform.position);
+			contextMenuPosLinks.x=screenPos.x;
+			//Tranform from screen space to UI space
+			contextMenuPosLinks.y=Screen.height-screenPos.y;
+			contextMenuPosLinks.y-=contextMenuPosLinks.height*0.2f;
+			float menuOffsetFromLink=50f;
+			float maxAllowedXCoord=Screen.width-InputManager.mainInputManager.myNodeList.GetNodeListRect().width-contextMenuPosLinks.width;
+			//if (InputManager.mainInputManager.GetSelectedLinks().Count==1) {maxAllowedXCoord-=contextMenuNodesWidthSingle;}
+			//else {maxAllowedXCoord-=contextMenuNodesWidthMulti;}
+			if (contextMenuPosLinks.x+menuOffsetFromLink<=maxAllowedXCoord) {contextMenuPosLinks.x+=menuOffsetFromLink;}
+			else {contextMenuPosLinks.x=maxAllowedXCoord;}
+		}
+	
+	}
+	
 	void PreZoomSetup()
 	{
 		Vector2 myGUICoordsToScreen=new Vector2(contextMenuPosNodes.x,Screen.height-contextMenuPosNodes.y);
-		preZoomWorldPosition=Camera.main.ScreenToWorldPoint(myGUICoordsToScreen);
+		nodesMenuPreZoomWorldPosition=Camera.main.ScreenToWorldPoint(myGUICoordsToScreen);
+		myGUICoordsToScreen=new Vector2(contextMenuPosLinks.x,Screen.height-contextMenuPosLinks.y);
+		linksMenuPreZoomWorldPosition=Camera.main.ScreenToWorldPoint(myGUICoordsToScreen);
 	}
 	
 	void AdjustToZoom()
 	{
-		Vector2 myNewScreenCoords=Camera.main.WorldToScreenPoint(preZoomWorldPosition);
+		//for nodes menu
+		Vector2 myNewScreenCoords=Camera.main.WorldToScreenPoint(nodesMenuPreZoomWorldPosition);
 		contextMenuPosNodes.x=myNewScreenCoords.x;
 		contextMenuPosNodes.y=Screen.height-myNewScreenCoords.y;
-		//Vector2 myAdjustedGUICoords=new Vector2 ();
-		//transform guicoords y to screenspace y, then transform all to world
-		//Vector2 myGUICoordsToScreen=new Vector2(contextMenuPosNodes.x,Screen.height-contextMenuPosNodes.y);
-		//Vector3 myWorldPoint=Camera.main.ScreenToWorldPoint(myGUICoordsToScreen);
-		//Vector3 cursorWorldDelta=preZoomWorldPosition-myWorldPoint;
-		//Camera.main.transform.position+=cursorWorldDelta;
+		
+		//for links menu
+		myNewScreenCoords=Camera.main.WorldToScreenPoint(linksMenuPreZoomWorldPosition);
+		contextMenuPosLinks.x=myNewScreenCoords.x;
+		contextMenuPosLinks.y=Screen.height-myNewScreenCoords.y;
 	}
 	
 	public void ManageTooltip(bool isSupressed)
@@ -215,24 +239,7 @@ public class ContextMenuManager{
 			iconDroplistContent.Add (new GUIContent("Server 2012  ",cachedNodeTextures[7]));
 			iconDroplistContent.Add (new GUIContent("Linux        ",cachedNodeTextures[8]));
 			iconDroplistContent.Add (new GUIContent("Mac OS       ",cachedNodeTextures[9]));
-			/*
-			iconDroplistContent[0]=new GUIContent("Windows XP   ",cachedNodeTextures[0]);
-			iconDroplistContent[1]=new GUIContent("Windows Vista",cachedNodeTextures[1]);
-			iconDroplistContent[2]=new GUIContent("Windows 7    ",cachedNodeTextures[2]);
-			iconDroplistContent[3]=new GUIContent("Windows 8    ",cachedNodeTextures[3]);
-			iconDroplistContent[4]=new GUIContent("Server 2000  ",cachedNodeTextures[4]);
-			iconDroplistContent[5]=new GUIContent("Server 2003  ",cachedNodeTextures[5]);
-			iconDroplistContent[6]=new GUIContent("Server 2008  ",cachedNodeTextures[6]);
-			iconDroplistContent[7]=new GUIContent("Server 2012  ",cachedNodeTextures[7]);
-			iconDroplistContent[8]=new GUIContent("Linux        ",cachedNodeTextures[8]);
-			iconDroplistContent[9]=new GUIContent("Mac OS       ",cachedNodeTextures[9]);
-			*/
 			
-			/*
-			GUIContent currentSelected=iconDroplistContent[selectIconDroplist.GetSelectedItemIndex()];
-			iconDroplistContent.RemoveAt(selectIconDroplist.GetSelectedItemIndex());
-			iconDroplistContent.Insert(0,currentSelected);
-			*/
 			//select icon droplist
 			selectIconDroplist.List(new Rect(leftColumnStartX,leftColumnStartY,elementSizeX*1.3f,elementSizeY)
 			                        ,iconDroplistContent,"box",currentSkin.customStyles[5],currentSkin.customStyles[6]);
@@ -253,12 +260,14 @@ public class ContextMenuManager{
 			rightColumnStartY=leftColumnStartY;
 			GUI.Box(contextMenuPosLinks,"Контекстное меню",new GUIStyle("window"));
 			//check if last select is still in the list
+			/*
 			if (InputManager.mainInputManager.GetSelectedLinks().Contains(lastSelectedLink))//(Link)lastSelectedLinkNode))
 			{
 				selectItemDroplist.SetSelectedItemIndex(InputManager.mainInputManager.GetSelectedLinks().IndexOf(lastSelectedLink));//(Link)lastSelectedLinkNode));
-			} else {selectItemDroplist.SetSelectedItemIndex(0);}
+			} else {selectItemDroplist.SetSelectedItemIndex(0);}*/
+			
+			
 			//Generate droplist content
-			//GUIContent[] droplistContent=new GUIContent[InputManager.mainInputManager.GetSelectedLinks().Count];
 			List<GUIContent> droplistContent=new List<GUIContent>();
 			for (int i=0; i<InputManager.mainInputManager.GetSelectedLinks().Count; i++)
 			{
@@ -269,8 +278,8 @@ public class ContextMenuManager{
 			//main box and left hand labels
 			//GUI.Box(contextMenuPosLinks,"");
 			
-			GUI.Label (new Rect(leftColumnStartX,leftColumnStartY,elementSizeX,elementSizeY),"Выбор элемента:");
-			GUI.Label (new Rect(rightColumnStartX,rightColumnStartY,elementSizeX,elementSizeY),"Цвет элемента:");
+			//GUI.Label (new Rect(leftColumnStartX,leftColumnStartY,elementSizeX,elementSizeY),"Выбор элемента:");
+			//GUI.Label (new Rect(rightColumnStartX,rightColumnStartY,elementSizeX,elementSizeY),"Цвет элемента:");
 			//GUI.EndGroup();
 			
 			//Set current color select
@@ -291,21 +300,29 @@ public class ContextMenuManager{
 			droplistColorContent.Insert(0,currentSelected);
 			*/
 			//Draw color droplist
-			int droplistPick=selectColorDroplist.List(new Rect(rightColumnStartX,rightColumnStartY+elementSizeY*0.6f,elementSizeX*1.3f,elementSizeY)//elementSizeY)
+			int droplistPick=selectColorDroplist.List(new Rect(leftColumnStartX,leftColumnStartY,elementSizeX*1.3f,elementSizeY)//elementSizeY)
 			                                          ,droplistColorContent,"box",currentSkin.customStyles[1]); 
-			switch (droplistPick)
+			                                         
+			if (selectColorDroplist.SelectionWasMade())
 			{
-				case 0:{coloredLink.color="black"; break;}
-				case 1:{coloredLink.color="red"; break;}
-				case 2:{coloredLink.color="green"; break;}
-				case 3:{coloredLink.color="yellow"; break;}
-				case 4:{coloredLink.color="cyan"; break;}
+				foreach (Link selectedLink in InputManager.mainInputManager.GetSelectedLinks())
+				{
+					switch (droplistPick)
+					{
+						case 0:{selectedLink.color="black"; break;}
+						case 1:{selectedLink.color="red"; break;}
+						case 2:{selectedLink.color="green"; break;}
+						case 3:{selectedLink.color="yellow"; break;}
+						case 4:{selectedLink.color="cyan"; break;}
+					}
+				}
 			}
-			
+			/*
 			//select obj menu (must be after endgroup rendered)
 			selectItemDroplist.List(new Rect(leftColumnStartX,leftColumnStartY+elementSizeY*0.6f,elementSizeX,elementSizeY)//elementSizeY)
 			                        ,droplistContent,"box",currentSkin.customStyles[1]);
 			lastSelectedLink=InputManager.mainInputManager.GetSelectedLinks()[selectItemDroplist.GetSelectedItemIndex()];
+			*/
 		}
 	}
 }
