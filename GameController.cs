@@ -134,34 +134,75 @@ namespace Topology {
 		
 		
 		//Loads nodes from file and creates them in the scene
-		Node LoadNode(XmlElement xmlNode)
+		Node LoadNode(XmlElement xmlNode, Vector2 loadedNodePos)
 		{
 			
 			//create nodes
+			/*
 			float x = float.Parse(xmlNode.Attributes["x"].Value);
 			float y = float.Parse (xmlNode.Attributes["y"].Value);
 			float z = 3000;//float.Parse(xmlNode.Attributes["z"].Value);
-			
+			*/
 			int iconIndex=0;
 			//set icon
 			if (xmlNode.HasAttribute("icon")) {iconIndex=int.Parse(xmlNode.Attributes["icon"].Value);}
 			//create root node
-			Node retNode=CreateNewNode (new Vector2(x,y),xmlNode.Attributes["name"].Value,xmlNode.Attributes["id"].Value,iconIndex);
+			Node retNode=CreateNewNode (loadedNodePos,xmlNode.Attributes["name"].Value,xmlNode.Attributes["id"].Value,iconIndex);
 			statusText.text = "Загрузка топологии: Вершина " + nodeCount;//nodeObject.id;
 			nodeCountText.text = "Вершин: " + nodeCount;
 			return retNode;		
 		}
 		
-		//For loading node children and children of children
+		//For loading root nodes
 		Node DownwardRecursiveNodeLoad(XmlElement xmlNode)
 		{
-			Node retNode=LoadNode(xmlNode);
+			float x = float.Parse(xmlNode.Attributes["x"].Value);
+			float y = float.Parse (xmlNode.Attributes["y"].Value);
+			//float z = 3000;//float.Parse(xmlNode.Attributes["z"].Value);
+			return DownwardRecursiveNodeLoad(xmlNode,new Vector2(x,y));
+		}
+		
+		//For loading node children and children of children
+		Node DownwardRecursiveNodeLoad(XmlElement xmlNode,Vector2 loadedNodePos)
+		{
+			Node retNode=LoadNode(xmlNode, loadedNodePos);
 			if (xmlNode.HasChildNodes)
 			{
+				float yOffsetFromParent=-512f;
+				float yRowPad=-384f;
+				float xPad=256;
+				float elementSizeX=256;
+				float currentXOffset=0;
+				float currentYOffset=yOffsetFromParent;
+				int rowCounter=0;
+				int rowTotalLength=1;
+				int rowCursor=0;
+				//int i=0;
 				XmlNodeList childNodes=xmlNode.ChildNodes;
 				foreach (XmlElement child in childNodes)
-				{
-					Node newNode=DownwardRecursiveNodeLoad(child);//LoadNode(child);
+				{			
+					//i++;
+					float childX=loadedNodePos.x+currentXOffset;
+					float childY=loadedNodePos.y+currentYOffset;
+					//print ("Step no:"+i);
+					//print ("Parent pos is:"+loadedNodePos);
+					//print ("x offset is:"+currentXOffset);
+					//print ("y offset is:"+currentYOffset);
+					//Vector2 childPos=new Vector2();
+					Node newNode=DownwardRecursiveNodeLoad(child, new Vector2(childX,childY));//LoadNode(child);
+					rowCursor++;
+					if (rowCursor==rowTotalLength)
+					{
+						rowCounter++;
+						rowTotalLength+=2;
+						rowCursor=0;
+						currentYOffset+=yRowPad;
+						currentXOffset=-xPad*rowCounter;
+					}
+					else
+					{
+						currentXOffset+=xPad;
+					}
 					SetNodeAsChild(newNode,retNode);
 				}
 			}
@@ -300,27 +341,25 @@ namespace Topology {
 					nodeTrees[parent].Add (child);
 					child.parentNode=parent;
 					parent.hasChildren=true;
+					CreateNewLink(child.id,parent.id);
 				}
 		}
 		
-		void DeleteNode(Node deletedNode)
+		//Remove node from each tree it is a child of
+		public void UnchildNode(Node child)
 		{
-			RemoveParentedTree(deletedNode);
-			UnchildNode(deletedNode);
-			RemoveNodeFromRoot(deletedNode);
-			nodes.Remove(deletedNode.id);					
-			nodeCount--;
-			//Remove all connecting links
-			Link[] iterAr=new Link[links.Count];
-			links.Values.CopyTo(iterAr,0);
-			foreach(Link link in iterAr)
+			if (child.parentNode!=null)
 			{
-				if (link.source==deletedNode | link.target==deletedNode)
+				nodeTrees[child.parentNode].Remove(child);
+				if (nodeTrees[child.parentNode].Count==0) 
 				{
-					DeleteLink(link,null);
+					nodeTrees.Remove(child.parentNode);
+					child.parentNode.hasChildren=false;
 				}
+				DeleteLinkBetweenNodes(child,child.parentNode);
+				child.parentNode=null;
+				rootNodes.Add(child);
 			}
-			GameObject.Destroy(deletedNode.gameObject);
 		}
 		
 		void RemoveNodeFromRoot(Node removedNode)
@@ -341,23 +380,6 @@ namespace Topology {
 				}
 				parent.hasChildren=false;
 				nodeTrees.Remove(parent);
-			}
-		}
-		
-		
-		//Remove node from each tree it is a child of
-		public void UnchildNode(Node child)
-		{
-			if (child.parentNode!=null)
-			{
-				nodeTrees[child.parentNode].Remove(child);
-				if (nodeTrees[child.parentNode].Count==0) 
-				{
-					nodeTrees.Remove(child.parentNode);
-					child.parentNode.hasChildren=false;
-				}
-				child.parentNode=null;
-				rootNodes.Add(child);
 			}
 		}
 		
@@ -461,6 +483,28 @@ namespace Topology {
 			else {DeleteLink(toggledLink,null);}
 		}
 		
+		void DeleteNode(Node deletedNode)
+		{
+			RemoveParentedTree(deletedNode);
+			UnchildNode(deletedNode);
+			RemoveNodeFromRoot(deletedNode);
+			nodes.Remove(deletedNode.id);					
+			nodeCount--;
+			//Remove all connecting links
+			Link[] iterAr=new Link[links.Count];
+			links.Values.CopyTo(iterAr,0);
+			foreach(Link link in iterAr)
+			{
+				if (link.source==deletedNode | link.target==deletedNode)
+				{
+					DeleteLink(link,null);
+				}
+			}
+			GameObject.Destroy(deletedNode.gameObject);
+		}
+		
+		
+		//LINKS///
 		public void CreateNewLink(string newLinkSourceId, string newLinkTargetId)
 		{
 			//Check if link already exists

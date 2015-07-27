@@ -101,7 +101,8 @@ public class InputManager : MonoBehaviour {
 		
 		//manage input
 		HandleCursorLoc();
-		ManageAllNodeSelect();	
+		ManageAllNodeSelect();
+		ManageSaveHotkey();	
 		ManageLinkSelection();
 		
 		ManageClickDeselect();
@@ -313,12 +314,12 @@ public class InputManager : MonoBehaviour {
 							if (selectedNode.parentNode!=clickedNode)
 							{
 								controller.SetNodeAsChild(selectedNode,clickedNode);
-								controller.CreateNewLink(selectedNode.id, clickedNode.id);
+								//controller.CreateNewLink(selectedNode.id, clickedNode.id);
 							}
 							else
 							{
 								controller.UnchildNode(selectedNode);
-								controller.DeleteLinkBetweenNodes(selectedNode,clickedNode);
+								//controller.DeleteLinkBetweenNodes(selectedNode,clickedNode);
 							}
 						}		
 					}
