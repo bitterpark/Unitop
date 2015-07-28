@@ -33,7 +33,10 @@ namespace Topology {
 		bool sceneLoaded=false;
 		
 		
-		public void SetSourceFile(string filePath) {sourceFile=filePath;}
+		public void SetSourceFile(string filePath) 
+		{
+			if (filePath!=null) {sourceFile=filePath;}
+		}
 		public bool HasSourceFile() 
 		{
 			bool hasFile=false;

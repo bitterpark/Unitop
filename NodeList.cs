@@ -15,7 +15,10 @@ public class NodeList: MonoBehaviour
 	Vector2 nodeListScrollPos=Vector2.zero;
 	float nodeListProjectedWidth=190;
 	public GUISkin mySkin;
-
+	
+	public delegate void JumpToNodeDeleg();
+	public event JumpToNodeDeleg JumpedToNode;
+	
 	public void DrawNodeListWindow()
 	{
 		GUI.Window(0,nodeListRect,DrawNodeList,"Карта нод");
@@ -188,7 +191,8 @@ public class NodeList: MonoBehaviour
 						
 						StopCoroutine("NodeListDclickTimerManager");
 						nodeListDclickTimer=null;
-						Camera.main.transform.position=(Vector2)menuDrawnNodeList[i].transform.position;		
+						Camera.main.transform.position=(Vector2)menuDrawnNodeList[i].transform.position;
+						JumpedToNode();		
 					}
 					else
 					{

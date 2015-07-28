@@ -190,7 +190,6 @@ public class InputManager : MonoBehaviour {
 	
 	protected void FileSelectedCallback(string path) {
 		
-		//sourceFile = path;
 		controller.SetSourceFile(path);
 		if (path!=null)
 		{

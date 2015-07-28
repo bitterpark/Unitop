@@ -45,6 +45,7 @@ public class ContextMenuManager{
 		currentSkin=mySkin;
 		colorTextures=linkColorTextures;
 		InputManager.mainInputManager.SelectedNodesChanged+=AnchorToLastSelectedNode;
+		InputManager.mainInputManager.myNodeList.JumpedToNode+=AnchorToLastSelectedNode;
 		InputManager.mainInputManager.SelectedLinksChanged+=AnchorToLastSelectedLink;
 		//GameController.mainController.mainCameraControl.PreZoomChanged+=PreZoomSetup;
 		//GameController.mainController.mainCameraControl.ZoomChanged+=AdjustToZoom;
@@ -229,16 +230,16 @@ public class ContextMenuManager{
 			Texture[] cachedNodeTextures=GameController.mainController.GetNodeTextures();
 			//GUIContent[] iconDroplistContent=new GUIContent[cachedNodeTextures.Length];//new GUIContent[4];
 			List<GUIContent> iconDroplistContent=new List<GUIContent>();
-			iconDroplistContent.Add (new GUIContent("Windows XP   ",cachedNodeTextures[0]));
-			iconDroplistContent.Add (new GUIContent("Windows Vista",cachedNodeTextures[1]));
-			iconDroplistContent.Add (new GUIContent("Windows 7    ",cachedNodeTextures[2]));
-			iconDroplistContent.Add (new GUIContent("Windows 8    ",cachedNodeTextures[3]));
-			iconDroplistContent.Add (new GUIContent("Server 2000  ",cachedNodeTextures[4]));
-			iconDroplistContent.Add (new GUIContent("Server 2003  ",cachedNodeTextures[5]));
-			iconDroplistContent.Add (new GUIContent("Server 2008  ",cachedNodeTextures[6]));
-			iconDroplistContent.Add (new GUIContent("Server 2012  ",cachedNodeTextures[7]));
-			iconDroplistContent.Add (new GUIContent("Linux        ",cachedNodeTextures[8]));
-			iconDroplistContent.Add (new GUIContent("Mac OS       ",cachedNodeTextures[9]));
+			iconDroplistContent.Add (new GUIContent("WindowsXP   ",cachedNodeTextures[0]));
+			iconDroplistContent.Add (new GUIContent("WindowsVista",cachedNodeTextures[1]));
+			iconDroplistContent.Add (new GUIContent("Windows7    ",cachedNodeTextures[2]));
+			iconDroplistContent.Add (new GUIContent("Windows8    ",cachedNodeTextures[3]));
+			iconDroplistContent.Add (new GUIContent("Server2000  ",cachedNodeTextures[4]));
+			iconDroplistContent.Add (new GUIContent("Server2003  ",cachedNodeTextures[5]));
+			iconDroplistContent.Add (new GUIContent("Server2008  ",cachedNodeTextures[6]));
+			iconDroplistContent.Add (new GUIContent("Server2012  ",cachedNodeTextures[7]));
+			iconDroplistContent.Add (new GUIContent("Linux       ",cachedNodeTextures[8]));
+			iconDroplistContent.Add (new GUIContent("MacOS       ",cachedNodeTextures[9]));
 			
 			//select icon droplist
 			selectIconDroplist.List(new Rect(leftColumnStartX,leftColumnStartY,elementSizeX*1.3f,elementSizeY)
