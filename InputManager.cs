@@ -53,11 +53,11 @@ public class InputManager : MonoBehaviour {
 	//public float GetNodeListWidth() {return myNodeList.}
 	ContextMenuManager myContextMenu;
 	
-	Rect openButtonRect=new Rect(5,5,100,30);
-	Rect saveButtonRect=new Rect(105,5,100,30);
-	Rect dbButtonRect=new Rect(205,5,100,30);
-	Rect helpButtonRect=new Rect(305,5,100,30);
-	Rect quitButtonRect=new Rect(405,5,100,30);
+	Rect openButtonRect=new Rect(5,10,100,30);
+	Rect saveButtonRect=new Rect(105,10,100,30);
+	Rect dbButtonRect=new Rect(205,10,100,30);
+	Rect helpButtonRect=new Rect(305,10,100,30);
+	Rect quitButtonRect=new Rect(405,10,100,30);
 	Rect fileBrowserWindowRect=new Rect(100, 100, 600, 500);
 	Rect fileBrowserCurrentPos;
 	

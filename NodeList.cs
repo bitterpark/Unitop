@@ -129,7 +129,7 @@ public class NodeList: MonoBehaviour
 		
 		//(HORIZONTAL) SCROLL AREA SETUP
 		//leftOffset-expandButtonWidth
-		Rect scrollDims=new Rect(leftOffset-expandButtonWidth,topOffset,entryWidth+parentOffsetDelta,nodeListRect.height-bottomOffset-topOffset+10);
+		Rect scrollDims=new Rect(leftOffset-expandButtonWidth,topOffset,entryWidth+expandButtonWidth+parentOffsetDelta,nodeListRect.height-bottomOffset-topOffset+10);
 		Rect scrollArea=new Rect(leftOffset-expandButtonWidth,topOffset,nodeListProjectedWidth,topOffset+(entryHeight+vPad)*(maxEntries-3));
 		nodeListScrollPos=GUI.BeginScrollView(scrollDims,nodeListScrollPos,scrollArea,false,false);
 		

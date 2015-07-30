@@ -163,10 +163,14 @@ public class CameraControlZeroG : MonoBehaviour {
 	{
 		float xTolerance=10f;
 		float yTolerance=20f;
+		//if cursor is to the left
 		if ((Input.mousePosition.x)<xTolerance) {move.x-=realSpeed*Time.deltaTime;}
+		//if downward
 		if ((Input.mousePosition.y)<yTolerance) {move.y-=realSpeed*Time.deltaTime;}
+		//if right
 		if ((Input.mousePosition.x)>Screen.width-xTolerance+5) {move.x+=realSpeed*Time.deltaTime;}
-		if ((Input.mousePosition.y)>Screen.height-yTolerance+20f) {move.y+=realSpeed*Time.deltaTime;}
+		
+		if ((Input.mousePosition.y)>Screen.height-yTolerance+10) {move.y+=realSpeed*Time.deltaTime;}
 	}
 
 }

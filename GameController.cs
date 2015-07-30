@@ -359,7 +359,19 @@ namespace Topology {
 					nodeTrees.Remove(child.parentNode);
 					child.parentNode.hasChildren=false;
 				}
-				DeleteLinkBetweenNodes(child,child.parentNode);
+				List<Link> connectedLinks=new List<Link>();
+				foreach (Link link in links.Values)
+				{
+					if (link.source==child | link.target==child)
+					{
+						connectedLinks.Add(link);
+					}
+				}
+				foreach (Link connectedLink in connectedLinks)
+				{
+					DeleteLink(connectedLink,null);
+				}
+				//DeleteLinkBetweenNodes(child,child.parentNode);
 				child.parentNode=null;
 				rootNodes.Add(child);
 			}

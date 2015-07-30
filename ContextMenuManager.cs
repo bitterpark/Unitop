@@ -213,7 +213,7 @@ public class ContextMenuManager{
 			if (selected.Count==1)
 			{
 				string nodeName=selected[selectItemDroplist.GetSelectedItemIndex()].text;
-				nodeName=GUI.TextField(new Rect(rightColumnStartX,rightColumnStartY+3,elementSizeX*1.3f,elementSizeY),nodeName);
+				nodeName=GUI.TextField(new Rect(rightColumnStartX,rightColumnStartY+3,elementSizeX*1.3f,elementSizeY),nodeName,25);
 				selected[selectItemDroplist.GetSelectedItemIndex()].text=nodeName;
 			}		
 			//SELECT OBJ MENU (must be last item rendered)
