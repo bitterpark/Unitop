@@ -1,4 +1,6 @@
 ﻿using UnityEngine;
+using System.IO;
+using System.Text;
 using System.Collections;
 using System.Collections.Generic;
 using Topology;
@@ -60,6 +62,9 @@ public class InputManager : MonoBehaviour {
 	Rect quitButtonRect=new Rect(405,10,100,30);
 	Rect fileBrowserWindowRect=new Rect(100, 100, 600, 500);
 	Rect fileBrowserCurrentPos;
+	Rect readmeWindowrect=new Rect(100, 100, 600, 500);
+	bool showReadme=false;
+	string readmeText="txt";
 	
 	bool supressContextMenu=false;
 	
@@ -151,21 +156,81 @@ public class InputManager : MonoBehaviour {
 		
 		if (GUI.Button(helpButtonRect,"Помощь")) 
 		{
-			string helpPath=Application.dataPath+"/../Readme.txt";
 			/*
-			#if UNITY_EDITOR
-			helpPath=Application.dataPath+"/Data/Readme.txt";
-			#else
-			helpPath=Application.dataPath+"/../Readme.txt";
-			#endif
-			*/
+			string helpPath=Application.dataPath+"/../Readme.txt";
 			Application.OpenURL(helpPath);
+			*/
+			showReadme=!showReadme;
+			if (showReadme) {readmeText=LoadReadmeText();}
 		}
-		
-		
 		if (GUI.Button(quitButtonRect,"Выход")) {Application.Quit();}
+		
+		if (showReadme) {DrawReadmeWindow();}
 		//ManageTooltip();
 		myContextMenu.ManageTooltip(supressContextMenu);
+	}
+	
+	void DrawReadmeWindow()
+	{
+		GUI.Box(readmeWindowrect,"Помощь",new GUIStyle("window"));
+		Rect helpTextRect=new Rect(readmeWindowrect);
+		helpTextRect.x+=20;
+		helpTextRect.y+=40;
+		helpTextRect.width-=40;
+		helpTextRect.height-=80;
+		GUI.Label(helpTextRect,readmeText);
+		Rect closeButtonRect=new Rect(readmeWindowrect);
+		closeButtonRect.x+=readmeWindowrect.width-100;
+		closeButtonRect.y+=readmeWindowrect.height-40;
+		closeButtonRect.width=80;
+		closeButtonRect.height=29;
+		if (GUI.Button(closeButtonRect,"Закрыть")) {showReadme=false;}
+	}
+	
+	string LoadReadmeText()
+	{
+		string readmeString="";
+		
+		string helpPath=Application.dataPath+"/../Readme.txt";
+		// Handle any problems that might arise when reading the text
+			
+			string line;
+			// Create a new StreamReader, tell it which file to read and what encoding the file
+			// was saved as
+			StreamReader theReader = new StreamReader(helpPath);
+			
+			// Immediately clean up the reader after this block of code is done.
+			// You generally use the "using" statement for potentially memory-intensive objects
+			// instead of relying on garbage collection.
+			// (Do not confuse this with the using directive for namespace at the 
+			// beginning of a class!)
+			
+			using (theReader)
+			{
+				// While there's lines left in the text file, do this:
+				do
+				{
+					line = theReader.ReadLine();
+					
+					if (line != null)
+					{
+						// Do whatever you need to do with the text line, it's a string now
+						// In this example, I split it into arguments based on comma
+						// deliniators, then send that array to DoStuff()
+						readmeString+=line;
+						readmeString+="\n";
+						//string[] entries = line.Split(',');
+						//if (entries.Length > 0)
+						//DoStuff(entries);
+					}
+				}
+				while (line != null);
+				
+				// Done reading, close the reader and return true to broadcast success    
+				theReader.Close();
+			}
+		
+		return readmeString;
 	}
 	
 	protected void OnGUIMain() {
@@ -715,6 +780,7 @@ public class InputManager : MonoBehaviour {
 		    && !helpButtonRect.Contains(mousePosInGUICoords)
 		    && !dbButtonRect.Contains(mousePosInGUICoords)
 		    && !quitButtonRect.Contains(mousePosInGUICoords)
+		    && !readmeWindowrect.Contains(mousePosInGUICoords)
 		    && (!myContextMenu.isDrawn 
 		    	|(!myContextMenu.GetContextMenuPosNodes().Contains(mousePosInGUICoords) 
 		    	&& !myContextMenu.GetContextMenuPosLinks().Contains(mousePosInGUICoords)//contextMenuPosLinks.Contains(mousePosInGUICoords)

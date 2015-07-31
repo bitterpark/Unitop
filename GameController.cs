@@ -127,6 +127,7 @@ namespace Topology {
 				}
 			}
 
+			SetUpNodeFormations();
 			//map node edges
 			MapLinkNodes();
 			statusText.text = "";
@@ -171,6 +172,7 @@ namespace Topology {
 			Node retNode=LoadNode(xmlNode, loadedNodePos);
 			if (xmlNode.HasChildNodes)
 			{
+				/*
 				float yOffsetFromParent=-512f;
 				float yRowPad=-384f;
 				float xPad=256;
@@ -181,18 +183,87 @@ namespace Topology {
 				int rowTotalLength=1;
 				int rowCursor=0;
 				//int i=0;
+				*/
 				XmlNodeList childNodes=xmlNode.ChildNodes;
 				foreach (XmlElement child in childNodes)
 				{			
 					//i++;
-					float childX=loadedNodePos.x+currentXOffset;
-					float childY=loadedNodePos.y+currentYOffset;
+					float childX=float.Parse(child.Attributes["x"].Value);//loadedNodePos.x+currentXOffset;
+					float childY=float.Parse(child.Attributes["y"].Value);//loadedNodePos.y+currentYOffset;
 					//print ("Step no:"+i);
 					//print ("Parent pos is:"+loadedNodePos);
 					//print ("x offset is:"+currentXOffset);
 					//print ("y offset is:"+currentYOffset);
 					//Vector2 childPos=new Vector2();
 					Node newNode=DownwardRecursiveNodeLoad(child, new Vector2(childX,childY));//LoadNode(child);
+					/*
+					rowCursor++;
+					if (rowCursor==rowTotalLength)
+					{
+						rowCounter++;
+						rowTotalLength+=2;
+						rowCursor=0;
+						currentYOffset+=yRowPad;
+						currentXOffset=-xPad*rowCounter;
+					}
+					else
+					{
+						currentXOffset+=xPad;
+					}*/
+					SetNodeAsChild(newNode,retNode);
+				}
+			}
+			return retNode;
+		}
+		
+		
+		void SetUpNodeFormations()
+		{
+			foreach(Node rootNode in rootNodes)
+			{
+				if (nodeTrees.ContainsKey(rootNode))
+				{
+					float downwardRefX=0;
+					float downwardRefY=0;
+					FormHierarchyTriangle(rootNode, rootNode,ref downwardRefX,ref downwardRefY);
+				}
+			}
+		}
+		
+		void FormHierarchyTriangle(Node parent, Node rootParent, ref float occupiedWidthToLeft, ref float occupiedWidthToRight)
+		{
+			if (nodeTrees.ContainsKey(parent))
+			{
+				float yOffsetFromParent=-896f;
+				float yRowPad=-512f;
+				float xPad=512f;
+				//float elementSizeX=256;
+				float currentXOffset=0;
+				float currentYOffset=yOffsetFromParent;
+				int rowCounter=0;
+				int rowTotalLength=1;
+				int rowCursor=0;
+				
+				//Determine which children go underneath the parent and
+				//which get their own pyramid to the side
+				List<Node> pyramidChildren=new List<Node>();
+				List<Node> childrenWidthOwnPyramids=new List<Node>();
+				foreach(Node child in nodeTrees[parent])
+				{
+					if (!nodeTrees.ContainsKey(child))
+					{
+						pyramidChildren.Add(child);
+					}
+					else {childrenWidthOwnPyramids.Add(child);}
+				}
+				
+				foreach(Node pyramidChild in pyramidChildren)
+				{
+					float pyramidChildX=parent.transform.position.x+currentXOffset;
+					float pyramidChildY=parent.transform.position.y+currentYOffset;
+					//Node newNode=DownwardRecursiveNodeLoad(pyramidChild, new Vector2(childX,childY));//LoadNode(child);
+					pyramidChild.transform.position=new Vector3(pyramidChildX,pyramidChildY,3000);
+					
 					rowCursor++;
 					if (rowCursor==rowTotalLength)
 					{
@@ -206,10 +277,52 @@ namespace Topology {
 					{
 						currentXOffset+=xPad;
 					}
-					SetNodeAsChild(newNode,retNode);
+					//Prepare for offset from parent's parent
+					pyramidChild.gameObject.transform.parent=parent.gameObject.transform;
+				}
+				float pyramidHalfWidth=xPad*rowCounter;
+				
+				//See if offseting from parent pyramid is necessary
+				if (parent!=rootParent)
+				{
+					bool goingLeft=true;
+					if (occupiedWidthToLeft>occupiedWidthToRight) 
+					{goingLeft=false;}
+				
+					float pyramidXOffsetFromParent=0;
+					float pyramidYOFfsetFromParent=parent.parentNode.transform.position.y+yOffsetFromParent;
+					if (goingLeft)
+					{
+						pyramidXOffsetFromParent=rootParent.transform.position.x-(occupiedWidthToLeft+pyramidHalfWidth);
+						//Update left width if going elft as child
+						occupiedWidthToLeft+=pyramidHalfWidth*2;
+					}
+					else
+					{
+						pyramidXOffsetFromParent=rootParent.transform.position.x+occupiedWidthToRight+pyramidHalfWidth;
+						//Update right width if going right as child
+						occupiedWidthToRight+=pyramidHalfWidth*2;
+					}	
+					parent.transform.position=new Vector3(pyramidXOffsetFromParent,pyramidYOFfsetFromParent,3000);
+				}
+				else 
+				{
+					//Update occupied width for root node
+					occupiedWidthToLeft+=pyramidHalfWidth;
+					occupiedWidthToRight+=pyramidHalfWidth;
+				}
+				//Unanchor children
+				foreach (Node anchoredChild in pyramidChildren)
+				{
+					anchoredChild.gameObject.transform.parent=null;
+				}
+				
+				//Recursively form up child trees
+				foreach (Node childTreeParent in childrenWidthOwnPyramids)
+				{
+					FormHierarchyTriangle(childTreeParent,rootParent,ref occupiedWidthToLeft,ref occupiedWidthToRight);
 				}
 			}
-			return retNode;
 		}
 		
 		//Method for mapping links to nodes
