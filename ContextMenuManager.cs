@@ -46,6 +46,7 @@ public class ContextMenuManager{
 		colorTextures=linkColorTextures;
 		InputManager.mainInputManager.SelectedNodesChanged+=AnchorToLastSelectedNode;
 		InputManager.mainInputManager.myNodeList.JumpedToNode+=AnchorToLastSelectedNode;
+		InputManager.mainInputManager.NodeDragEnded+=AnchorToLastSelectedNode;
 		InputManager.mainInputManager.SelectedLinksChanged+=AnchorToLastSelectedLink;
 		//GameController.mainController.mainCameraControl.PreZoomChanged+=PreZoomSetup;
 		//GameController.mainController.mainCameraControl.ZoomChanged+=AdjustToZoom;

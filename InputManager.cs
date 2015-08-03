@@ -51,6 +51,9 @@ public class InputManager : MonoBehaviour {
 	public delegate void LinkSelectChangeDelegate();
 	public event LinkSelectChangeDelegate SelectedLinksChanged;
 	
+	public delegate void NodeDragEndDelegate();
+	public event NodeDragEndDelegate NodeDragEnded;
+	
 	public NodeList myNodeList;
 	//public float GetNodeListWidth() {return myNodeList.}
 	ContextMenuManager myContextMenu;
@@ -62,9 +65,13 @@ public class InputManager : MonoBehaviour {
 	Rect quitButtonRect=new Rect(405,10,100,30);
 	Rect fileBrowserWindowRect=new Rect(100, 100, 600, 500);
 	Rect fileBrowserCurrentPos;
-	Rect readmeWindowrect=new Rect(100, 100, 600, 500);
+	Rect readmeWindowrect=new Rect(100, 100, 700, 550);
+	//must be equal to readmeWindowrect but with height set to 20 (or whatever window drag handle is)
+	Rect readmeWindowCurrentPos=new Rect(100,100,600,20);
+	Vector2 readmeScrollPos=Vector2.zero;
 	bool showReadme=false;
 	string readmeText="txt";
+	float readmeTextHeight=0;
 	
 	bool supressContextMenu=false;
 	
@@ -127,19 +134,19 @@ public class InputManager : MonoBehaviour {
 		if (fb != null) 
 		{
 			
-			fileBrowserCurrentPos=GUI.Window(4,fileBrowserCurrentPos,DragFbWindowFunc,"",GUIStyle.none);
+			fileBrowserCurrentPos=GUI.Window(4,fileBrowserCurrentPos,DragWindowFunc,"",GUIStyle.none);
 			fb.OnGUI(fileBrowserCurrentPos.x,fileBrowserCurrentPos.y);
 		} 
 		else 
 		{
-			OnGUIMain();
+			DrawFbButton();
 		}
 		if (controller.SceneIsLoaded()) 
 		{
 			myNodeList.DrawNodeListWindow();
 			if (controller.HasSourceFile())
 			{
-				if (GUI.Button(saveButtonRect,"Сохранить")) {controller.SaveAll();}
+				if (GUI.Button(saveButtonRect,"Сохранить")) {CallSave();}//controller.SaveAll();}
 			}
 		}
 		
@@ -163,22 +170,74 @@ public class InputManager : MonoBehaviour {
 			showReadme=!showReadme;
 			if (showReadme) {readmeText=LoadReadmeText();}
 		}
+		if (showReadme) {DrawReadmeWindow();}
+		
 		if (GUI.Button(quitButtonRect,"Выход")) {Application.Quit();}
 		
-		if (showReadme) {DrawReadmeWindow();}
+		
 		//ManageTooltip();
 		myContextMenu.ManageTooltip(supressContextMenu);
 	}
 	
+	IEnumerator SavePopupRoutine()
+	{
+		Rect savePopupRect=new Rect(-15,Screen.height-60,100,40);
+		
+		float drawForSecs=3;
+		float horizontalDeltaPerSec=18f;
+		float xMax=15;
+		
+		while (drawForSecs>0)
+		{
+			drawForSecs-=Time.deltaTime;
+			//GUI.Box(savePopupRect,"Сохранено");
+			savePopupRect.x+=horizontalDeltaPerSec*Time.deltaTime;
+			savePopupRect.x=Mathf.Clamp(savePopupRect.x,Mathf.NegativeInfinity,xMax);
+			yield return new WaitForEndOfFrame();
+		}
+		yield break;
+	}
+	
 	void DrawReadmeWindow()
 	{
+		readmeWindowCurrentPos=GUI.Window(5,readmeWindowCurrentPos,DragWindowFunc,"",GUIStyle.none);
+		
+		readmeWindowrect.x=readmeWindowCurrentPos.x;
+		readmeWindowrect.y=readmeWindowCurrentPos.y;
+		
+		
 		GUI.Box(readmeWindowrect,"Помощь",new GUIStyle("window"));
+		
 		Rect helpTextRect=new Rect(readmeWindowrect);
 		helpTextRect.x+=20;
 		helpTextRect.y+=40;
 		helpTextRect.width-=40;
-		helpTextRect.height-=80;
-		GUI.Label(helpTextRect,readmeText);
+		helpTextRect.height-=95;	
+		Rect scrollDims=new Rect(helpTextRect);
+		Rect scrollArea=new Rect(helpTextRect.x,helpTextRect.y,helpTextRect.width-20,readmeTextHeight+5);
+		readmeScrollPos=GUI.BeginScrollView(scrollDims,readmeScrollPos,scrollArea,false,false);	
+		GUI.Label(scrollArea,readmeText);
+		
+		
+		if (currentCursorLoc==InputManager.CursorLoc.OverGUI)
+		{
+			Vector2 mousePosInGUICoords = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
+			if (readmeWindowrect.Contains(mousePosInGUICoords))
+			{
+				float scrollbarValueDelta=7.5f;
+				if (Input.GetAxis("Mouse ScrollWheel")>0)
+				{
+					readmeScrollPos.y-=scrollbarValueDelta;
+				}
+				if (Input.GetAxis("Mouse ScrollWheel")<0)
+				{
+					readmeScrollPos.y+=scrollbarValueDelta;
+				}
+				readmeScrollPos.y=Mathf.Clamp(readmeScrollPos.y,0,scrollArea.height);
+			}
+		}
+		GUI.EndScrollView();
+		
 		Rect closeButtonRect=new Rect(readmeWindowrect);
 		closeButtonRect.x+=readmeWindowrect.width-100;
 		closeButtonRect.y+=readmeWindowrect.height-40;
@@ -192,19 +251,11 @@ public class InputManager : MonoBehaviour {
 		string readmeString="";
 		
 		string helpPath=Application.dataPath+"/../Readme.txt";
-		// Handle any problems that might arise when reading the text
 			
 			string line;
-			// Create a new StreamReader, tell it which file to read and what encoding the file
-			// was saved as
 			StreamReader theReader = new StreamReader(helpPath);
-			
-			// Immediately clean up the reader after this block of code is done.
-			// You generally use the "using" statement for potentially memory-intensive objects
-			// instead of relying on garbage collection.
-			// (Do not confuse this with the using directive for namespace at the 
-			// beginning of a class!)
-			
+
+			readmeTextHeight=0;
 			using (theReader)
 			{
 				// While there's lines left in the text file, do this:
@@ -214,26 +265,19 @@ public class InputManager : MonoBehaviour {
 					
 					if (line != null)
 					{
-						// Do whatever you need to do with the text line, it's a string now
-						// In this example, I split it into arguments based on comma
-						// deliniators, then send that array to DoStuff()
 						readmeString+=line;
 						readmeString+="\n";
-						//string[] entries = line.Split(',');
-						//if (entries.Length > 0)
-						//DoStuff(entries);
+						readmeTextHeight+=fbSkin.label.lineHeight;
 					}
 				}
 				while (line != null);
-				
-				// Done reading, close the reader and return true to broadcast success    
+				 
 				theReader.Close();
 			}
-		
 		return readmeString;
 	}
 	
-	protected void OnGUIMain() {
+	protected void DrawFbButton() {
 		
 		GUILayout.BeginHorizontal();
 		//GUILayout.Label("Xml File", GUILayout.Width(100));
@@ -264,12 +308,12 @@ public class InputManager : MonoBehaviour {
 				selectedNodes.Clear();
 				controller.ClearScene();
 			}
-			controller.StartLayoutLoad();//StartCoroutine( LoadLayout() );
+			controller.StartLayoutLoad();
 		}
 		fb=null;
 	}
 	
-	void DragFbWindowFunc(int emptySig) 
+	void DragWindowFunc(int emptySig) 
 	{
 		//Make window draggable
 		GUI.DragWindow();
@@ -463,6 +507,7 @@ public class InputManager : MonoBehaviour {
 		swapOverAr=unswapLinks.ToArray();
 		controller.linkDrawManager.UnswapDrawnLinks(swapOverAr);
 		supressContextMenu=false;
+		NodeDragEnded();
 	}
 	
 	void ManageAllNodeSelect()
@@ -498,18 +543,26 @@ public class InputManager : MonoBehaviour {
 			#if UNITY_EDITOR
 			if (Input.GetKeyDown (KeyCode.V))
 			{
-				controller.SaveAll();
+				//controller.SaveAll();
+				CallSave();
 			}
 			#else
 			if (Input.GetKey(KeyCode.LeftControl))
 			{
 				if (Input.GetKeyDown (KeyCode.S))
 				{
-					controller.SaveAll();
+					//controller.SaveAll();\
+					CallSave();
 				} 
 			}
 			#endif
 		}
+	}
+	
+	void CallSave()
+	{
+		GameController.mainController.SaveAll();
+		StartCoroutine(SavePopupRoutine());
 	}
 	
 	void CopySelectedNodes()
@@ -780,7 +833,7 @@ public class InputManager : MonoBehaviour {
 		    && !helpButtonRect.Contains(mousePosInGUICoords)
 		    && !dbButtonRect.Contains(mousePosInGUICoords)
 		    && !quitButtonRect.Contains(mousePosInGUICoords)
-		    && !readmeWindowrect.Contains(mousePosInGUICoords)
+		    && !(readmeWindowrect.Contains(mousePosInGUICoords) && showReadme)
 		    && (!myContextMenu.isDrawn 
 		    	|(!myContextMenu.GetContextMenuPosNodes().Contains(mousePosInGUICoords) 
 		    	&& !myContextMenu.GetContextMenuPosLinks().Contains(mousePosInGUICoords)//contextMenuPosLinks.Contains(mousePosInGUICoords)

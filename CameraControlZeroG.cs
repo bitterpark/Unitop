@@ -38,18 +38,7 @@ public class CameraControlZeroG : MonoBehaviour {
 	{
 		
 		ManageCameraZoom();
-		//Shift+a is for select all
-		if(Input.GetAxis("Horizontal")>0 | !Input.GetKey(KeyCode.LeftShift)) {move.x = Input.GetAxis("Horizontal") * realSpeed * Time.deltaTime;}
-		move.y=Input.GetAxis("Vertical") * realSpeed * Time.deltaTime;
-		move.z=0;
 		
-		if (Input.GetKey ("space")) {
-			move.y = realSpeed * Time.deltaTime;
-		}
-
-		if (Input.GetKey ("z")) {
-			move.y = -realSpeed * Time.deltaTime;
-		}
 		
 		ManageMMBScroll();
 		//ManageLMBScroll();
@@ -61,11 +50,31 @@ public class CameraControlZeroG : MonoBehaviour {
 		if (speed < 5)
 			speed = 5;
 		*/
-		movementSpeed.text = "Move Speed: " + realSpeed;
-
+		//movementSpeed.text = "Move Speed: " + realSpeed;
+		ManageWASDMove();
+		
+		
+	}
+	
+	void ManageWASDMove()
+	{
+		if (!Input.GetKey (KeyCode.LeftShift) && !Input.GetKey(KeyCode.LeftControl))
+		{
+			if(Input.GetAxis("Horizontal")>0 | !Input.GetKey(KeyCode.LeftShift)) {move.x = Input.GetAxis("Horizontal") * realSpeed * Time.deltaTime;}
+			move.y=Input.GetAxis("Vertical") * realSpeed * Time.deltaTime;
+			move.z=0;
+			
+			/*
+			if (Input.GetKey ("space")) {
+				move.y = realSpeed * Time.deltaTime;
+			}
+		
+			if (Input.GetKey ("z")) {
+				move.y = -realSpeed * Time.deltaTime;
+			}*/
+		}
 		move = transform.TransformDirection(move);
 		transform.position += move;
-		
 	}
 	
 	void ManageCameraZoom()
@@ -143,6 +152,8 @@ public class CameraControlZeroG : MonoBehaviour {
 			Screen.lockCursor=true;
 			move.x = Input.GetAxis("Mouse X") * realSpeed * Time.deltaTime;
 			move.y = Input.GetAxis("Mouse Y") * realSpeed * Time.deltaTime;
+			move = transform.TransformDirection(move);
+			transform.position += move;
 		}
 		else {Screen.lockCursor=false;}
 	}
