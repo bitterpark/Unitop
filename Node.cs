@@ -139,7 +139,7 @@ namespace Topology {
 		void OnDestroy() 
 		{
 			if (dragged) {controller.myInputManager.NodeDragComplete();}
-			StopAllCoroutines();
+			//StopAllCoroutines();
 		}
 		
 		public void DragAlong(Vector3 moveDelta)

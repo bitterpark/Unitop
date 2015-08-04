@@ -22,7 +22,8 @@ namespace Topology {
 		
 		GUIText nodeCountText;
 		GUIText linkCountText;
-		GUIText statusText;
+		public GUIText statusText;
+		
 		
 		int nodeCount = 0;
 		int linkCount = 0;
@@ -31,7 +32,12 @@ namespace Topology {
 		
 		string sourceFile;
 		bool sceneLoaded=false;
-		
+		bool unsavedChanges=false;
+		public bool unsavedChagesExist 
+		{
+			get {return unsavedChanges;}
+			set {unsavedChanges=value;}
+		}
 		
 		public void SetSourceFile(string filePath) 
 		{
@@ -134,6 +140,7 @@ namespace Topology {
 			LoadCameraPos();
 //			myInputManager.StartDrawnNodeList();
 			sceneLoaded=true;
+			unsavedChanges=false;
 		}
 		
 		
@@ -356,6 +363,12 @@ namespace Topology {
 			//UpdateLinkColors();
 			linkDrawManager.LinkChangeColor(changedLink,c);
 		}
+		/*
+		void Update()
+		{
+			statusText = GameObject.Find("StatusText").guiText;
+			statusText.text = Time.deltaTime.ToString();
+		}*/
 		
 		public void CreateNewNode()
 		{
@@ -409,6 +422,7 @@ namespace Topology {
 			nodes.Add(nodeObject.id, nodeObject);
 			rootNodes.Add(nodeObject);
 			nodeCount++;
+			unsavedChanges=true;
 			return nodeObject;
 		}
 		
@@ -629,6 +643,7 @@ namespace Topology {
 				}
 			}
 			GameObject.Destroy(deletedNode.gameObject);
+			unsavedChanges=true;
 		}
 		
 		
@@ -671,6 +686,7 @@ namespace Topology {
 				newLink.target = nodes[newLinkTargetId] as Node;
 				linkDrawManager.AddDrawnLink(newLink);
 			}
+			unsavedChanges=true;
 		
 		}
 		
@@ -747,6 +763,7 @@ namespace Topology {
 				//GameObject.Destroy(sibling.gameObject);
 				linkCount--;
 			}
+			unsavedChanges=true;
 		}
 		
 		//Remove links
@@ -803,6 +820,7 @@ namespace Topology {
 			ClearXmlNodes();
 			WriteAllNodesToXml();
 			SaveCameraPosToXml();
+			unsavedChanges=false;
 		}
 		
 		void SaveCameraPosToXml()
@@ -1169,6 +1187,7 @@ namespace Topology {
 			sceneLoaded=false;
 			
 		}
+		
 		
 }
 }

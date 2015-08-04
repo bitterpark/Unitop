@@ -214,7 +214,9 @@ public class ContextMenuManager{
 			if (selected.Count==1)
 			{
 				string nodeName=selected[selectItemDroplist.GetSelectedItemIndex()].text;
+				string oldName=nodeName;
 				nodeName=GUI.TextField(new Rect(rightColumnStartX,rightColumnStartY+3,elementSizeX*1.3f,elementSizeY),nodeName,25);
+				if (nodeName!=oldName) {GameController.mainController.unsavedChagesExist=true;}
 				selected[selectItemDroplist.GetSelectedItemIndex()].text=nodeName;
 			}		
 			//SELECT OBJ MENU (must be last item rendered)
@@ -250,6 +252,7 @@ public class ContextMenuManager{
 			{
 				//InputManager.DebugPrint("changing sprites!"); //print("changing sprites!");
 				foreach (Node node in selected) {node.SetSprite(selectIconDroplist.GetSelectedItemIndex());}
+				GameController.mainController.unsavedChagesExist=true;
 			}				
 		}
 		
@@ -318,6 +321,7 @@ public class ContextMenuManager{
 						case 4:{selectedLink.color="cyan"; break;}
 					}
 				}
+				GameController.mainController.unsavedChagesExist=true;
 			}
 			/*
 			//select obj menu (must be after endgroup rendered)

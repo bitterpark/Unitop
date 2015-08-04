@@ -57,9 +57,17 @@ public class InputManager : MonoBehaviour {
 	public NodeList myNodeList;
 	//public float GetNodeListWidth() {return myNodeList.}
 	ContextMenuManager myContextMenu;
+	bool supressContextMenu=false;
 	
 	Rect openButtonRect=new Rect(5,10,100,30);
 	Rect saveButtonRect=new Rect(105,10,100,30);
+	
+	public Texture2D savePopupCheckmark;
+	bool showSavePopup=false;
+	Rect savePopupRect=new Rect();
+	float popOutForSecs=1;
+	float popInForSecs=3;
+	
 	Rect dbButtonRect=new Rect(205,10,100,30);
 	Rect helpButtonRect=new Rect(305,10,100,30);
 	Rect quitButtonRect=new Rect(405,10,100,30);
@@ -73,7 +81,8 @@ public class InputManager : MonoBehaviour {
 	string readmeText="txt";
 	float readmeTextHeight=0;
 	
-	bool supressContextMenu=false;
+	Rect quitWithoutSaveRect=new Rect(100,100,250,100);
+	bool showQuitWIthoutSaveDialog=false;	
 	
 	enum MouseClickMode {SingleSelect, MultiSelect, ControlSelect, CreateLinkMode, CreateHierarchyLinkMode};
 	//ctrl, shift,alt select, link create and hierarchy link toggle
@@ -98,6 +107,8 @@ public class InputManager : MonoBehaviour {
 		controller=gameObject.GetComponent<GameController>();
 		myNodeList=gameObject.GetComponent<NodeList>();
 		myContextMenu=new ContextMenuManager(fbSkin,colorTextures);
+		quitWithoutSaveRect.x=Screen.width*0.5f-quitWithoutSaveRect.width*0.5f;
+		quitWithoutSaveRect.y=Screen.height*0.5f-quitWithoutSaveRect.height*0.5f;
 	}
 	
 	//fires before physics clicks and Update
@@ -177,25 +188,56 @@ public class InputManager : MonoBehaviour {
 		
 		//ManageTooltip();
 		myContextMenu.ManageTooltip(supressContextMenu);
+		
+		if (showQuitWIthoutSaveDialog) {DrawQuitWithoutSaveDialog();}
+		if (showSavePopup) {DrawSavePopup();}
 	}
 	
-	IEnumerator SavePopupRoutine()
+	void PrepSavePopupDraw()
 	{
-		Rect savePopupRect=new Rect(-15,Screen.height-60,100,40);
+		popOutForSecs=3;
+		popInForSecs=3;
+		showSavePopup=true;
+		savePopupRect=new Rect(-15,Screen.height-160,120,40);
+	}
+	
+	//IEnumerator SavePopupRoutine()
+	void DrawSavePopup ()
+	{
+		//Screen.height-80,120,40);
 		
-		float drawForSecs=3;
-		float horizontalDeltaPerSec=18f;
+		//float popOutForSecs=1;
+		//float popInForSecs=3;
+		float horizontalDeltaPerSec=63f;
 		float xMax=15;
+		GUIContent savePopupContent=new GUIContent("Сохранено",savePopupCheckmark);
 		
-		while (drawForSecs>0)
-		{
-			drawForSecs-=Time.deltaTime;
-			//GUI.Box(savePopupRect,"Сохранено");
-			savePopupRect.x+=horizontalDeltaPerSec*Time.deltaTime;
+		
+		//while (popOutForSecs>0 | popInForSecs>0)
+		//{
+			
+			GUI.Box(savePopupRect,savePopupContent);
+			if (popOutForSecs>0)
+			{
+				popOutForSecs-=Time.deltaTime;
+				savePopupRect.x+=horizontalDeltaPerSec*Time.deltaTime;
+				//GameController.mainController.stat statusText = GameObject.Find("StatusText").guiText;
+				//statusText.text = Time.deltaTime.ToString();
+				
+			}
+			else
+			{
+				
+				popInForSecs-=Time.deltaTime;
+				savePopupRect.x-=horizontalDeltaPerSec*Time.deltaTime;
+			}
+			//GameController.mainController.statusText.text=Time.deltaTime.ToString();
 			savePopupRect.x=Mathf.Clamp(savePopupRect.x,Mathf.NegativeInfinity,xMax);
-			yield return new WaitForEndOfFrame();
-		}
-		yield break;
+			//yield return new WaitForEndOfFrame();
+		//}
+		if (popOutForSecs<=0 && popInForSecs<=0)
+		showSavePopup=false;
+		//yield break;
 	}
 	
 	void DrawReadmeWindow()
@@ -244,6 +286,25 @@ public class InputManager : MonoBehaviour {
 		closeButtonRect.width=80;
 		closeButtonRect.height=29;
 		if (GUI.Button(closeButtonRect,"Закрыть")) {showReadme=false;}
+	}
+	
+	void DrawQuitWithoutSaveDialog()
+	{
+		GUI.Box(quitWithoutSaveRect,"","window");
+		GUI.BeginGroup(quitWithoutSaveRect);
+		GUI.Label(new Rect(quitWithoutSaveRect.width*0.5f-100,quitWithoutSaveRect.height*0.25f,200,29),"Есть несохраненные изменения");
+		GUI.Label(new Rect(quitWithoutSaveRect.width*0.5f-40,quitWithoutSaveRect.height*0.4f,80,29),"Сохранить?");
+		if (GUI.Button(new Rect(10,quitWithoutSaveRect.height-10-29,60,29),"Да"))
+		{
+			GameController.mainController.SaveAll();
+			Application.Quit();
+		}
+		if (GUI.Button(new Rect(quitWithoutSaveRect.width-80,quitWithoutSaveRect.height-10-29,60,29),"Нет"))
+		{
+			GameController.mainController.unsavedChagesExist=false;
+			Application.Quit();	
+		}
+		GUI.EndGroup();
 	}
 	
 	string LoadReadmeText()
@@ -480,6 +541,7 @@ public class InputManager : MonoBehaviour {
 		swapOverAr=swapLinks.ToArray();
 		controller.linkDrawManager.SwapDrawnLinks(swapOverAr);
 		supressContextMenu=true;
+		GameController.mainController.unsavedChagesExist=true;
 	}
 	
 	//Put connecting link drawing back into the main renderer
@@ -562,7 +624,8 @@ public class InputManager : MonoBehaviour {
 	void CallSave()
 	{
 		GameController.mainController.SaveAll();
-		StartCoroutine(SavePopupRoutine());
+		//StartCoroutine(SavePopupRoutine());
+		PrepSavePopupDraw();
 	}
 	
 	void CopySelectedNodes()
@@ -834,6 +897,7 @@ public class InputManager : MonoBehaviour {
 		    && !dbButtonRect.Contains(mousePosInGUICoords)
 		    && !quitButtonRect.Contains(mousePosInGUICoords)
 		    && !(readmeWindowrect.Contains(mousePosInGUICoords) && showReadme)
+		    && !(quitWithoutSaveRect.Contains(mousePosInGUICoords) && showQuitWIthoutSaveDialog)
 		    && (!myContextMenu.isDrawn 
 		    	|(!myContextMenu.GetContextMenuPosNodes().Contains(mousePosInGUICoords) 
 		    	&& !myContextMenu.GetContextMenuPosLinks().Contains(mousePosInGUICoords)//contextMenuPosLinks.Contains(mousePosInGUICoords)
@@ -867,13 +931,7 @@ public class InputManager : MonoBehaviour {
 		dclickTimer=null;
 		yield break;
 	}
-/*	
-	IEnumerator DclickNodeCreateTimer()
-	{
-	
-	
-	}
-	*/
+
 	void ManageObjectDeletion()
 	{
 		if (Input.GetKeyDown (KeyCode.Delete))
@@ -905,6 +963,20 @@ public class InputManager : MonoBehaviour {
 			{
 				controller.PasteCopiedNodes();
 			}
+		}
+		#endif
+	}
+	
+	
+	void OnApplicationQuit()
+	{
+		#if UNITY_EDITOR
+		{}
+		#else
+		if (GameController.mainController.unsavedChagesExist)
+		{
+			Application.CancelQuit();
+			showQuitWIthoutSaveDialog=true;
 		}
 		#endif
 	}

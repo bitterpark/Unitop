@@ -182,6 +182,8 @@ public class CameraControlZeroG : MonoBehaviour {
 		if ((Input.mousePosition.x)>Screen.width-xTolerance+5) {move.x+=realSpeed*Time.deltaTime;}
 		
 		if ((Input.mousePosition.y)>Screen.height-yTolerance+10) {move.y+=realSpeed*Time.deltaTime;}
+		move = transform.TransformDirection(move);
+		transform.position += move;
 	}
 
 }
