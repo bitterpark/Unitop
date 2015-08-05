@@ -54,6 +54,9 @@ public class InputManager : MonoBehaviour {
 	public delegate void NodeDragEndDelegate();
 	public event NodeDragEndDelegate NodeDragEnded;
 	
+	public delegate void SelectionBoxChangeDelegate(float x, float y, float maxX, float maxY);
+	public event SelectionBoxChangeDelegate SelectionBoxChanged;
+	
 	public NodeList myNodeList;
 	//public float GetNodeListWidth() {return myNodeList.}
 	ContextMenuManager myContextMenu;
@@ -81,7 +84,7 @@ public class InputManager : MonoBehaviour {
 	string readmeText="txt";
 	float readmeTextHeight=0;
 	
-	Rect quitWithoutSaveRect=new Rect(100,100,250,100);
+	Rect quitWithoutSaveRect=new Rect(100,100,280,130);
 	bool showQuitWIthoutSaveDialog=false;	
 	
 	enum MouseClickMode {SingleSelect, MultiSelect, ControlSelect, CreateLinkMode, CreateHierarchyLinkMode};
@@ -290,19 +293,25 @@ public class InputManager : MonoBehaviour {
 	
 	void DrawQuitWithoutSaveDialog()
 	{
-		GUI.Box(quitWithoutSaveRect,"","window");
+		GUI.Box(quitWithoutSaveRect,"Подтвердите выход","window");
 		GUI.BeginGroup(quitWithoutSaveRect);
-		GUI.Label(new Rect(quitWithoutSaveRect.width*0.5f-100,quitWithoutSaveRect.height*0.25f,200,29),"Есть несохраненные изменения");
-		GUI.Label(new Rect(quitWithoutSaveRect.width*0.5f-40,quitWithoutSaveRect.height*0.4f,80,29),"Сохранить?");
-		if (GUI.Button(new Rect(10,quitWithoutSaveRect.height-10-29,60,29),"Да"))
+		GUI.Label(new Rect(quitWithoutSaveRect.width*0.5f-120,quitWithoutSaveRect.height*0.25f,250,29),"Остались несохраненные изменения");
+		GUI.Label(new Rect(quitWithoutSaveRect.width*0.5f-80,quitWithoutSaveRect.height*0.4f,200,29),"Выйти не сохраняя?");
+		if (GUI.Button(new Rect(10,quitWithoutSaveRect.height-10-29,80,29),"Сохранить"))
 		{
 			GameController.mainController.SaveAll();
 			Application.Quit();
 		}
-		if (GUI.Button(new Rect(quitWithoutSaveRect.width-80,quitWithoutSaveRect.height-10-29,60,29),"Нет"))
+		if (GUI.Button(new Rect(10+80+5,quitWithoutSaveRect.height-10-29,90,29),"Не сохранять"))
 		{
-			GameController.mainController.unsavedChagesExist=false;
+			GameController.mainController.unsavedChangesExist=false;
 			Application.Quit();	
+		}
+		if (GUI.Button(new Rect(10+80+5+90+5,quitWithoutSaveRect.height-10-29,80,29),"Вернуться"))
+		{
+			//GameController.mainController.unsavedChangesExist=false;
+			showQuitWIthoutSaveDialog=false;
+			//Application.Quit();	
 		}
 		GUI.EndGroup();
 	}
@@ -541,7 +550,7 @@ public class InputManager : MonoBehaviour {
 		swapOverAr=swapLinks.ToArray();
 		controller.linkDrawManager.SwapDrawnLinks(swapOverAr);
 		supressContextMenu=true;
-		GameController.mainController.unsavedChagesExist=true;
+		GameController.mainController.unsavedChangesExist=true;
 	}
 	
 	//Put connecting link drawing back into the main renderer
@@ -856,7 +865,7 @@ public class InputManager : MonoBehaviour {
 					if (selectedNodes.Contains(node)) {node.selected=false; RemoveSelectedNodes(node);}
 				}
 			}
-			
+			SelectionBoxChanged(screenSelectRect.x,screenSelectRect.y,screenSelectRect.xMax, screenSelectRect.yMax);
 			yield return new WaitForFixedUpdate();
 		}
 		VectorLine.Destroy(ref selectionBoxLine);
@@ -973,7 +982,7 @@ public class InputManager : MonoBehaviour {
 		#if UNITY_EDITOR
 		{}
 		#else
-		if (GameController.mainController.unsavedChagesExist)
+		if (GameController.mainController.unsavedChangesExist)
 		{
 			Application.CancelQuit();
 			showQuitWIthoutSaveDialog=true;

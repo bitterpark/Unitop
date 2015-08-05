@@ -48,6 +48,7 @@ public class ContextMenuManager{
 		InputManager.mainInputManager.myNodeList.JumpedToNode+=AnchorToLastSelectedNode;
 		InputManager.mainInputManager.NodeDragEnded+=AnchorToLastSelectedNode;
 		InputManager.mainInputManager.SelectedLinksChanged+=AnchorToLastSelectedLink;
+		InputManager.mainInputManager.SelectionBoxChanged+=AnchorToSelectionBox;
 		//GameController.mainController.mainCameraControl.PreZoomChanged+=PreZoomSetup;
 		//GameController.mainController.mainCameraControl.ZoomChanged+=AdjustToZoom;
 		Camera.main.GetComponent<CameraControlZeroG>().PreZoomChanged+=PreZoomSetup;
@@ -58,7 +59,7 @@ public class ContextMenuManager{
 	
 	void AnchorToLastSelectedNode()
 	{
-		if (InputManager.mainInputManager.GetSelectedNodes().Count>0)
+		if (InputManager.mainInputManager.GetSelectedNodes().Count==1)//if (InputManager.mainInputManager.GetSelectedNodes().Count>0)
 		{
 			//For new small window system
 			Node lastSelectedNode=InputManager.mainInputManager.GetSelectedNodes()[InputManager.mainInputManager.GetSelectedNodes().Count-1];
@@ -75,6 +76,26 @@ public class ContextMenuManager{
 			else {contextMenuPosNodes.x=maxAllowedXCoord;}
 			//if (contextMenuPosNodes.x-(contextMenuPosNodes.width+menuOffsetFromNode)>0) {contextMenuPosNodes.x-=contextMenuPosNodes.width+menuOffsetFromNode;}
 			//else {contextMenuPosNodes.x+=menuOffsetFromNode;}
+		}
+	}
+	
+	void AnchorToSelectionBox(float x, float y, float maxX, float maxY)
+	{
+		//For new small window system
+		//Node lastSelectedNode=InputManager.mainInputManager.GetSelectedNodes()[InputManager.mainInputManager.GetSelectedNodes().Count-1];
+		if (InputManager.mainInputManager.GetSelectedNodes().Count>1)
+		{
+			Vector3 screenPos=new Vector3(Mathf.Max(x,maxX),Mathf.Max(y,maxY),0);//Camera.main.WorldToScreenPoint(lastSelectedNode.transform.position);
+			contextMenuPosNodes.x=screenPos.x-contextMenuPosNodes.width+5;
+			//Tranform from screen space to UI space
+			contextMenuPosNodes.y=Screen.height-screenPos.y;
+			contextMenuPosNodes.y-=contextMenuPosNodes.height+10;
+			//float menuXOffsetFromPos=50f;
+			//float menuYOffsetFromPos=20f;
+			//float maxAllowedXCoord=Screen.width-InputManager.mainInputManager.myNodeList.GetNodeListRect().width;
+			//maxAllowedXCoord-=contextMenuNodesWidthMulti;
+			//if (contextMenuPosNodes.x+menuXOffsetFromPos<=maxAllowedXCoord) {contextMenuPosNodes.x+=menuXOffsetFromPos;}
+			//else {contextMenuPosNodes.x=maxAllowedXCoord;}
 		}
 	}
 	
@@ -216,7 +237,7 @@ public class ContextMenuManager{
 				string nodeName=selected[selectItemDroplist.GetSelectedItemIndex()].text;
 				string oldName=nodeName;
 				nodeName=GUI.TextField(new Rect(rightColumnStartX,rightColumnStartY+3,elementSizeX*1.3f,elementSizeY),nodeName,25);
-				if (nodeName!=oldName) {GameController.mainController.unsavedChagesExist=true;}
+				if (nodeName!=oldName) {GameController.mainController.unsavedChangesExist=true;}
 				selected[selectItemDroplist.GetSelectedItemIndex()].text=nodeName;
 			}		
 			//SELECT OBJ MENU (must be last item rendered)
@@ -252,7 +273,7 @@ public class ContextMenuManager{
 			{
 				//InputManager.DebugPrint("changing sprites!"); //print("changing sprites!");
 				foreach (Node node in selected) {node.SetSprite(selectIconDroplist.GetSelectedItemIndex());}
-				GameController.mainController.unsavedChagesExist=true;
+				GameController.mainController.unsavedChangesExist=true;
 			}				
 		}
 		
@@ -321,7 +342,7 @@ public class ContextMenuManager{
 						case 4:{selectedLink.color="cyan"; break;}
 					}
 				}
-				GameController.mainController.unsavedChagesExist=true;
+				GameController.mainController.unsavedChangesExist=true;
 			}
 			/*
 			//select obj menu (must be after endgroup rendered)

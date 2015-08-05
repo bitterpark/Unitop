@@ -33,7 +33,7 @@ namespace Topology {
 		string sourceFile;
 		bool sceneLoaded=false;
 		bool unsavedChanges=false;
-		public bool unsavedChagesExist 
+		public bool unsavedChangesExist 
 		{
 			get {return unsavedChanges;}
 			set {unsavedChanges=value;}
