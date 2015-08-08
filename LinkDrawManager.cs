@@ -217,4 +217,13 @@ public class LinkDrawManager : MonoBehaviour
 		foreach(Link changedLink in changedLinks) {linkColors[changedLink]=c;}
 		UpdateLinkColors();
 	}
+	
+	public void LinksPosRefresh(Link[] updatedLinks)
+	{
+		foreach (Link updatedLink in updatedLinks)
+		{
+			linkPoints[updatedLink]=new Vector3Pair(updatedLink.source.transform.position,updatedLink.target.transform.position);
+		}
+		UpdateLinkVector();
+	}
 }

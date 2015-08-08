@@ -261,6 +261,7 @@ public class InputManager : MonoBehaviour {
 		Rect scrollDims=new Rect(helpTextRect);
 		Rect scrollArea=new Rect(helpTextRect.x,helpTextRect.y,helpTextRect.width-20,readmeTextHeight+5);
 		readmeScrollPos=GUI.BeginScrollView(scrollDims,readmeScrollPos,scrollArea,false,false);	
+		//GUI.Label(scrollArea,readmeText);
 		GUI.Label(scrollArea,readmeText);
 		
 		
@@ -580,6 +581,8 @@ public class InputManager : MonoBehaviour {
 		supressContextMenu=false;
 		NodeDragEnded();
 	}
+	
+	
 	
 	void ManageAllNodeSelect()
 	{
@@ -982,7 +985,7 @@ public class InputManager : MonoBehaviour {
 		#if UNITY_EDITOR
 		{}
 		#else
-		if (GameController.mainController.unsavedChangesExist)
+		if (GameController.mainController.unsavedChangesExist && GameController.mainController.HasSourceFile())
 		{
 			Application.CancelQuit();
 			showQuitWIthoutSaveDialog=true;

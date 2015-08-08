@@ -234,16 +234,18 @@ namespace Topology {
 					float downwardRefY=0;
 					FormHierarchyTriangle(rootNode, rootNode,ref downwardRefX,ref downwardRefY);
 				}
+				//RefreshNodesLinks(rootNode);
 			}
+			foreach (Node node in nodes.Values) {RefreshNodesLinks(node);}
 		}
 		
 		void FormHierarchyTriangle(Node parent, Node rootParent, ref float occupiedWidthToLeft, ref float occupiedWidthToRight)
 		{
 			if (nodeTrees.ContainsKey(parent))
 			{
-				float yOffsetFromParent=-896f;
+				float yOffsetFromParent=-2048f;
 				float yRowPad=-512f;
-				float xPad=512f;
+				float xPad=768f;
 				//float elementSizeX=256;
 				float currentXOffset=0;
 				float currentYOffset=yOffsetFromParent;
@@ -322,6 +324,7 @@ namespace Topology {
 				foreach (Node anchoredChild in pyramidChildren)
 				{
 					anchoredChild.gameObject.transform.parent=null;
+					RefreshNodesLinks(anchoredChild);
 				}
 				
 				//Recursively form up child trees
@@ -370,16 +373,16 @@ namespace Topology {
 			statusText.text = Time.deltaTime.ToString();
 		}*/
 		
-		public void CreateNewNode()
+		public Node CreateNewNode()
 		{
 			Vector3 newNodePos=Camera.main.ScreenToWorldPoint(Input.mousePosition);//Camera.main.transform.forward*40;;//Camera.main.transform.position+Camera.main.transform.forward*40;
 			//newNodePos.z=3000;
-			CreateNewNode (newNodePos);
+			return CreateNewNode (newNodePos);
 		}
 		
-		void CreateNewNode(Vector2 newNodePosition) {CreateNewNode(newNodePosition,"127.0.0.1");}
+		Node CreateNewNode(Vector2 newNodePosition) {return CreateNewNode(newNodePosition,"127.0.0.1");}
 		
-		void CreateNewNode(Vector2 newNodePosition,string newNodeText)
+		Node CreateNewNode(Vector2 newNodePosition,string newNodeText)
 		{
 			int i=0;
 			while (nodes.ContainsKey("node_"+i.ToString()))
@@ -387,11 +390,11 @@ namespace Topology {
 				i++;
 			}
 			string generatedId="node_"+i.ToString();
-			CreateNewNode(newNodePosition,newNodeText,generatedId);
+			return CreateNewNode(newNodePosition,newNodeText,generatedId);
 		
 		}
 		
-		void CreateNewNode(Vector2 newNodePosition,string newNodeText,int newNodeSpriteIndex)
+		Node CreateNewNode(Vector2 newNodePosition,string newNodeText,int newNodeSpriteIndex)
 		{
 			int i=0;
 			while (nodes.ContainsKey("node_"+i.ToString()))
@@ -399,12 +402,12 @@ namespace Topology {
 				i++;
 			}
 			string generatedId="node_"+i.ToString();
-			CreateNewNode(newNodePosition,newNodeText,generatedId,newNodeSpriteIndex);
+			return CreateNewNode(newNodePosition,newNodeText,generatedId,newNodeSpriteIndex);
 		}
 		
-		void CreateNewNode(Vector2 newNodePosition,string newNodeText, string newNodeId)
+		Node CreateNewNode(Vector2 newNodePosition,string newNodeText, string newNodeId)
 		{
-			CreateNewNode (newNodePosition,newNodeText,newNodeId,0);
+			return CreateNewNode (newNodePosition,newNodeText,newNodeId,0);
 		}
 		
 		Node CreateNewNode(Vector2 newNodePosition,string newNodeText, string newNodeId, int newNodeSpriteIndex)
@@ -541,6 +544,18 @@ namespace Topology {
 			return retNode;
 		}
 		
+		void RefreshNodesLinks(Node updatedNode)
+		{
+			List<Link> linksInNeedOfUpdate=new List<Link>();
+			foreach (Link link in links.Values)
+			{
+				if (link.source==updatedNode | link.target==updatedNode) 
+				{
+					linksInNeedOfUpdate.Add(link);
+				}
+			}
+			linkDrawManager.LinksPosRefresh(linksInNeedOfUpdate.ToArray());
+		}
 		
 		//For node copy-pasting
 		public void CopyNodes(List<Node> copiedNodes)
@@ -1082,8 +1097,26 @@ namespace Topology {
 			//Col index
 			int j=0;
 			
-			int loadLimiter=300;
+			int loadLimiter=100;//300;
 			int loadCounter=0;
+			
+			Node root=CreateNewNode(new Vector2(7500,0),"root"); 
+			
+			Dictionary<string,Node> firstOctetNodes=new Dictionary<string,Node >();
+			Dictionary<string,Dictionary<string,Node>> secondOctetNodes=new Dictionary<string, Dictionary<string, Node>>();
+			Dictionary<string,Dictionary<string,Dictionary<string,Node>>> thirdOctetNodes=new Dictionary<string, Dictionary<string, Dictionary<string, Node>>>();
+			
+			      
+			//Node A=CreateNewNode (new Vector2(0,0),"A");
+			//SetNodeAsChild(A,root);
+			//Node B=CreateNewNode (new Vector2(5000,0),"B");
+			//SetNodeAsChild(B,root);
+			//Node C=CreateNewNode (new Vector2(10000,0),"C");
+			//SetNodeAsChild(C,root);
+			//Node D=CreateNewNode (new Vector2(15000,0),"D");
+			//SetNodeAsChild(D,root);
+			
+			Node createdNode=null;
 			
 			while (result.Read() && loadCounter<loadLimiter)
 				
@@ -1092,6 +1125,10 @@ namespace Topology {
 				if (!result.IsDBNull(result.GetOrdinal("os_name")))//.GetOrdinal("os_name"))!=null) 
 				{osName = result.GetString(result.GetOrdinal("os_name"));}
 				string address=result.GetString(result.GetOrdinal("address"));
+				address=address.Remove(address.Length-3-1,3);
+				
+				//InputManager.mainInputManager.readmeText+=address+"\n";
+				//InputManager.mainInputManager.readmeTextHeight+=1;
 				
 				float startNodeRectanglex=-200;
 				float startNodeRectangley=200;
@@ -1123,7 +1160,53 @@ namespace Topology {
 				if (osName.Contains("Linux")) {osIndex=(int)OSTypes.Linux;}
 				if (osName.Contains("IOS")) {osIndex=(int)OSTypes.MacOS;}
 				
-				CreateNewNode(newNodePos, address,osIndex);	
+				createdNode=CreateNewNode(newNodePos, address,osIndex);
+				
+				//first octet
+				string firstOctet=address.Substring(0,address.IndexOf("."));
+				address=address.Remove(0,address.IndexOf(".")+1);
+				
+				if (!firstOctetNodes.ContainsKey(firstOctet))
+				{
+					Node firstOctetNode=CreateNewNode (new Vector2(0,0),firstOctet+".*");
+					firstOctetNodes.Add(firstOctet,firstOctetNode);
+					secondOctetNodes.Add(firstOctet,new Dictionary<string, Node>());
+					thirdOctetNodes.Add(firstOctet,new Dictionary<string, Dictionary<string, Node>>());
+					SetNodeAsChild(firstOctetNode,root);
+				}
+				//second octet
+				string secondOctet=address.Substring(0,address.IndexOf("."));
+				address=address.Remove(0,address.IndexOf(".")+1);
+				
+				if (!secondOctetNodes[firstOctet].ContainsKey(secondOctet))
+				{
+					Node secondOctetNode=CreateNewNode (Vector2.zero,firstOctet+"."+secondOctet+".*");
+					secondOctetNodes[firstOctet].Add(secondOctet,secondOctetNode);
+					thirdOctetNodes[firstOctet].Add(secondOctet,new Dictionary<string, Node>());
+					SetNodeAsChild(secondOctetNode,firstOctetNodes[firstOctet]);
+					
+				}
+				//Third octet
+				string thirdOctet=address.Substring(0,address.IndexOf("."));
+				address=address.Remove(0,address.IndexOf(".")+1);
+				
+				if (!thirdOctetNodes[firstOctet][secondOctet].ContainsKey(thirdOctet))
+				{
+					Node thirdOctetNode=CreateNewNode (Vector2.zero,firstOctet+"."+secondOctet+"."+thirdOctet+".*");
+					thirdOctetNodes[firstOctet][secondOctet].Add(thirdOctet,thirdOctetNode);
+					SetNodeAsChild(thirdOctetNode,secondOctetNodes[firstOctet][secondOctet]);
+				}
+				//Actual IP
+				SetNodeAsChild(createdNode,thirdOctetNodes[firstOctet][secondOctet][thirdOctet]);
+				
+				/*
+				float firstOctet=float.Parse(address.Substring(0,3));
+				
+				if (firstOctet<=126) {SetNodeAsChild(createdNode,A);}
+				if (firstOctet>=128 && firstOctet<=191) {SetNodeAsChild(createdNode,B);}
+				if (firstOctet>=192 && firstOctet<=223) {SetNodeAsChild(createdNode,C);}
+				if (firstOctet>=224 && firstOctet<=239) {SetNodeAsChild(createdNode,D);}
+				*/				
 				i++;
 				loadCounter++;
 			}
@@ -1132,6 +1215,24 @@ namespace Topology {
 			dbConnection.Close();
 			dbConnection=null;
 			
+			/*
+			float leftx=0;
+			float rightx=0;
+			
+			FormHierarchyTriangle(A,A,ref leftx,ref rightx);
+			leftx=0;
+			rightx=0;
+			FormHierarchyTriangle(B,B,ref leftx,ref rightx);
+			leftx=0;
+			rightx=0;
+			FormHierarchyTriangle(C,C,ref leftx,ref rightx);
+			leftx=0;
+			rightx=0;
+			FormHierarchyTriangle(D,D,ref leftx,ref rightx);
+			leftx=0;
+			rightx=0;*/
+			SetUpNodeFormations();
+			DeleteNode(root);
 			sceneLoaded=true;
 		}
 		

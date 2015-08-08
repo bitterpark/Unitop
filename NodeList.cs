@@ -42,7 +42,7 @@ public class NodeList: MonoBehaviour
 	
 	void DrawNodeList(int sigInt)
 	{		
-		float entryHeight=30f;
+		float entryHeight=25f;
 		float vPad=3f;
 		float parentOffsetDelta=20f;
 		//float width=nodeListRect.width;//150f;
@@ -97,35 +97,7 @@ public class NodeList: MonoBehaviour
 		//Find the max first entry index that will still allow the list to fill the entire screen
 		int firstEntryMaxIndex=menuDrawnNodeList.Count-maxEntries;
 		
-		//DRAW SCROLLBAR IF NECESSARY
-		float scrollBarXStart=nodeListRect.width-30;
-		if (firstEntryMaxIndex>0)
-		{
-			
-			if (InputManager.mainInputManager.currentCursorLoc==InputManager.CursorLoc.OverGUI)
-			{
-				Vector2 mousePosInGUICoords = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
-				if (nodeListRect.Contains(mousePosInGUICoords))
-				{
-					float scrollbarValueDelta=0.5f;
-					if (Input.GetAxis("Mouse ScrollWheel")>0)
-					{
-						nodeListFirstElementIndex-=scrollbarValueDelta;
-					}
-					if (Input.GetAxis("Mouse ScrollWheel")<0)
-					{
-						nodeListFirstElementIndex+=scrollbarValueDelta;
-					}
-					nodeListFirstElementIndex=Mathf.Clamp(nodeListFirstElementIndex,0,firstEntryMaxIndex);
-				}
-			}
-			
-			
-			nodeListFirstElementIndex=GUI.VerticalScrollbar(new Rect(scrollBarXStart,topOffset,verticalScrollbarWidth,Screen.height-bottomOffset-topOffset-40)
-			,nodeListFirstElementIndex,0.4f,0,firstEntryMaxIndex);
-			//print ("result index is:"+nodeListFirstElementIndex);
-		}
-		else {nodeListFirstElementIndex=0;}
+		
 		
 		//(HORIZONTAL) SCROLL AREA SETUP
 		//leftOffset-expandButtonWidth
@@ -181,7 +153,7 @@ public class NodeList: MonoBehaviour
 			
 			//Draw actual node entry
 			buttonContent.text=menuDrawnNodeList[i].text;
-			buttonContent.image=menuDrawnNodeList[i].renderer.material.GetTexture(0);
+			//buttonContent.image=menuDrawnNodeList[i].renderer.material.GetTexture(0);
 			if (GUI.Button(modifiedEntryRect,buttonContent,mySkin.customStyles[2])) 
 			{
 				if (nodeListLastClicked==menuDrawnNodeList[i])
@@ -212,6 +184,36 @@ public class NodeList: MonoBehaviour
 			entryRect.y+=entryHeight+vPad;
 		}
 		GUI.EndScrollView();
+		
+		//DRAW VERTICAL SCROLLBAR IF NECESSARY
+		float scrollBarXStart=nodeListRect.width-30;
+		if (firstEntryMaxIndex>0)
+		{
+			
+			if (InputManager.mainInputManager.currentCursorLoc==InputManager.CursorLoc.OverGUI)
+			{
+				Vector2 mousePosInGUICoords = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
+				if (nodeListRect.Contains(mousePosInGUICoords))
+				{
+					float scrollbarValueDelta=0.5f;
+					if (Input.GetAxis("Mouse ScrollWheel")>0)
+					{
+						nodeListFirstElementIndex-=scrollbarValueDelta;
+					}
+					if (Input.GetAxis("Mouse ScrollWheel")<0)
+					{
+						nodeListFirstElementIndex+=scrollbarValueDelta;
+					}
+					nodeListFirstElementIndex=Mathf.Clamp(nodeListFirstElementIndex,0,firstEntryMaxIndex);
+				}
+			}
+			
+			
+			nodeListFirstElementIndex=GUI.VerticalScrollbar(new Rect(scrollBarXStart,topOffset,verticalScrollbarWidth,Screen.height-bottomOffset-topOffset-40)
+			                                                ,nodeListFirstElementIndex,0.4f,0,firstEntryMaxIndex);
+			//print ("result index is:"+nodeListFirstElementIndex);
+		}
+		else {nodeListFirstElementIndex=0;}
 	}
 	
 	
