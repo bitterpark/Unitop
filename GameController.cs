@@ -74,7 +74,7 @@ namespace Topology {
 		public void StartDBLoad() 
 		{
 			sourceFile=null;
-			LoadLayoutFromDB();
+			StartCoroutine(LoadLayoutFromDB());
 		}
 		
 		//Method for loading the GraphML layout file
@@ -132,7 +132,6 @@ namespace Topology {
 						yield return true;
 				}
 			}
-
 			SetUpNodeFormations();
 			//map node edges
 			MapLinkNodes();
@@ -232,14 +231,14 @@ namespace Topology {
 				{
 					float downwardRefX=0;
 					float downwardRefY=0;
-					FormHierarchyTriangle(rootNode, rootNode,ref downwardRefX,ref downwardRefY);
+					FormHierarchyTriangle(rootNode, rootNode,ref downwardRefX,ref downwardRefY, false);
 				}
 				//RefreshNodesLinks(rootNode);
 			}
-			foreach (Node node in nodes.Values) {RefreshNodesLinks(node);}
+			//foreach (Node node in nodeTrees.Keys) {RefreshNodesLinks(node);}
 		}
 		
-		void FormHierarchyTriangle(Node parent, Node rootParent, ref float occupiedWidthToLeft, ref float occupiedWidthToRight)
+		void FormHierarchyTriangle(Node parent, Node rootParent, ref float occupiedWidthToLeft, ref float occupiedWidthToRight, bool parentWentLeft)
 		{
 			if (nodeTrees.ContainsKey(parent))
 			{
@@ -256,14 +255,14 @@ namespace Topology {
 				//Determine which children go underneath the parent and
 				//which get their own pyramid to the side
 				List<Node> pyramidChildren=new List<Node>();
-				List<Node> childrenWidthOwnPyramids=new List<Node>();
+				List<Node> childrenWithOwnPyramids=new List<Node>();
 				foreach(Node child in nodeTrees[parent])
 				{
 					if (!nodeTrees.ContainsKey(child))
 					{
 						pyramidChildren.Add(child);
 					}
-					else {childrenWidthOwnPyramids.Add(child);}
+					else {childrenWithOwnPyramids.Add(child);}
 				}
 				
 				foreach(Node pyramidChild in pyramidChildren)
@@ -272,7 +271,6 @@ namespace Topology {
 					float pyramidChildY=parent.transform.position.y+currentYOffset;
 					//Node newNode=DownwardRecursiveNodeLoad(pyramidChild, new Vector2(childX,childY));//LoadNode(child);
 					pyramidChild.transform.position=new Vector3(pyramidChildX,pyramidChildY,3000);
-					
 					rowCursor++;
 					if (rowCursor==rowTotalLength)
 					{
@@ -289,15 +287,29 @@ namespace Topology {
 					//Prepare for offset from parent's parent
 					pyramidChild.gameObject.transform.parent=parent.gameObject.transform;
 				}
-				float pyramidHalfWidth=xPad*rowCounter;
+				float pyramidHalfWidth;//=0;
+				if (pyramidChildren.Count>0)
+				{
+					pyramidHalfWidth=xPad*rowCounter;
+				}else {pyramidHalfWidth=xPad*0.5f;}
 				
+				bool goingLeft=true;
 				//See if offseting from parent pyramid is necessary
 				if (parent!=rootParent)
 				{
-					bool goingLeft=true;
-					if (occupiedWidthToLeft>occupiedWidthToRight) 
-					{goingLeft=false;}
-				
+					
+					//check offset for offshoots from root
+					if (parent.parentNode==rootParent)
+					{
+						if (occupiedWidthToLeft>occupiedWidthToRight) 
+						{goingLeft=false;}
+					}
+					else //check offset for all pyramids child to other pyramids 
+					{
+						//align direction with parent
+						if (!parentWentLeft) {goingLeft=false;}
+					}
+					
 					float pyramidXOffsetFromParent=0;
 					float pyramidYOFfsetFromParent=parent.parentNode.transform.position.y+yOffsetFromParent;
 					if (goingLeft)
@@ -324,14 +336,15 @@ namespace Topology {
 				foreach (Node anchoredChild in pyramidChildren)
 				{
 					anchoredChild.gameObject.transform.parent=null;
-					RefreshNodesLinks(anchoredChild);
+					//RefreshNodesLinks(anchoredChild);
 				}
 				
 				//Recursively form up child trees
-				foreach (Node childTreeParent in childrenWidthOwnPyramids)
+				foreach (Node childTreeParent in childrenWithOwnPyramids)
 				{
-					FormHierarchyTriangle(childTreeParent,rootParent,ref occupiedWidthToLeft,ref occupiedWidthToRight);
+					FormHierarchyTriangle(childTreeParent,rootParent,ref occupiedWidthToLeft,ref occupiedWidthToRight,goingLeft);
 				}
+				RefreshNodesLinks(parent);
 			}
 		}
 		
@@ -1083,10 +1096,20 @@ namespace Topology {
 			
 		}
 		
-		void LoadLayoutFromDB()
+		IEnumerator LoadLayoutFromDB()
 		{
+			int loadLimiter=2000;//5000;//;//300;
+			
 			NpgsqlConnection dbConnection=new NpgsqlConnection("Server=37.220.6.166;Port=5432;User Id=msf3;Password=KtrFeVtk9Y7#L;Database=msf3;");
 			dbConnection.Open();
+			
+			string stmt="SELECT COUNT(*) FROM hosts";
+			
+			NpgsqlCommand countCmd= new NpgsqlCommand(stmt,dbConnection);
+			//NpgsqlDataReader rd=countCmd.ExecuteScalar();
+			long totalCount=(long)countCmd.ExecuteScalar();
+			int displayedTotalCount=(int)Mathf.Min (totalCount,loadLimiter);
+			print ("count is:"+displayedTotalCount);
 			
 			NpgsqlCommand Command = new NpgsqlCommand("select cast(address as varchar(255)),os_name from hosts", dbConnection);
 			
@@ -1097,7 +1120,7 @@ namespace Topology {
 			//Col index
 			int j=0;
 			
-			int loadLimiter=100;//300;
+			
 			int loadCounter=0;
 			
 			Node root=CreateNewNode(new Vector2(7500,0),"root"); 
@@ -1117,6 +1140,9 @@ namespace Topology {
 			//SetNodeAsChild(D,root);
 			
 			Node createdNode=null;
+			
+			float returnSec=1;
+			float elapsed=0;
 			
 			while (result.Read() && loadCounter<loadLimiter)
 				
@@ -1209,29 +1235,25 @@ namespace Topology {
 				*/				
 				i++;
 				loadCounter++;
+				elapsed+=Time.deltaTime;
+				if (elapsed>=returnSec) 
+				{
+					elapsed=0; 
+					
+					float loadPercentage=(float)loadCounter/(float)displayedTotalCount;
+					loadPercentage*=100f;
+					int substringSize=1;
+					if (loadPercentage>=10) {substringSize=2;}
+					statusText.text ="Загрузка "+(loadPercentage.ToString().Substring(0,substringSize))+"%";//"Загрузка хоста "+loadCounter+"/"+displayedTotalCount;
+					yield return true;
+				}
 			}
-			
 			
 			dbConnection.Close();
 			dbConnection=null;
-			
-			/*
-			float leftx=0;
-			float rightx=0;
-			
-			FormHierarchyTriangle(A,A,ref leftx,ref rightx);
-			leftx=0;
-			rightx=0;
-			FormHierarchyTriangle(B,B,ref leftx,ref rightx);
-			leftx=0;
-			rightx=0;
-			FormHierarchyTriangle(C,C,ref leftx,ref rightx);
-			leftx=0;
-			rightx=0;
-			FormHierarchyTriangle(D,D,ref leftx,ref rightx);
-			leftx=0;
-			rightx=0;*/
+			//statusText.text = "Построение формаций";
 			SetUpNodeFormations();
+			statusText.text="";
 			DeleteNode(root);
 			sceneLoaded=true;
 		}
