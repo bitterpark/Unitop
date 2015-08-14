@@ -16,6 +16,10 @@ namespace Topology {
 		}
 		string _text="";
 		string osText="";
+		public string ipText
+		{
+			get {return _text;}
+		}
 		public GameController controller;
 		Vector3 beginDragMousePos=Vector3.zero;
 		//public Vector3 myPos;
@@ -25,7 +29,11 @@ namespace Topology {
 			get{return _selected;}
 			set
 			{
-				if (value) renderer.material.color=Color.blue;//renderer.material.color=Color.blue; 
+				if (value) 
+				{	
+					renderer.material.color=Color.blue;
+					if (parentNode!=null) {parentNode.unfoldChildren=true;}
+				} 
 				else renderer.material.color=Color.white;//new Color(22,70,109,255);//Color.blue;
 				_selected=value; 
 			}
@@ -43,7 +51,19 @@ namespace Topology {
 			}
 		}
 		bool _hasChildren=false;
-		public bool unfoldChildren=false;
+		public bool unfoldChildren
+		{
+			get {return _unfoldChildren;}
+			set 
+			{
+				if (value) 
+				{
+					if (parentNode!=null) parentNode.unfoldChildren=true;
+				}
+				_unfoldChildren=value;
+			}
+		}
+		bool _unfoldChildren=false;
 		//public bool hasParent
 		
 		public Node parentNode=null;

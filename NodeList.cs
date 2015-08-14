@@ -15,6 +15,8 @@ public class NodeList: MonoBehaviour
 	Vector2 nodeListScrollPos=Vector2.zero;
 	float nodeListProjectedWidth=190;
 	public GUISkin mySkin;
+	public Texture2D unfoldPlus;
+	public Texture2D unfoldMinus;
 	
 	public delegate void JumpToNodeDeleg();
 	public event JumpToNodeDeleg JumpedToNode;
@@ -31,11 +33,37 @@ public class NodeList: MonoBehaviour
 		{
 			//increase scroll area width by parent offset
 			nodeListProjectedWidth+=20f;
+			List<string> childIpPresortIndexPairs=new List<string>();
+			List<Node> childNodeIndexPairs=new List<Node>();
+			List<string> sortedIps=new List<string>();
 			foreach (Node childNode in GameController.mainController.GetNodeTrees()[parentNode])
 			{
-				if (nodeListSearchFilter=="" | childNode.text.StartsWith(nodeListSearchFilter)) returnedNodes.Add(childNode);
-				returnedNodes.AddRange(DownwardRecursiveDrawNodeChildren(childNode));
-			}	
+				if (nodeListSearchFilter=="" | childNode.text.StartsWith(nodeListSearchFilter)) //returnedNodes.Add(childNode);
+				{
+					childIpPresortIndexPairs.Add (childNode.ipText);
+					childNodeIndexPairs.Add (childNode);
+					sortedIps.Add (childNode.ipText);
+				}
+				//returnedNodes.AddRange(DownwardRecursiveDrawNodeChildren(childNode));
+			}
+			sortedIps.Sort();
+			foreach (string sortedIp in sortedIps)
+			{
+				Node addedNode=childNodeIndexPairs[childIpPresortIndexPairs.IndexOf(sortedIp)];
+				childIpPresortIndexPairs[childIpPresortIndexPairs.IndexOf(sortedIp)]=null;
+				returnedNodes.Add(addedNode);
+				returnedNodes.AddRange(DownwardRecursiveDrawNodeChildren(addedNode));
+			}
+			/*
+			foreach (string orderedNodeIp in showedNodeIps)
+			{
+				//Node addedNode=nodeIndexPairings[ipIndexPairings.ke];//nodeIpPairings[orderedNodeIp];
+				Node addedNode=indexNodePairs[presortIpIndexPairs.IndexOf(orderedNodeIp)];
+				presortIpIndexPairs[presortIpIndexPairs.IndexOf(orderedNodeIp)]=null;
+				menuDrawnNodeList.Add(addedNode);
+				menuDrawnNodeList.AddRange(DownwardRecursiveDrawNodeChildren(addedNode));
+			}*/
+				
 		}
 		return returnedNodes;
 	}
@@ -67,18 +95,102 @@ public class NodeList: MonoBehaviour
 		nodeListSearchFilter=GUI.TextField(new Rect(searchFilterXStart,searchFilterYStart,searchBarWidth,entryHeight),nodeListSearchFilter);
 		
 		List<Node> menuDrawnNodeList=new List<Node>();
+		//List<Node> addedParentNodes=new List<Node>();
 		
 		//Start drawlist with parent nodes
-		foreach(Node parentNode in GameController.mainController.GetNodeTrees().Keys)
+		//Dictionary<int, Node> nodeIndexPairings=new Dictionary<int, Node>();
+		//Dictionary<int, Node> ipIndexPairings=new Dictionary<int, int>();
+		//List<int> nodeIpOrder=new List<int>();
+		
+		List<string> showedNodeIps=new List<string>();
+		List<Node> indexNodePairs=new List<Node>();
+		List<string> presortIpIndexPairs=new List<string>();
+		//Dictionary<string,Node> 
+		
+		foreach(Node parentNode in GameController.mainController.GetRootNodes())//GameController.mainController.GetNodeTrees().Keys)
 		{
-			if (GameController.mainController.GetRootNodes().Contains(parentNode))
-			{
-				if (nodeListSearchFilter=="" | parentNode.text.StartsWith(nodeListSearchFilter)) menuDrawnNodeList.Add(parentNode);
-				menuDrawnNodeList.AddRange(DownwardRecursiveDrawNodeChildren(parentNode));
-			}
+			//if (GameController.mainController.GetRootNodes().Contains(parentNode))
+			//{
+				if (nodeListSearchFilter=="" | parentNode.text.StartsWith(nodeListSearchFilter)) //menuDrawnNodeList.Add(parentNode);
+				{
+					/*
+					//int nodeIpAsNumber=0;
+					//float trowawayOut=0;
+					//string ipText=parentNode.ipText.Substring(0);
+					//print ("now checking substring"+ipText);
+					//See if ipText is actual iptext format and not random text
+					//bool isParsed=false;
+					if (ipText.IndexOf(".")!=-1)//.Contains('.'))
+					{
+						isParsed=float.TryParse(ipText.Substring(0,ipText.IndexOf(".")),out trowawayOut);
+						//print ("now parsing string:"+ipText.Substring(0,ipText.IndexOf(".")));
+					} //else {print ("no points found");}
+					*/
+					indexNodePairs.Add(parentNode);
+					presortIpIndexPairs.Add(parentNode.ipText);
+					showedNodeIps.Add (parentNode.ipText);
+					/*
+					if (isParsed) 
+					{
+						//handle first octet
+						float firstOct=float.Parse(ipText.Substring(0,ipText.IndexOf(".")));
+						nodeIpAsNumber+=(int)firstOct*1000000000;
+						ipText=ipText.Remove(0,ipText.IndexOf(".")+1);
+						//handle second octet
+						if (ipText[0]!='*')
+						{
+							float secondOct=float.Parse(ipText.Substring(0,ipText.IndexOf(".")));
+							nodeIpAsNumber+=(int)secondOct*1000000;
+							ipText=ipText.Remove(0,ipText.IndexOf(".")+1);
+							//handle third octet
+							if (ipText[0]!='*')
+							{
+								float thirdOct=float.Parse(ipText.Substring(0,ipText.IndexOf(".")));
+								nodeIpAsNumber+=(int)thirdOct*1000;
+								ipText=ipText.Remove(0,ipText.IndexOf(".")+1);
+								//handle fourth octet
+								if (ipText[0]!='*')
+								{
+									float fourthOct=float.Parse(ipText);
+									nodeIpAsNumber+=(int)fourthOct*1;
+								}
+							}
+						}
+						//nodeIpPairings.Add (nodeIpAsNumber,parentNode);
+						nodeIpOrder.Add(nodeIpAsNumber);
+						ipIndexPairings.Add(nodeIpOrder.Count-1,nodeIpAsNumber);
+						nodeIndexPairings.Add (nodeIpOrder.Count-1,nodeIpAsNumber);
+						
+						print ("parsed!");
+					}
+					else 
+					{
+						menuDrawnNodeList.Add (parentNode);
+						menuDrawnNodeList.AddRange(DownwardRecursiveDrawNodeChildren(parentNode));
+						//print ("not parsed!");
+					}
+					*/
+				}
+				//menuDrawnNodeList.AddRange(DownwardRecursiveDrawNodeChildren(parentNode));
+			//}
+		}
+		//nodeIpOrder.Sort();
+		showedNodeIps.Sort();
+		//Sort and display root nodes
+		foreach (string orderedNodeIp in showedNodeIps)
+		{
+			//Node addedNode=nodeIndexPairings[ipIndexPairings.ke];//nodeIpPairings[orderedNodeIp];
+			Node addedNode=indexNodePairs[presortIpIndexPairs.IndexOf(orderedNodeIp)];
+			presortIpIndexPairs[presortIpIndexPairs.IndexOf(orderedNodeIp)]=null;
+			menuDrawnNodeList.Add(addedNode);
+			menuDrawnNodeList.AddRange(DownwardRecursiveDrawNodeChildren(addedNode));
 		}
 		
+		//addedParentNodes.Sort();
+		//menuDrawnNodeList.AddRange(addedParentNodes);
+		
 		//Sync drawlist with current root list
+		/*
 		foreach(Node node in GameController.mainController.GetRootNodes())
 		{
 			if (!GameController.mainController.GetNodeTrees().ContainsKey(node))
@@ -87,7 +199,7 @@ public class NodeList: MonoBehaviour
 				menuDrawnNodeList.Add(node);
 				menuDrawnNodeList.AddRange(DownwardRecursiveDrawNodeChildren(node));
 			}
-		}
+		}*/
 		
 		//print ("Projected width:"+nodeListProjectedWidth);
 		//print ("Crammed into:"+entryWidth);
@@ -97,7 +209,38 @@ public class NodeList: MonoBehaviour
 		//Find the max first entry index that will still allow the list to fill the entire screen
 		int firstEntryMaxIndex=menuDrawnNodeList.Count-maxEntries;
 		
-		
+		//DRAW VERTICAL SCROLLBAR IF NECESSARY
+		bool drawVerticalScrollbar;
+		float scrollBarXStart=nodeListRect.width-30;
+		if (firstEntryMaxIndex>0)
+		{
+			drawVerticalScrollbar=true;
+			if (InputManager.mainInputManager.currentCursorLoc==InputManager.CursorLoc.OverGUI)
+			{
+				Vector2 mousePosInGUICoords = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
+				if (nodeListRect.Contains(mousePosInGUICoords))
+				{
+					float scrollbarValueDelta=0.5f;
+					if (Input.GetAxis("Mouse ScrollWheel")>0)
+					{
+						nodeListFirstElementIndex-=scrollbarValueDelta;
+					}
+					if (Input.GetAxis("Mouse ScrollWheel")<0)
+					{
+						nodeListFirstElementIndex+=scrollbarValueDelta;
+					}
+					nodeListFirstElementIndex=Mathf.Clamp(nodeListFirstElementIndex,0,firstEntryMaxIndex);
+				}
+			}
+			
+			
+			
+			//print ("result index is:"+nodeListFirstElementIndex);
+		} else 
+		{
+			nodeListFirstElementIndex=0;
+			drawVerticalScrollbar=false;
+		}
 		
 		//(HORIZONTAL) SCROLL AREA SETUP
 		//leftOffset-expandButtonWidth
@@ -114,6 +257,7 @@ public class NodeList: MonoBehaviour
 		{	
 			//Determine visual parent offset count
 			float parentOffset=0;
+			//print ("current iterator is at:"+i);
 			Node upwardRecursivePos=menuDrawnNodeList[i];
 			while(upwardRecursivePos.parentNode!=null) 
 			{
@@ -142,10 +286,11 @@ public class NodeList: MonoBehaviour
 				unfoldRect.x-=20f;
 				unfoldRect.width=expandButtonWidth;
 				//unfoldRect.height=20f;
-				string unfoldButtonSign="x";
-				if (menuDrawnNodeList[i].unfoldChildren) {unfoldButtonSign="-";}
-				else {unfoldButtonSign="+";}
-				if (GUI.Button (unfoldRect,unfoldButtonSign,mySkin.customStyles[4])) 
+				//string unfoldButtonSign="x";
+				GUIContent unfoldButtonContent=new GUIContent();
+				if (menuDrawnNodeList[i].unfoldChildren) {unfoldButtonContent.image=unfoldMinus;}
+				else {unfoldButtonContent.image=unfoldPlus;}
+				if (GUI.Button (unfoldRect,unfoldButtonContent,mySkin.customStyles[4])) 
 				{
 					menuDrawnNodeList[i].unfoldChildren=!menuDrawnNodeList[i].unfoldChildren;
 				}
@@ -185,35 +330,13 @@ public class NodeList: MonoBehaviour
 		}
 		GUI.EndScrollView();
 		
-		//DRAW VERTICAL SCROLLBAR IF NECESSARY
-		float scrollBarXStart=nodeListRect.width-30;
-		if (firstEntryMaxIndex>0)
+		
+		
+		if (drawVerticalScrollbar) 
 		{
-			
-			if (InputManager.mainInputManager.currentCursorLoc==InputManager.CursorLoc.OverGUI)
-			{
-				Vector2 mousePosInGUICoords = new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y);
-				if (nodeListRect.Contains(mousePosInGUICoords))
-				{
-					float scrollbarValueDelta=0.5f;
-					if (Input.GetAxis("Mouse ScrollWheel")>0)
-					{
-						nodeListFirstElementIndex-=scrollbarValueDelta;
-					}
-					if (Input.GetAxis("Mouse ScrollWheel")<0)
-					{
-						nodeListFirstElementIndex+=scrollbarValueDelta;
-					}
-					nodeListFirstElementIndex=Mathf.Clamp(nodeListFirstElementIndex,0,firstEntryMaxIndex);
-				}
-			}
-			
-			
-			nodeListFirstElementIndex=GUI.VerticalScrollbar(new Rect(scrollBarXStart,topOffset,verticalScrollbarWidth,Screen.height-bottomOffset-topOffset-40)
-			                                                ,nodeListFirstElementIndex,0.4f,0,firstEntryMaxIndex);
-			//print ("result index is:"+nodeListFirstElementIndex);
-		}
-		else {nodeListFirstElementIndex=0;}
+			nodeListFirstElementIndex=GUI.VerticalScrollbar(new Rect(scrollBarXStart,topOffset,verticalScrollbarWidth
+			,Screen.height-bottomOffset-topOffset-40),nodeListFirstElementIndex,0.4f,0,firstEntryMaxIndex);
+		} //else {nodeListFirstElementIndex=0;}
 	}
 	
 	
