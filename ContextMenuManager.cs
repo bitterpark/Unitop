@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using System.Net;
 using Topology;
 
 public class ContextMenuManager{
@@ -23,6 +24,7 @@ public class ContextMenuManager{
 			if (value!=_tooltipMode) 
 			{
 				//lastSelectedLinkNode=null;
+				nameEditFieldInFocus=false;
 				if (value==0) {lastSelectedLink=null;}
 				if (value==1) {}//lastSelectedNode=null;}
 			}
@@ -32,6 +34,11 @@ public class ContextMenuManager{
 	}
 	int _tooltipMode=0;
 	public void SetTooltipMode(int newMode) {tooltipMode=newMode;}
+	
+	string editedNodeName="";
+	bool nameEditFieldInFocus=false;
+	
+	
 	
 	public Popup selectItemDroplist=new Popup();
 	public Popup selectColorDroplist=new Popup();
@@ -44,7 +51,7 @@ public class ContextMenuManager{
 	{
 		currentSkin=mySkin;
 		colorTextures=linkColorTextures;
-		InputManager.mainInputManager.SelectedNodesChanged+=AnchorToLastSelectedNode;
+		InputManager.mainInputManager.SelectedNodesChanged+=AdjustToNodeSelectionChanges;
 		InputManager.mainInputManager.myNodeList.JumpedToNode+=AnchorToLastSelectedNode;
 		InputManager.mainInputManager.NodeDragEnded+=AnchorToLastSelectedNode;
 		InputManager.mainInputManager.SelectedLinksChanged+=AnchorToLastSelectedLink;
@@ -55,6 +62,12 @@ public class ContextMenuManager{
 		Camera.main.GetComponent<CameraControlZeroG>().ZoomChanged+=AdjustToZoom;
 		//CameraControlZeroG.mainCameraControl.ZoomChanged+=AdjustToZoom;
 		//CameraControlZeroG.mainCameraControl.PreZoomChanged+=PreZoomSetup;
+	}
+	
+	void AdjustToNodeSelectionChanges()
+	{
+		nameEditFieldInFocus=false;
+		AnchorToLastSelectedNode();
 	}
 	
 	void AnchorToLastSelectedNode()
@@ -149,7 +162,8 @@ public class ContextMenuManager{
 		{
 			isDrawn=true;
 			TooltipWindow(ttMode);
-		} else {isDrawn=false;}
+		} 
+		else {isDrawn=false;}
 	}
 	
 	void TooltipWindow(int mode)
@@ -234,11 +248,51 @@ public class ContextMenuManager{
 			//NAME EDIT FIELD
 			if (selected.Count==1)
 			{
-				string nodeName=selected[selectItemDroplist.GetSelectedItemIndex()].text;
-				string oldName=nodeName;
-				nodeName=GUI.TextField(new Rect(rightColumnStartX,rightColumnStartY+3,elementSizeX*1.3f,elementSizeY),nodeName,25);
-				if (nodeName!=oldName) {GameController.mainController.unsavedChangesExist=true;}
-				selected[selectItemDroplist.GetSelectedItemIndex()].text=nodeName;
+				//string nodeName=selected[selectItemDroplist.GetSelectedItemIndex()].text;
+				//string oldName=nodeName;
+				string nameDisplayedInEditField="";
+				if (nameEditFieldInFocus)
+				{
+					nameDisplayedInEditField=editedNodeName;
+				} else {nameDisplayedInEditField=selected[selectItemDroplist.GetSelectedItemIndex()].text;}
+				GUI.SetNextControlName("NameField");
+				editedNodeName=GUI.TextField(new Rect(rightColumnStartX,rightColumnStartY+3,elementSizeX*1.3f,elementSizeY),nameDisplayedInEditField,25);
+				if (GUI.GetNameOfFocusedControl() == "NameField") 
+				{
+					//if focus was set this frame
+					if (!nameEditFieldInFocus)
+					{
+						editedNodeName=selected[selectItemDroplist.GetSelectedItemIndex()].text;
+					}
+					nameEditFieldInFocus=true;
+				} 
+				else 
+				{			
+					//if focus was lost this frame
+					if (nameEditFieldInFocus) 
+					{
+						if (editedNodeName!=selected[selectItemDroplist.GetSelectedItemIndex()].text) 
+						{
+							GameController.mainController.unsavedChangesExist=true;
+							IPAddress outAddress;
+							if (IPAddress.TryParse(editedNodeName,out outAddress))//.TryParse(editedNodeName,out outAddress))
+							{
+								selected[selectItemDroplist.GetSelectedItemIndex()].text=outAddress.ToString();
+								selected[selectItemDroplist.GetSelectedItemIndex()].changesMade=true;
+							} 
+							else 
+							{
+								InputManager.mainInputManager.StartContextNameErrorPopup();
+								editedNodeName=selected[selectItemDroplist.GetSelectedItemIndex()].text;
+							}
+						}
+						
+						
+					}
+					nameEditFieldInFocus=false;
+				}
+				//if (nodeName!=oldName) {GameController.mainController.unsavedChangesExist=true;}
+				//selected[selectItemDroplist.GetSelectedItemIndex()].text=nodeName;
 			}		
 			//SELECT OBJ MENU (must be last item rendered)
 			/*
@@ -352,4 +406,6 @@ public class ContextMenuManager{
 			*/
 		}
 	}
+	
+	
 }

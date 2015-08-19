@@ -58,9 +58,13 @@ public class InputManager : MonoBehaviour {
 	public event SelectionBoxChangeDelegate SelectionBoxChanged;
 	
 	public NodeList myNodeList;
-	//public float GetNodeListWidth() {return myNodeList.}
+
 	ContextMenuManager myContextMenu;
 	bool supressContextMenu=false;
+	float errorPopOutForSecs=3;
+	float errorPopInForSecs=3;
+	bool showErrorPopup=true;
+	Rect errorPopupRect;
 	
 	Rect openButtonRect=new Rect(5,10,100,30);
 	Rect saveButtonRect=new Rect(105,10,100,30);
@@ -162,6 +166,10 @@ public class InputManager : MonoBehaviour {
 			{
 				if (GUI.Button(saveButtonRect,"Сохранить")) {CallSave();}//controller.SaveAll();}
 			}
+			else 
+			{
+			  	if (GUI.Button(saveButtonRect,"Пуш в БД")) {CallDBPush();}
+			}
 		}
 		
 		if (GUI.Button (dbButtonRect,"Синхронизация"))
@@ -194,7 +202,13 @@ public class InputManager : MonoBehaviour {
 		
 		if (showQuitWIthoutSaveDialog) {DrawQuitWithoutSaveDialog();}
 		if (showSavePopup) {DrawSavePopup();}
+		if (showErrorPopup) 
+		{
+			DrawContextNameErrorPopup();
+		}
 	}
+	
+	
 	
 	void PrepSavePopupDraw()
 	{
@@ -240,6 +254,53 @@ public class InputManager : MonoBehaviour {
 		//}
 		if (popOutForSecs<=0 && popInForSecs<=0)
 		showSavePopup=false;
+		//yield break;
+	}
+	
+	public void StartContextNameErrorPopup()
+	{
+		PrepContextNameErrorPopupDraw();
+	}
+	
+	void PrepContextNameErrorPopupDraw()
+	{
+		errorPopOutForSecs=3;
+		errorPopInForSecs=3;
+		showErrorPopup=true;
+		errorPopupRect=new Rect(-15,Screen.height-160,120,40);
+	}
+	
+	//IEnumerator SavePopupRoutine()
+	void DrawContextNameErrorPopup ()
+	{
+		//Screen.height-80,120,40);
+		
+		//float errorPopOutForSecs=1;
+		//float errorPopInForSecs=3;
+		float horizontalDeltaPerSec=63f;
+		float xMax=15;
+		GUIContent popupContent=new GUIContent("Неверный IP!");
+		//while (errorPopOutForSecs>0 | errorPopInForSecs>0)
+		//{
+		
+		GUI.Box(errorPopupRect,popupContent);
+		if (errorPopOutForSecs>0)
+		{
+			errorPopOutForSecs-=Time.deltaTime;
+			errorPopupRect.x+=horizontalDeltaPerSec*Time.deltaTime;
+			
+		}
+		else
+		{
+			
+			errorPopInForSecs-=Time.deltaTime;
+			errorPopupRect.x-=horizontalDeltaPerSec*Time.deltaTime;
+		}
+		errorPopupRect.x=Mathf.Clamp(errorPopupRect.x,Mathf.NegativeInfinity,xMax);
+		//yield return new WaitForEndOfFrame();
+		//}
+		if (errorPopOutForSecs<=0 && errorPopInForSecs<=0)
+			showErrorPopup=false;
 		//yield break;
 	}
 	
@@ -637,6 +698,12 @@ public class InputManager : MonoBehaviour {
 	{
 		GameController.mainController.SaveAll();
 		//StartCoroutine(SavePopupRoutine());
+		PrepSavePopupDraw();
+	}
+	
+	void CallDBPush()
+	{
+		GameController.mainController.CallDBPush();
 		PrepSavePopupDraw();
 	}
 	

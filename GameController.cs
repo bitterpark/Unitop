@@ -10,12 +10,12 @@ using Npgsql;
 namespace Topology {
 
 	public class GameController : MonoBehaviour {
-
+	
 		public Node nodePrefab;
 		
 		Hashtable nodes=new Hashtable();
 		Hashtable links=new Hashtable();
-		
+		List<int> deletedNodeDbIds=new List<int>();
 		
 		public LinkDrawManager linkDrawManager;
 		public InputManager myInputManager;
@@ -83,7 +83,7 @@ namespace Topology {
 			//print ("loading layout");
 			//print ("nodes:"+nodes.Count);
 			statusText.text = "Загрузка файла: " + sourceFile;
-
+			
 			//determine which platform to load for
 			string xml = null;
 			if(Application.isWebPlayer){
@@ -386,11 +386,33 @@ namespace Topology {
 			statusText.text = Time.deltaTime.ToString();
 		}*/
 		
+		// creates node at mousepos for dclick creation
 		public Node CreateNewNode()
 		{
 			Vector3 newNodePos=Camera.main.ScreenToWorldPoint(Input.mousePosition);//Camera.main.transform.forward*40;;//Camera.main.transform.position+Camera.main.transform.forward*40;
 			//newNodePos.z=3000;
 			return CreateNewNode (newNodePos);
+		}
+		
+		Node CreateNonHostNode(string name) 
+		{
+			Node newNonHost=CreateNewNode(Vector2.zero, name);
+			newNonHost.hostNode=false;
+			return newNonHost;
+		}
+		Node CreateNonHostNode(Vector2 nodePos, string name) 
+		{
+			Node newNonHost=CreateNewNode(nodePos, name);
+			newNonHost.hostNode=false;
+			return newNonHost;
+		}
+		
+		Node CreateNodeFromDB(Vector2 newNodePos, string newNodeIp,int newNodeOsIndex, int newNodeDbid, int newNodeWorkspaceId)
+		{
+			Node createdDBNode=CreateNewNode (newNodePos,newNodeIp, newNodeOsIndex);
+			createdDBNode.dbId=newNodeDbid;
+			createdDBNode.dbWorkspaceid=newNodeWorkspaceId;
+			return createdDBNode;
 		}
 		
 		Node CreateNewNode(Vector2 newNodePosition) {return CreateNewNode(newNodePosition,"127.0.0.1");}
@@ -417,6 +439,7 @@ namespace Topology {
 			string generatedId="node_"+i.ToString();
 			return CreateNewNode(newNodePosition,newNodeText,generatedId,newNodeSpriteIndex);
 		}
+		
 		
 		Node CreateNewNode(Vector2 newNodePosition,string newNodeText, string newNodeId)
 		{
@@ -658,7 +681,9 @@ namespace Topology {
 			RemoveParentedTree(deletedNode);
 			UnchildNode(deletedNode);
 			RemoveNodeFromRoot(deletedNode);
-			nodes.Remove(deletedNode.id);					
+			nodes.Remove(deletedNode.id);
+			if (deletedNode.hostNode && deletedNode.dbId!=-1) {deletedNodeDbIds.Add(deletedNode.dbId);}
+													
 			nodeCount--;
 			//Remove all connecting links
 			Link[] iterAr=new Link[links.Count];
@@ -1021,6 +1046,111 @@ namespace Topology {
 			
 		}
 		
+		public void CallDBPush()
+		{
+			PushToDB();
+		}
+		
+		void PushToDB()
+		{
+			NpgsqlConnection dbConnection=new NpgsqlConnection("Server=37.220.6.166;Port=5432;User Id=msf3;Password=KtrFeVtk9Y7#L;Database=msf3;");
+			dbConnection.Open();
+			foreach (int deletedNodeDBId in deletedNodeDbIds)
+			{
+				RemoveHostDeletedInSceneFromDB(dbConnection,deletedNodeDBId);
+			}
+			deletedNodeDbIds.Clear();
+			foreach (Node sceneNode in nodes.Values)
+			{
+				if (sceneNode.hostNode) 
+				{
+					// if altered db node
+					if (sceneNode.dbId!=-1 && sceneNode.changesMade)
+					{
+						UpdateDBHost(dbConnection,sceneNode);
+						sceneNode.changesMade=false;
+					}
+					//if new node created in scene
+					if (sceneNode.dbId==-1)
+					{
+						AddNewHostToDB(dbConnection,sceneNode);
+						sceneNode.dbId=0;
+					}	
+				}	
+			}
+			
+			
+			
+			dbConnection.Close();
+		}
+		
+		//Connection must be open for this to work
+		void AddNewHostToDB(NpgsqlConnection dbConn, Node hostInScene)
+		{
+			//insert new record
+			NpgsqlCommand insertHostCmd = new NpgsqlCommand("insert into hosts (address,workspace_id) values (:Adr,:Wid) returning id;",dbConn);
+			
+			NpgsqlParameter p;
+			//(\"adrvalue\"=:Adr,\"workspacevalue\"=:Wid);",dbConnection);
+			p = new NpgsqlParameter("Adr",NpgsqlTypes.NpgsqlDbType.Inet);
+			p.Value=hostInScene.text;//"0.0.0.0";
+			insertHostCmd.Parameters.Add(p);
+			p = new NpgsqlParameter("Wid",NpgsqlTypes.NpgsqlDbType.Integer);
+			p.Value=0;
+			insertHostCmd.Parameters.Add(p);
+			try 
+			{
+				int newId=int.Parse(insertHostCmd.ExecuteScalar().ToString());
+				hostInScene.dbId=newId;
+				hostInScene.changesMade=false;
+			}
+			catch (NpgsqlException ex) {print ("insert failed:"+ex.ToString());}
+		}
+		
+		//Connection must be open for this to work
+		void UpdateDBHost(NpgsqlConnection dbConn, Node hostInScene)
+		{
+			
+			NpgsqlParameter p;
+			//IPAddress balls = new IPAddress();
+			//IPAddress.t
+			
+			//alter one host record
+			NpgsqlCommand alterHostCmd = new NpgsqlCommand("update hosts set \"address\"=:Adr where \"id\"=:Dbid;",dbConn);
+			
+			p = new NpgsqlParameter("Adr",NpgsqlTypes.NpgsqlDbType.Inet);
+			p.Value=hostInScene.text;
+			alterHostCmd.Parameters.Add (p);
+			
+			p= new NpgsqlParameter("Dbid",NpgsqlTypes.NpgsqlDbType.Integer);
+			p.Value=hostInScene.dbId;
+			alterHostCmd.Parameters.Add (p);
+			
+			//alterHostCmd.Parameters[0]=(NpgsqlTypes.NpgsqlDbType.Varchar)ballsnuts;
+			//NpgsqlTypes.ba
+			try
+			{
+				alterHostCmd.ExecuteNonQuery();
+				hostInScene.changesMade=false;
+			}
+			catch (NpgsqlException ex) {print ("Unable to alter host \n"+ex.ToString());}
+		}
+		
+		void RemoveHostDeletedInSceneFromDB(NpgsqlConnection dbConn, int hostDBId)
+		{
+			//delete record
+			NpgsqlCommand deleteHostCmd = new NpgsqlCommand("delete from hosts where \"id\"=:Dbid;",dbConn);
+			
+			NpgsqlParameter p;
+			
+			p=new NpgsqlParameter("Dbid",NpgsqlTypes.NpgsqlDbType.Integer);
+			p.Value=hostDBId;
+			deleteHostCmd.Parameters.Add (p);
+			
+			try {deleteHostCmd.ExecuteNonQuery();}
+			catch (NpgsqlException ex) {print ("delete failed:"+ex.ToString());}
+		}
+		
 		void LoadIconTextures()
 		{
 			//Object[] tempAr=Resources.LoadAll("");
@@ -1098,20 +1228,68 @@ namespace Topology {
 		
 		IEnumerator LoadLayoutFromDB()
 		{
-			int loadLimiter=2000;//5000;//;//300;
+			deletedNodeDbIds.Clear();
 			
+			int loadLimiter=150;
 			NpgsqlConnection dbConnection=new NpgsqlConnection("Server=37.220.6.166;Port=5432;User Id=msf3;Password=KtrFeVtk9Y7#L;Database=msf3;");
 			dbConnection.Open();
 			
+			//find out number of hosts in db
 			string stmt="SELECT COUNT(*) FROM hosts";
-			
 			NpgsqlCommand countCmd= new NpgsqlCommand(stmt,dbConnection);
-			//NpgsqlDataReader rd=countCmd.ExecuteScalar();
 			long totalCount=(long)countCmd.ExecuteScalar();
 			int displayedTotalCount=(int)Mathf.Min (totalCount,loadLimiter);
-			print ("count is:"+displayedTotalCount);
 			
-			NpgsqlCommand Command = new NpgsqlCommand("select cast(address as varchar(255)),os_name from hosts", dbConnection);
+			NpgsqlParameter p;
+			
+			
+			//IPAddress balls = new IPAddress();
+			//IPAddress.t
+			/*
+			//alter one host record
+			NpgsqlCommand alterHostCmd = new NpgsqlCommand("update hosts set \"address\"=:Adr where \"id\"=16;",dbConnection);
+			p = new NpgsqlParameter("Osname",NpgsqlTypes.NpgsqlDbType.Varchar);
+			string ballsnuts="Unknowns";
+			//NpgsqlTypes.NpgsqlDbType.Inet()
+			p.Value=ballsnuts;
+			//alterHostCmd.Parameters.Add(p);//new NpgsqlParameter("Osname",NpgsqlTypes.NpgsqlDbType.Varchar));
+			p = new NpgsqlParameter("Adr",NpgsqlTypes.NpgsqlDbType.Inet);
+			p.Value="Ball"; //	24.227.69.3
+			alterHostCmd.Parameters.Add (p);
+			
+			//alterHostCmd.Parameters[0]=(NpgsqlTypes.NpgsqlDbType.Varchar)ballsnuts;
+			//NpgsqlTypes.ba
+			try
+			{
+				alterHostCmd.ExecuteNonQuery();
+			}
+			catch (NpgsqlException ex) {print ("Unable to alter!"+ex.ToString());}
+			*/
+			
+			/*
+			//insert new record
+			NpgsqlCommand insertHostCmd = new NpgsqlCommand("insert into hosts (address,workspace_id) values (:Adr,:Wid);",dbConnection);
+			//(\"adrvalue\"=:Adr,\"workspacevalue\"=:Wid);",dbConnection);
+			p = new NpgsqlParameter("Adr",NpgsqlTypes.NpgsqlDbType.Inet);
+			p.Value="0.0.0.0";
+			insertHostCmd.Parameters.Add(p);
+			p = new NpgsqlParameter("Wid",NpgsqlTypes.NpgsqlDbType.Integer);
+			p.Value=0;
+			insertHostCmd.Parameters.Add(p);
+			try {insertHostCmd.ExecuteNonQuery();}
+			catch (NpgsqlException ex) {print ("insert failed:"+ex.ToString());}
+			*/
+			
+			/*
+			//delete record
+			NpgsqlCommand deleteHostCmd = new NpgsqlCommand("delete from hosts where id = 5492;",dbConnection);
+			deleteHostCmd.ExecuteNonQuery();
+			try {deleteHostCmd.ExecuteNonQuery();}
+			catch (NpgsqlException ex) {print ("delete failed:"+ex.ToString());}
+			*/
+			
+			//Load all nodes from db
+			NpgsqlCommand Command = new NpgsqlCommand("select id,cast(address as varchar(255)),os_name,workspace_id from hosts", dbConnection);
 			
 			NpgsqlDataReader result = Command.ExecuteReader();
 			
@@ -1123,21 +1301,12 @@ namespace Topology {
 			
 			int loadCounter=0;
 			
-			Node root=CreateNewNode(new Vector2(7500,0),"root"); 
+			Node root=CreateNonHostNode(new Vector2(7500,0),"root"); 
 			
 			Dictionary<string,Node> firstOctetNodes=new Dictionary<string,Node >();
 			Dictionary<string,Dictionary<string,Node>> secondOctetNodes=new Dictionary<string, Dictionary<string, Node>>();
 			Dictionary<string,Dictionary<string,Dictionary<string,Node>>> thirdOctetNodes=new Dictionary<string, Dictionary<string, Dictionary<string, Node>>>();
 			
-			      
-			//Node A=CreateNewNode (new Vector2(0,0),"A");
-			//SetNodeAsChild(A,root);
-			//Node B=CreateNewNode (new Vector2(5000,0),"B");
-			//SetNodeAsChild(B,root);
-			//Node C=CreateNewNode (new Vector2(10000,0),"C");
-			//SetNodeAsChild(C,root);
-			//Node D=CreateNewNode (new Vector2(15000,0),"D");
-			//SetNodeAsChild(D,root);
 			
 			Node createdNode=null;
 			
@@ -1147,11 +1316,17 @@ namespace Topology {
 			while (result.Read() && loadCounter<loadLimiter)
 				
 			{	
+				int dbId=result.GetInt32(result.GetOrdinal("id"));
+				
+				int workspaceId=result.GetInt32(result.GetOrdinal("workspace_id"));
+				
 				string osName="Null";
 				if (!result.IsDBNull(result.GetOrdinal("os_name")))//.GetOrdinal("os_name"))!=null) 
 				{osName = result.GetString(result.GetOrdinal("os_name"));}
+				
 				string address=result.GetString(result.GetOrdinal("address"));
-				address=address.Remove(address.Length-3-1,3);
+				address=address.Remove(address.IndexOf("/"),3);//address.Length-3-1,3);
+				
 				
 				//InputManager.mainInputManager.readmeText+=address+"\n";
 				//InputManager.mainInputManager.readmeTextHeight+=1;
@@ -1186,7 +1361,7 @@ namespace Topology {
 				if (osName.Contains("Linux")) {osIndex=(int)OSTypes.Linux;}
 				if (osName.Contains("IOS")) {osIndex=(int)OSTypes.MacOS;}
 				
-				createdNode=CreateNewNode(newNodePos, address,osIndex);
+				createdNode=CreateNodeFromDB(newNodePos,address,osIndex,dbId,workspaceId);//CreateNewNode(newNodePos, address,osIndex);//CreateNodeFromDB(newNodePos,address,osIndex,dbId,workspaceId);//CreateNewNode(newNodePos, address,osIndex);
 				
 				//first octet
 				string firstOctet=address.Substring(0,address.IndexOf("."));
@@ -1194,7 +1369,7 @@ namespace Topology {
 				
 				if (!firstOctetNodes.ContainsKey(firstOctet))
 				{
-					Node firstOctetNode=CreateNewNode (new Vector2(0,0),firstOctet+".*");
+					Node firstOctetNode=CreateNonHostNode (firstOctet+".*");
 					firstOctetNodes.Add(firstOctet,firstOctetNode);
 					secondOctetNodes.Add(firstOctet,new Dictionary<string, Node>());
 					thirdOctetNodes.Add(firstOctet,new Dictionary<string, Dictionary<string, Node>>());
@@ -1206,7 +1381,7 @@ namespace Topology {
 				
 				if (!secondOctetNodes[firstOctet].ContainsKey(secondOctet))
 				{
-					Node secondOctetNode=CreateNewNode (Vector2.zero,firstOctet+"."+secondOctet+".*");
+					Node secondOctetNode=CreateNonHostNode (firstOctet+"."+secondOctet+".*");
 					secondOctetNodes[firstOctet].Add(secondOctet,secondOctetNode);
 					thirdOctetNodes[firstOctet].Add(secondOctet,new Dictionary<string, Node>());
 					SetNodeAsChild(secondOctetNode,firstOctetNodes[firstOctet]);
@@ -1218,7 +1393,7 @@ namespace Topology {
 				
 				if (!thirdOctetNodes[firstOctet][secondOctet].ContainsKey(thirdOctet))
 				{
-					Node thirdOctetNode=CreateNewNode (Vector2.zero,firstOctet+"."+secondOctet+"."+thirdOctet+".*");
+					Node thirdOctetNode=CreateNonHostNode(firstOctet+"."+secondOctet+"."+thirdOctet+".*");
 					thirdOctetNodes[firstOctet][secondOctet].Add(thirdOctet,thirdOctetNode);
 					SetNodeAsChild(thirdOctetNode,secondOctetNodes[firstOctet][secondOctet]);
 				}

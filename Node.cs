@@ -7,12 +7,20 @@ namespace Topology {
 
 	public class Node : MonoBehaviour {
 
+		public bool hostNode=true;
+		public int dbId=-1;
+		public int dbWorkspaceid=0;
+		public bool changesMade=false;
+		
 		public string id;
 		public TextMesh nodeText;
 		public string text
 		{
 			get {return _text;}
-			set {_text=value; nodeText.text=osText+"\n"+_text;}
+			set 
+			{
+				_text=value; nodeText.text=osText+"\n"+_text; 
+			}
 		}
 		string _text="";
 		string osText="";
@@ -65,6 +73,7 @@ namespace Topology {
 		}
 		bool _unfoldChildren=false;
 		//public bool hasParent
+		
 		
 		public Node parentNode=null;
 		
