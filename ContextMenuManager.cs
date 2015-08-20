@@ -248,13 +248,14 @@ public class ContextMenuManager{
 			//NAME EDIT FIELD
 			if (selected.Count==1)
 			{
+				Node selectedNode=selected[selectItemDroplist.GetSelectedItemIndex()];
 				//string nodeName=selected[selectItemDroplist.GetSelectedItemIndex()].text;
 				//string oldName=nodeName;
 				string nameDisplayedInEditField="";
 				if (nameEditFieldInFocus)
 				{
 					nameDisplayedInEditField=editedNodeName;
-				} else {nameDisplayedInEditField=selected[selectItemDroplist.GetSelectedItemIndex()].text;}
+				} else {nameDisplayedInEditField=selectedNode.text;}
 				GUI.SetNextControlName("NameField");
 				editedNodeName=GUI.TextField(new Rect(rightColumnStartX,rightColumnStartY+3,elementSizeX*1.3f,elementSizeY),nameDisplayedInEditField,25);
 				if (GUI.GetNameOfFocusedControl() == "NameField") 
@@ -262,7 +263,7 @@ public class ContextMenuManager{
 					//if focus was set this frame
 					if (!nameEditFieldInFocus)
 					{
-						editedNodeName=selected[selectItemDroplist.GetSelectedItemIndex()].text;
+						editedNodeName=selectedNode.text;
 					}
 					nameEditFieldInFocus=true;
 				} 
@@ -271,19 +272,42 @@ public class ContextMenuManager{
 					//if focus was lost this frame
 					if (nameEditFieldInFocus) 
 					{
-						if (editedNodeName!=selected[selectItemDroplist.GetSelectedItemIndex()].text) 
+						if (editedNodeName!=selectedNode.text) 
 						{
-							GameController.mainController.unsavedChangesExist=true;
-							IPAddress outAddress;
-							if (IPAddress.TryParse(editedNodeName,out outAddress))//.TryParse(editedNodeName,out outAddress))
+							//if pseudonode or if the scene is not generated from DB - assign name without tests
+							if (!selectedNode.hostNode | !GameController.mainController.occupiedWorkspaceIpsInDB.ContainsKey(selectedNode.dbWorkspaceid)) 
 							{
-								selected[selectItemDroplist.GetSelectedItemIndex()].text=outAddress.ToString();
-								selected[selectItemDroplist.GetSelectedItemIndex()].changesMade=true;
-							} 
-							else 
+								selectedNode.text=editedNodeName;
+								GameController.mainController.unsavedChangesExist=true;
+							}
+							else
 							{
-								InputManager.mainInputManager.StartContextNameErrorPopup();
-								editedNodeName=selected[selectItemDroplist.GetSelectedItemIndex()].text;
+								//if real node from DB - test name for proper, unoccupied ip
+								IPAddress outAddress;
+								if (IPAddress.TryParse(editedNodeName,out outAddress))//.TryParse(editedNodeName,out outAddress))
+								{
+									string newIp=outAddress.ToString();
+									//see if check is necessary
+										//check if ip is unique within the workspace
+									if (!GameController.mainController.occupiedWorkspaceIpsInDB[selectedNode.dbWorkspaceid].Contains(newIp))
+									{	
+										//if (!GameController.mainController.occupiedWorkspaceIpsInDB.ContainsKey(selectedNode.dbWorkspaceid)) 
+										//{GameController.mainController.occupiedWorkspaceIpsInDB.Add (selectedNode.dbWorkspaceid,new List<string>());}
+										//mark new ip as occupied
+										GameController.mainController.occupiedWorkspaceIpsInDB[selectedNode.dbWorkspaceid].Add(newIp);
+										if (GameController.mainController.occupiedWorkspaceIpsInDB[selectedNode.dbWorkspaceid].Contains(selectedNode.text))
+										{GameController.mainController.occupiedWorkspaceIpsInDB[selectedNode.dbWorkspaceid].Remove(selectedNode.text);}
+										selectedNode.text=newIp;
+										selectedNode.changesMade=true;
+										GameController.mainController.unsavedChangesExist=true;
+									}
+									else {InputManager.mainInputManager.StartContextNameErrorPopup(1);}
+								} 
+								else 
+								{
+									InputManager.mainInputManager.StartContextNameErrorPopup(0);
+									editedNodeName=selectedNode.text;
+								}
 							}
 						}
 						

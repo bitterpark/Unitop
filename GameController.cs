@@ -16,6 +16,7 @@ namespace Topology {
 		Hashtable nodes=new Hashtable();
 		Hashtable links=new Hashtable();
 		List<int> deletedNodeDbIds=new List<int>();
+		public Dictionary<int,List<string>> occupiedWorkspaceIpsInDB=new Dictionary<int, List<string> >();
 		
 		public LinkDrawManager linkDrawManager;
 		public InputManager myInputManager;
@@ -415,7 +416,7 @@ namespace Topology {
 			return createdDBNode;
 		}
 		
-		Node CreateNewNode(Vector2 newNodePosition) {return CreateNewNode(newNodePosition,"127.0.0.1");}
+		Node CreateNewNode(Vector2 newNodePosition) {return CreateNewNode(newNodePosition,"-");}
 		
 		Node CreateNewNode(Vector2 newNodePosition,string newNodeText)
 		{
@@ -694,6 +695,12 @@ namespace Topology {
 				{
 					DeleteLink(link,null);
 				}
+			}
+			//free up the ip if necessary
+			if (occupiedWorkspaceIpsInDB.ContainsKey(deletedNode.dbWorkspaceid))
+			{
+				if (occupiedWorkspaceIpsInDB[deletedNode.dbWorkspaceid].Contains(deletedNode.text)) 
+				{occupiedWorkspaceIpsInDB[deletedNode.dbWorkspaceid].Remove(deletedNode.text);}
 			}
 			GameObject.Destroy(deletedNode.gameObject);
 			unsavedChanges=true;
@@ -1053,6 +1060,8 @@ namespace Topology {
 		
 		void PushToDB()
 		{
+			
+			
 			NpgsqlConnection dbConnection=new NpgsqlConnection("Server=37.220.6.166;Port=5432;User Id=msf3;Password=KtrFeVtk9Y7#L;Database=msf3;");
 			dbConnection.Open();
 			foreach (int deletedNodeDBId in deletedNodeDbIds)
@@ -1229,7 +1238,7 @@ namespace Topology {
 		IEnumerator LoadLayoutFromDB()
 		{
 			deletedNodeDbIds.Clear();
-			
+			occupiedWorkspaceIpsInDB.Clear();
 			int loadLimiter=150;
 			NpgsqlConnection dbConnection=new NpgsqlConnection("Server=37.220.6.166;Port=5432;User Id=msf3;Password=KtrFeVtk9Y7#L;Database=msf3;");
 			dbConnection.Open();
@@ -1240,53 +1249,6 @@ namespace Topology {
 			long totalCount=(long)countCmd.ExecuteScalar();
 			int displayedTotalCount=(int)Mathf.Min (totalCount,loadLimiter);
 			
-			NpgsqlParameter p;
-			
-			
-			//IPAddress balls = new IPAddress();
-			//IPAddress.t
-			/*
-			//alter one host record
-			NpgsqlCommand alterHostCmd = new NpgsqlCommand("update hosts set \"address\"=:Adr where \"id\"=16;",dbConnection);
-			p = new NpgsqlParameter("Osname",NpgsqlTypes.NpgsqlDbType.Varchar);
-			string ballsnuts="Unknowns";
-			//NpgsqlTypes.NpgsqlDbType.Inet()
-			p.Value=ballsnuts;
-			//alterHostCmd.Parameters.Add(p);//new NpgsqlParameter("Osname",NpgsqlTypes.NpgsqlDbType.Varchar));
-			p = new NpgsqlParameter("Adr",NpgsqlTypes.NpgsqlDbType.Inet);
-			p.Value="Ball"; //	24.227.69.3
-			alterHostCmd.Parameters.Add (p);
-			
-			//alterHostCmd.Parameters[0]=(NpgsqlTypes.NpgsqlDbType.Varchar)ballsnuts;
-			//NpgsqlTypes.ba
-			try
-			{
-				alterHostCmd.ExecuteNonQuery();
-			}
-			catch (NpgsqlException ex) {print ("Unable to alter!"+ex.ToString());}
-			*/
-			
-			/*
-			//insert new record
-			NpgsqlCommand insertHostCmd = new NpgsqlCommand("insert into hosts (address,workspace_id) values (:Adr,:Wid);",dbConnection);
-			//(\"adrvalue\"=:Adr,\"workspacevalue\"=:Wid);",dbConnection);
-			p = new NpgsqlParameter("Adr",NpgsqlTypes.NpgsqlDbType.Inet);
-			p.Value="0.0.0.0";
-			insertHostCmd.Parameters.Add(p);
-			p = new NpgsqlParameter("Wid",NpgsqlTypes.NpgsqlDbType.Integer);
-			p.Value=0;
-			insertHostCmd.Parameters.Add(p);
-			try {insertHostCmd.ExecuteNonQuery();}
-			catch (NpgsqlException ex) {print ("insert failed:"+ex.ToString());}
-			*/
-			
-			/*
-			//delete record
-			NpgsqlCommand deleteHostCmd = new NpgsqlCommand("delete from hosts where id = 5492;",dbConnection);
-			deleteHostCmd.ExecuteNonQuery();
-			try {deleteHostCmd.ExecuteNonQuery();}
-			catch (NpgsqlException ex) {print ("delete failed:"+ex.ToString());}
-			*/
 			
 			//Load all nodes from db
 			NpgsqlCommand Command = new NpgsqlCommand("select id,cast(address as varchar(255)),os_name,workspace_id from hosts", dbConnection);
@@ -1313,92 +1275,100 @@ namespace Topology {
 			float returnSec=1;
 			float elapsed=0;
 			
-			while (result.Read() && loadCounter<loadLimiter)
+			//Add workspace 0 preemptively
+			occupiedWorkspaceIpsInDB.Add(0,new List<string>());
+			while (result.Read())
 				
 			{	
 				int dbId=result.GetInt32(result.GetOrdinal("id"));
 				
 				int workspaceId=result.GetInt32(result.GetOrdinal("workspace_id"));
 				
-				string osName="Null";
-				if (!result.IsDBNull(result.GetOrdinal("os_name")))//.GetOrdinal("os_name"))!=null) 
-				{osName = result.GetString(result.GetOrdinal("os_name"));}
+				
 				
 				string address=result.GetString(result.GetOrdinal("address"));
 				address=address.Remove(address.IndexOf("/"),3);//address.Length-3-1,3);
 				
+				if (!occupiedWorkspaceIpsInDB.ContainsKey(workspaceId)) {occupiedWorkspaceIpsInDB.Add(workspaceId,new List<string>());}
+				occupiedWorkspaceIpsInDB[workspaceId].Add(address);
 				
 				//InputManager.mainInputManager.readmeText+=address+"\n";
-				//InputManager.mainInputManager.readmeTextHeight+=1;
-				
-				float startNodeRectanglex=-200;
-				float startNodeRectangley=200;
-				float nodeXOffset=784;
-				float nodeYOffset=528;
-				int rowCount=10;
-				
-				
-				//Reset row index
-				if (i==rowCount) 
+				//InputManager.mainInputManager.readmeTextHeight+=1;		
+				if (loadCounter<loadLimiter)
 				{
-					i=0;
-					j++;
-				}
-				
-				Vector3 newNodePos=new Vector3(startNodeRectanglex+nodeXOffset*i,-(startNodeRectangley+nodeYOffset*j),3000);
-				
-				int osIndex=(int)OSTypes.WinXP;
-				if (osName.Contains("XP")) {osIndex=(int)OSTypes.WinXP;}
-				if (osName.Contains("7")) {osIndex=(int)OSTypes.Win7;}
-				if (osName.Contains("8")) 
-				{
-					if (osName.Contains("2008")) {osIndex=(int)OSTypes.Server2008;}
-					else {osIndex=(int)OSTypes.Win8;}
-				}
-				if (osName.Contains("2000")) {osIndex=(int)OSTypes.Server2000;}
-				if (osName.Contains("2003")) {osIndex=(int)OSTypes.Server2003;}
-				if (osName.Contains("2012")) {osIndex=(int)OSTypes.Server2012;}
-				if (osName.Contains("Linux")) {osIndex=(int)OSTypes.Linux;}
-				if (osName.Contains("IOS")) {osIndex=(int)OSTypes.MacOS;}
-				
-				createdNode=CreateNodeFromDB(newNodePos,address,osIndex,dbId,workspaceId);//CreateNewNode(newNodePos, address,osIndex);//CreateNodeFromDB(newNodePos,address,osIndex,dbId,workspaceId);//CreateNewNode(newNodePos, address,osIndex);
-				
-				//first octet
-				string firstOctet=address.Substring(0,address.IndexOf("."));
-				address=address.Remove(0,address.IndexOf(".")+1);
-				
-				if (!firstOctetNodes.ContainsKey(firstOctet))
-				{
-					Node firstOctetNode=CreateNonHostNode (firstOctet+".*");
-					firstOctetNodes.Add(firstOctet,firstOctetNode);
-					secondOctetNodes.Add(firstOctet,new Dictionary<string, Node>());
-					thirdOctetNodes.Add(firstOctet,new Dictionary<string, Dictionary<string, Node>>());
-					SetNodeAsChild(firstOctetNode,root);
-				}
-				//second octet
-				string secondOctet=address.Substring(0,address.IndexOf("."));
-				address=address.Remove(0,address.IndexOf(".")+1);
-				
-				if (!secondOctetNodes[firstOctet].ContainsKey(secondOctet))
-				{
-					Node secondOctetNode=CreateNonHostNode (firstOctet+"."+secondOctet+".*");
-					secondOctetNodes[firstOctet].Add(secondOctet,secondOctetNode);
-					thirdOctetNodes[firstOctet].Add(secondOctet,new Dictionary<string, Node>());
-					SetNodeAsChild(secondOctetNode,firstOctetNodes[firstOctet]);
 					
-				}
-				//Third octet
-				string thirdOctet=address.Substring(0,address.IndexOf("."));
-				address=address.Remove(0,address.IndexOf(".")+1);
+					string osName="Null";
+					if (!result.IsDBNull(result.GetOrdinal("os_name")))//.GetOrdinal("os_name"))!=null) 
+					{osName = result.GetString(result.GetOrdinal("os_name"));}
+					
+					float startNodeRectanglex=-200;
+					float startNodeRectangley=200;
+					float nodeXOffset=784;
+					float nodeYOffset=528;
+					int rowCount=10;
 				
-				if (!thirdOctetNodes[firstOctet][secondOctet].ContainsKey(thirdOctet))
-				{
-					Node thirdOctetNode=CreateNonHostNode(firstOctet+"."+secondOctet+"."+thirdOctet+".*");
-					thirdOctetNodes[firstOctet][secondOctet].Add(thirdOctet,thirdOctetNode);
-					SetNodeAsChild(thirdOctetNode,secondOctetNodes[firstOctet][secondOctet]);
-				}
-				//Actual IP
-				SetNodeAsChild(createdNode,thirdOctetNodes[firstOctet][secondOctet][thirdOctet]);
+				
+					//Reset row index
+					if (i==rowCount) 
+					{
+						i=0;
+						j++;
+					}
+				
+					Vector3 newNodePos=new Vector3(startNodeRectanglex+nodeXOffset*i,-(startNodeRectangley+nodeYOffset*j),3000);
+				
+					int osIndex=(int)OSTypes.WinXP;
+					if (osName.Contains("XP")) {osIndex=(int)OSTypes.WinXP;}
+					if (osName.Contains("7")) {osIndex=(int)OSTypes.Win7;}
+					if (osName.Contains("8")) 
+					{
+						if (osName.Contains("2008")) {osIndex=(int)OSTypes.Server2008;}
+						else {osIndex=(int)OSTypes.Win8;}
+					}
+					if (osName.Contains("2000")) {osIndex=(int)OSTypes.Server2000;}
+					if (osName.Contains("2003")) {osIndex=(int)OSTypes.Server2003;}
+					if (osName.Contains("2012")) {osIndex=(int)OSTypes.Server2012;}
+					if (osName.Contains("Linux")) {osIndex=(int)OSTypes.Linux;}
+					if (osName.Contains("IOS")) {osIndex=(int)OSTypes.MacOS;}
+				
+					createdNode=CreateNodeFromDB(newNodePos,address,osIndex,dbId,workspaceId);//CreateNewNode(newNodePos, address,osIndex);//CreateNodeFromDB(newNodePos,address,osIndex,dbId,workspaceId);//CreateNewNode(newNodePos, address,osIndex);
+				
+					//first octet
+					string firstOctet=address.Substring(0,address.IndexOf("."));
+					address=address.Remove(0,address.IndexOf(".")+1);
+				
+					if (!firstOctetNodes.ContainsKey(firstOctet))
+					{
+						Node firstOctetNode=CreateNonHostNode (firstOctet+".*");
+						firstOctetNodes.Add(firstOctet,firstOctetNode);
+						secondOctetNodes.Add(firstOctet,new Dictionary<string, Node>());
+						thirdOctetNodes.Add(firstOctet,new Dictionary<string, Dictionary<string, Node>>());
+						SetNodeAsChild(firstOctetNode,root);
+					}
+					//second octet
+					string secondOctet=address.Substring(0,address.IndexOf("."));
+					address=address.Remove(0,address.IndexOf(".")+1);
+				
+					if (!secondOctetNodes[firstOctet].ContainsKey(secondOctet))
+					{
+						Node secondOctetNode=CreateNonHostNode (firstOctet+"."+secondOctet+".*");
+						secondOctetNodes[firstOctet].Add(secondOctet,secondOctetNode);
+						thirdOctetNodes[firstOctet].Add(secondOctet,new Dictionary<string, Node>());
+						SetNodeAsChild(secondOctetNode,firstOctetNodes[firstOctet]);
+					
+					}
+					//Third octet
+					string thirdOctet=address.Substring(0,address.IndexOf("."));
+					address=address.Remove(0,address.IndexOf(".")+1);
+				
+					if (!thirdOctetNodes[firstOctet][secondOctet].ContainsKey(thirdOctet))
+					{
+						Node thirdOctetNode=CreateNonHostNode(firstOctet+"."+secondOctet+"."+thirdOctet+".*");
+						thirdOctetNodes[firstOctet][secondOctet].Add(thirdOctet,thirdOctetNode);
+						SetNodeAsChild(thirdOctetNode,secondOctetNodes[firstOctet][secondOctet]);
+					}
+					//Actual IP
+					SetNodeAsChild(createdNode,thirdOctetNodes[firstOctet][secondOctet][thirdOctet]);
 				
 				/*
 				float firstOctet=float.Parse(address.Substring(0,3));
@@ -1408,8 +1378,9 @@ namespace Topology {
 				if (firstOctet>=192 && firstOctet<=223) {SetNodeAsChild(createdNode,C);}
 				if (firstOctet>=224 && firstOctet<=239) {SetNodeAsChild(createdNode,D);}
 				*/				
-				i++;
-				loadCounter++;
+					i++;
+					loadCounter++;
+				}
 				elapsed+=Time.deltaTime;
 				if (elapsed>=returnSec) 
 				{
@@ -1422,6 +1393,7 @@ namespace Topology {
 					statusText.text ="Загрузка "+(loadPercentage.ToString().Substring(0,substringSize))+"%";//"Загрузка хоста "+loadCounter+"/"+displayedTotalCount;
 					yield return true;
 				}
+				
 			}
 			
 			dbConnection.Close();

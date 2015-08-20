@@ -64,6 +64,7 @@ public class InputManager : MonoBehaviour {
 	float errorPopOutForSecs=3;
 	float errorPopInForSecs=3;
 	bool showErrorPopup=true;
+	string errorPopupText="";
 	Rect errorPopupRect;
 	
 	Rect openButtonRect=new Rect(5,10,100,30);
@@ -89,7 +90,8 @@ public class InputManager : MonoBehaviour {
 	float readmeTextHeight=0;
 	
 	Rect quitWithoutSaveRect=new Rect(100,100,280,130);
-	bool showQuitWIthoutSaveDialog=false;	
+	bool showQuitWithoutSaveDialog=false;
+	bool showEmptyPushDialog=false;	
 	
 	enum MouseClickMode {SingleSelect, MultiSelect, ControlSelect, CreateLinkMode, CreateHierarchyLinkMode};
 	//ctrl, shift,alt select, link create and hierarchy link toggle
@@ -168,7 +170,20 @@ public class InputManager : MonoBehaviour {
 			}
 			else 
 			{
-			  	if (GUI.Button(saveButtonRect,"Пуш в БД")) {CallDBPush();}
+			  	if (GUI.Button(saveButtonRect,"Пуш в БД")) 
+			  	{
+					bool emptyNodeNamesExist=false;
+					foreach(Node sceneNode in GameController.mainController.GetNodes().Values)
+					{
+						if (sceneNode.hostNode && sceneNode.text=="-")
+						{
+							emptyNodeNamesExist=true;
+							break;
+						}
+					}
+					if (!emptyNodeNamesExist) {CallDBPush();}
+					else {showEmptyPushDialog=true;}
+			  	}
 			}
 		}
 		
@@ -200,7 +215,8 @@ public class InputManager : MonoBehaviour {
 		//ManageTooltip();
 		myContextMenu.ManageTooltip(supressContextMenu);
 		
-		if (showQuitWIthoutSaveDialog) {DrawQuitWithoutSaveDialog();}
+		if (showQuitWithoutSaveDialog) {DrawQuitWithoutSaveDialog();}
+		if (showEmptyPushDialog) {DrawPushWithEmptyNodesDialog();}
 		if (showSavePopup) {DrawSavePopup();}
 		if (showErrorPopup) 
 		{
@@ -257,13 +273,23 @@ public class InputManager : MonoBehaviour {
 		//yield break;
 	}
 	
-	public void StartContextNameErrorPopup()
+	public void StartContextNameErrorPopup(int mode)
 	{
-		PrepContextNameErrorPopupDraw();
+		PrepContextNameErrorPopupDraw(mode);
 	}
 	
-	void PrepContextNameErrorPopupDraw()
+	void PrepContextNameErrorPopupDraw(int mode)
 	{
+		//incorrect name error
+		if (mode==0) 
+		{
+			errorPopupText="Неверный IP";
+		}
+		//ip is taken within the workgroup
+		if (mode==1) 
+		{
+			errorPopupText="IP занят";
+		}
 		errorPopOutForSecs=3;
 		errorPopInForSecs=3;
 		showErrorPopup=true;
@@ -279,7 +305,7 @@ public class InputManager : MonoBehaviour {
 		//float errorPopInForSecs=3;
 		float horizontalDeltaPerSec=63f;
 		float xMax=15;
-		GUIContent popupContent=new GUIContent("Неверный IP!");
+		GUIContent popupContent=new GUIContent(errorPopupText);
 		//while (errorPopOutForSecs>0 | errorPopInForSecs>0)
 		//{
 		
@@ -372,7 +398,35 @@ public class InputManager : MonoBehaviour {
 		if (GUI.Button(new Rect(10+80+5+90+5,quitWithoutSaveRect.height-10-29,80,29),"Вернуться"))
 		{
 			//GameController.mainController.unsavedChangesExist=false;
-			showQuitWIthoutSaveDialog=false;
+			showQuitWithoutSaveDialog=false;
+			//Application.Quit();	
+		}
+		GUI.EndGroup();
+	}
+	
+	void DrawPushWithEmptyNodesDialog()
+	{
+		GUI.Box(quitWithoutSaveRect,"Есть пустые адреса","window");
+		GUI.BeginGroup(quitWithoutSaveRect);
+		GUI.Label(new Rect(quitWithoutSaveRect.width*0.5f-120,quitWithoutSaveRect.height*0.25f,250,29),"Пустые адреса не будут сохранены");
+		GUI.Label(new Rect(quitWithoutSaveRect.width*0.5f-80,quitWithoutSaveRect.height*0.4f,200,29),"Продолжить?");
+		if (GUI.Button(new Rect(10,quitWithoutSaveRect.height-10-29,80,29),"Да"))
+		{
+			//GameController.mainController.CallDBPush();
+			CallDBPush();
+			showEmptyPushDialog=false;
+			//Application.Quit();
+		}
+		/*
+		if (GUI.Button(new Rect(10+80+5,quitWithoutSaveRect.height-10-29,90,29),"Не сохранять"))
+		{
+			GameController.mainController.unsavedChangesExist=false;
+			Application.Quit();	
+		}*/
+		if (GUI.Button(new Rect(10+80+5+90+5,quitWithoutSaveRect.height-10-29,80,29),"Нет"))
+		{
+			//GameController.mainController.unsavedChangesExist=false;
+			showEmptyPushDialog=false;
 			//Application.Quit();	
 		}
 		GUI.EndGroup();
@@ -976,7 +1030,7 @@ public class InputManager : MonoBehaviour {
 		    && !dbButtonRect.Contains(mousePosInGUICoords)
 		    && !quitButtonRect.Contains(mousePosInGUICoords)
 		    && !(readmeWindowrect.Contains(mousePosInGUICoords) && showReadme)
-		    && !(quitWithoutSaveRect.Contains(mousePosInGUICoords) && showQuitWIthoutSaveDialog)
+		    && !(quitWithoutSaveRect.Contains(mousePosInGUICoords) && (showQuitWithoutSaveDialog | showEmptyPushDialog))
 		    && (!myContextMenu.isDrawn 
 		    	|(!myContextMenu.GetContextMenuPosNodes().Contains(mousePosInGUICoords) 
 		    	&& !myContextMenu.GetContextMenuPosLinks().Contains(mousePosInGUICoords)//contextMenuPosLinks.Contains(mousePosInGUICoords)
@@ -1055,7 +1109,7 @@ public class InputManager : MonoBehaviour {
 		if (GameController.mainController.unsavedChangesExist && GameController.mainController.HasSourceFile())
 		{
 			Application.CancelQuit();
-			showQuitWIthoutSaveDialog=true;
+			showQuitWithoutSaveDialog=true;
 		}
 		#endif
 	}
