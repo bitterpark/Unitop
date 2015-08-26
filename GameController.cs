@@ -1055,20 +1055,14 @@ namespace Topology {
 		
 		public void CallDBPush()
 		{
-			PushToDB();
+			StartCoroutine(PushToDB());
 		}
 		
-		void PushToDB()
+		IEnumerator PushToDB()
 		{
-			
-			
-			NpgsqlConnection dbConnection=new NpgsqlConnection("Server=37.220.6.166;Port=5432;User Id=msf3;Password=KtrFeVtk9Y7#L;Database=msf3;");
-			dbConnection.Open();
-			foreach (int deletedNodeDBId in deletedNodeDbIds)
-			{
-				RemoveHostDeletedInSceneFromDB(dbConnection,deletedNodeDBId);
-			}
-			deletedNodeDbIds.Clear();
+			//find out number of operations
+			int totalPushOpCount=0;
+			totalPushOpCount+=deletedNodeDbIds.Count;
 			foreach (Node sceneNode in nodes.Values)
 			{
 				if (sceneNode.hostNode) 
@@ -1076,14 +1070,79 @@ namespace Topology {
 					// if altered db node
 					if (sceneNode.dbId!=-1 && sceneNode.changesMade)
 					{
+						totalPushOpCount+=1;
+					}
+					//if new node created in scene
+					if (sceneNode.dbId==-1)
+					{
+						totalPushOpCount+=1;
+					}	
+				}	
+			}
+			
+			int donePushOpCount=0;
+			
+			float returnSec=1;
+			float elapsed=0;
+			
+			//make the coroutine
+			NpgsqlConnection dbConnection=new NpgsqlConnection("Server=37.220.6.166;Port=5432;User Id=msf3;Password=KtrFeVtk9Y7#L;Database=msf3;");
+			dbConnection.Open();
+			foreach (int deletedNodeDBId in deletedNodeDbIds)
+			{
+				RemoveHostDeletedInSceneFromDB(dbConnection,deletedNodeDBId);
+				donePushOpCount+=1;
+				elapsed+=Time.deltaTime;
+				if (elapsed>=returnSec) 
+				{
+					elapsed=0; 
+					
+					float loadPercentage=(float)donePushOpCount/(float)totalPushOpCount;
+					loadPercentage*=100f;
+					int substringSize=1;
+					if (loadPercentage>=10) {substringSize=2;}
+					statusText.text ="Загрузка "+(loadPercentage.ToString().Substring(0,substringSize))+"%";//"Загрузка хоста "+loadCounter+"/"+displayedTotalCount;
+					yield return true;
+				}
+			}
+			deletedNodeDbIds.Clear();
+			
+			elapsed=0;
+			foreach (Node sceneNode in nodes.Values)
+			{
+				if (sceneNode.hostNode) 
+				{
+					bool opDone=false;
+					// if altered db node
+					if (sceneNode.dbId!=-1 && sceneNode.changesMade)
+					{
 						UpdateDBHost(dbConnection,sceneNode);
 						sceneNode.changesMade=false;
+						opDone=true;
 					}
 					//if new node created in scene
 					if (sceneNode.dbId==-1)
 					{
 						AddNewHostToDB(dbConnection,sceneNode);
-						sceneNode.dbId=0;
+						opDone=true;
+						
+					}
+					if (opDone)
+					{
+						donePushOpCount+=1;
+						
+						elapsed+=Time.deltaTime;
+						if (elapsed>=returnSec) 
+						{
+							elapsed=0; 
+							
+							float loadPercentage=(float)donePushOpCount/(float)totalPushOpCount;
+							loadPercentage*=100f;
+							int substringSize=1;
+							if (loadPercentage>=10) {substringSize=2;}
+							statusText.text ="Прогресс "+(loadPercentage.ToString().Substring(0,substringSize))+"%";//"Загрузка хоста "+loadCounter+"/"+displayedTotalCount;
+							yield return true;
+						}
 					}	
 				}	
 			}
@@ -1239,7 +1298,7 @@ namespace Topology {
 		{
 			deletedNodeDbIds.Clear();
 			occupiedWorkspaceIpsInDB.Clear();
-			int loadLimiter=150;
+			//int loadLimiter=5000;
 			NpgsqlConnection dbConnection=new NpgsqlConnection("Server=37.220.6.166;Port=5432;User Id=msf3;Password=KtrFeVtk9Y7#L;Database=msf3;");
 			dbConnection.Open();
 			
@@ -1247,7 +1306,7 @@ namespace Topology {
 			string stmt="SELECT COUNT(*) FROM hosts";
 			NpgsqlCommand countCmd= new NpgsqlCommand(stmt,dbConnection);
 			long totalCount=(long)countCmd.ExecuteScalar();
-			int displayedTotalCount=(int)Mathf.Min (totalCount,loadLimiter);
+			int displayedTotalCount=(int)Mathf.Min (totalCount,totalCount);//loadLimiter);
 			
 			
 			//Load all nodes from db
@@ -1294,8 +1353,8 @@ namespace Topology {
 				
 				//InputManager.mainInputManager.readmeText+=address+"\n";
 				//InputManager.mainInputManager.readmeTextHeight+=1;		
-				if (loadCounter<loadLimiter)
-				{
+				//if (loadCounter<loadLimiter)
+				//{
 					
 					string osName="Null";
 					if (!result.IsDBNull(result.GetOrdinal("os_name")))//.GetOrdinal("os_name"))!=null) 
@@ -1380,7 +1439,7 @@ namespace Topology {
 				*/				
 					i++;
 					loadCounter++;
-				}
+				//}
 				elapsed+=Time.deltaTime;
 				if (elapsed>=returnSec) 
 				{
